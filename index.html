@@ -3,6 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0f0f10">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Dispatcher">
+  <link rel="manifest" href="manifest.json">
 <title>Dispatcher — Transporte Emporium</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
@@ -548,6 +554,26 @@ function addDest(){const v=document.getElementById('di').value.trim();if(!v)retu
 function remDest(i){tmpD.splice(i,1);renderDests();}
 function renderDests(){document.getElementById('dlist').innerHTML=tmpD.map((d,i)=>`<div class="ditem"><span>${d}</span><button class="dreml" onclick="remDest(${i})">&#x2715;</button></div>`).join('');}
 
+async function sendPushToDriver(driverName, orderType, dept, origin, destinations){
+  try {
+    const msg = orderType + ' - ' + dept + ': ' + origin + ' → ' + destinations.join(', ');
+    await fetch('https://onesignal.com/api/v1/notifications', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Basic 3zibhkte6eaenfxva6fiedj7g'
+      },
+      body: JSON.stringify({
+        app_id: '4b7c6ad7-ef30-44eb-8847-c42f1529a48f',
+        filters: [],
+        included_segments: ['Total Subscriptions'],
+        headings: { en: 'Nueva orden asignada' },
+        contents: { en: driverName + ': ' + msg },
+      })
+    });
+  } catch(e) {}
+}
+
 async function saveOrder(){
   const dept=document.getElementById('f-dept').value.trim();
   const origin=document.getElementById('f-origin').value.trim();
@@ -559,7 +585,11 @@ async function saveOrder(){
     notes:document.getElementById('f-notes').value.trim(),
     status:'Pendiente',created_by:cu.display,date:new Date().toISOString().slice(0,10)};
   const r=await sbf('orders',{method:'POST',body:JSON.stringify(o)});
-  if(r){closeModal();loadOrders();}else alert('Error al guardar la orden');
+  if(r){
+    closeModal();
+    loadOrders();
+    sendPushToDriver(driver, o.type, dept, origin, tmpD);
+  }else alert('Error al guardar la orden');
 }
 
 async function delOrder(id){if(!confirm('Borrar esta orden?'))return;await sbf(`orders?id=eq.${id}`,{method:'DELETE'});loadOrders();}
@@ -585,9 +615,23 @@ function changePin(){
   setTimeout(()=>msg.textContent='',3000);
 }
 
+async function autoCleanOldOrders(){
+  const today = new Date().toISOString().slice(0,10);
+  const lastDate = localStorage.getItem('disp:lastCleanDate');
+  if(lastDate && lastDate !== today){
+    // Es un nuevo dia - borrar ordenes entregadas del dia anterior
+    try {
+      await sbf('orders?status=eq.Entregada&date=eq.' + lastDate, {method:'DELETE'});
+    } catch(e) {}
+  }
+  localStorage.setItem('disp:lastCleanDate', today);
+}
+
+if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').catch(()=>{});}
+
 window.addEventListener('load',async()=>{
   const s=localStorage.getItem('disp:sess');
-  if(s){try{cu=JSON.parse(s);await showApp();}catch(e){localStorage.removeItem('disp:sess');}}
+  if(s){try{cu=JSON.parse(s);await showApp();await autoCleanOldOrders();}catch(e){localStorage.removeItem('disp:sess');}}
 });
 </script>
 </body>
