@@ -557,11 +557,11 @@ function renderDests(){document.getElementById('dlist').innerHTML=tmpD.map((d,i)
 async function sendPushToDriver(driverName, orderType, dept, origin, destinations){
   try {
     const msg = orderType + ' - ' + dept + ': ' + origin + ' → ' + destinations.join(', ');
-    await fetch('https://onesignal.com/api/v1/notifications', {
+    await fetch('https://sieadibkcqnvbwlwlmds.supabase.co/functions/v1/send-push', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Basic 3zibhkte6eaenfxva6fiedj7g'
+        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpZWFkaWJrY3FudmJ3bHdsbWRzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2MDAwMDgsImV4cCI6MjA5NDE3NjAwOH0.Qdh2soPMFgJVBY45HHUqatBhkECOlFBBJIBkFJA5Lak'
       },
       body: JSON.stringify({
         app_id: '4b7c6ad7-ef30-44eb-8847-c42f1529a48f',
