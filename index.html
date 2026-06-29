@@ -564,11 +564,8 @@ async function sendPushToDriver(driverName, orderType, dept, origin, destination
         'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpZWFkaWJrY3FudmJ3bHdsbWRzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2MDAwMDgsImV4cCI6MjA5NDE3NjAwOH0.Qdh2soPMFgJVBY45HHUqatBhkECOlFBBJIBkFJA5Lak'
       },
       body: JSON.stringify({
-        app_id: '4b7c6ad7-ef30-44eb-8847-c42f1529a48f',
-        filters: [],
-        included_segments: ['Total Subscriptions'],
-        headings: { en: 'Nueva orden asignada' },
-        contents: { en: driverName + ': ' + msg },
+        app_id: '4b7c6ad7-ef30-44eb-8847-c42f1529a48f', driverName: driverName, message: msg,
+        
       })
     });
   } catch(e) {}
