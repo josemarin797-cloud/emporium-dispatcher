@@ -624,7 +624,7 @@ async function autoCleanOldOrders(){
   localStorage.setItem('disp:lastCleanDate', today);
 }
 
-if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').catch(()=>{});}
+if('serviceWorker' in navigator){navigator.serviceWorker.getRegistrations().then(r=>r.forEach(sw=>sw.unregister()));navigator.serviceWorker.register('/sw.js').catch(()=>{});}
 
 window.addEventListener('load',async()=>{
   const s=localStorage.getItem('disp:sess');
