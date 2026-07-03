@@ -524,7 +524,7 @@ function renderOrders(){
       <div class="omain">
         <div class="oinfo">
           <div class="otop"><span class="otype">${o.type||'Transferencia'}</span><span class="otitle">${o.department||''}</span></div>
-          <div class="ometa">${o.origin||''} ${o.origin_deptos&&o.origin_deptos.length>0?`<span style="color:var(--acc);font-size:10px">[${o.origin_deptos.join(' · ')}]</span>`:''} &rarr;</div>
+          <div class="ometa">${o.origin||''} <span style="color:var(--acc);font-size:10px">[${o.department||''}]</span> &rarr;</div>
           ${destsHtml}
           <div class="ometa" style="margin-top:3px">${o.driver_id||''} &middot; ${o.vehicle_id||''}</div>
           ${o.notes?`<div class="ofooter">${o.notes}</div>`:''}
@@ -712,8 +712,7 @@ async function saveOrder(){
   if(sinDeptos.length>0){alert('Agrega al menos un departamento a: '+sinDeptos.map(d=>d.sucursal).join(', '));return;}
   const destNames=tmpD.map(d=>d.sucursal);
   const dept=originDeptos.join(', ');
-  const o={type:document.getElementById('f-type').value,department:dept,requested_by:dept,
-    origin_deptos:originDeptos,origin,
+  const o={type:document.getElementById('f-type').value,department:dept,requested_by:dept,origin,
     destinations:tmpD,driver_id:driver,vehicle_id:vehicle,
     notes:document.getElementById('f-notes').value.trim(),
     status:'Pendiente',created_by:cu.display,date:new Date().toISOString().slice(0,10)};
