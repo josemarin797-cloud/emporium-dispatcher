@@ -109,6 +109,18 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--tx);min-hei
 .dreml{width:18px;height:18px;border-radius:3px;border:none;background:var(--b1);color:var(--tx2);cursor:pointer;font-size:11px;}
 .badd{padding:6px 11px;border-radius:var(--rs);border:0.5px dashed var(--b2);background:transparent;color:var(--tx2);font-size:11px;cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s;width:100%;}
 .badd:hover{border-color:var(--acc);color:var(--acc);}
+.dest-block{background:var(--s2);border:0.5px solid var(--b2);border-radius:var(--rs);overflow:hidden;margin-bottom:6px;}
+.dest-head{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-bottom:0.5px solid var(--b1);}
+.dest-name{font-size:12px;font-weight:500;color:var(--tx);}
+.dest-deptos{padding:8px 10px;display:flex;flex-wrap:wrap;gap:5px;}
+.depto-pill{padding:3px 9px;border-radius:12px;border:0.5px solid var(--b2);background:transparent;color:var(--tx2);font-size:11px;cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s;}
+.depto-pill.on{background:var(--acc);border-color:var(--acc);color:#0f0f10;font-weight:500;}
+.dest-custom{padding:0 10px 8px;display:flex;gap:5px;}
+.dest-custom input{flex:1;padding:5px 8px;border-radius:var(--rs);border:0.5px solid var(--b2);background:var(--s1);color:var(--tx);font-size:11px;font-family:'Inter',sans-serif;outline:none;}
+.dest-custom input:focus{border-color:var(--acc);}
+.dest-custom button{padding:5px 9px;border-radius:var(--rs);border:0.5px solid var(--b2);background:transparent;color:var(--tx2);font-size:11px;cursor:pointer;font-family:'Inter',sans-serif;}
+.dest-custom button:hover{border-color:var(--acc);color:var(--acc);}
+.ocard-dests{margin-top:4px;display:flex;flex-direction:column;gap:2px;}
 .mfoot{padding:13px 18px;border-top:0.5px solid var(--b1);display:flex;gap:8px;justify-content:flex-end;}
 .bcanc{padding:8px 16px;border-radius:var(--rs);border:0.5px solid var(--b2);background:transparent;color:var(--tx2);font-size:12px;cursor:pointer;font-family:'Inter',sans-serif;}
 .bsave{padding:8px 18px;border-radius:var(--rs);border:none;background:var(--acc);color:#0f0f10;font-size:12px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;}
@@ -269,11 +281,23 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--tx);min-hei
         </div>
       </div>
       <div class="fg">
-        <label class="fl">Destino</label>
-        <div class="dlist" id="dlist"></div>
-        <div style="display:flex;gap:7px;margin-top:5px;">
-          <input class="fi" id="di" placeholder="Agregar destino..." style="flex:1" onkeydown="if(event.key==='Enter')addDest();" />
-          <button class="badd" style="width:auto;padding:6px 12px;" onclick="addDest()">+ Agregar</button>
+        <label class="fl">Destinos y departamentos</label>
+        <div id="dlist"></div>
+        <div style="display:flex;gap:7px;margin-top:6px;">
+          <select class="fsel" id="di" style="flex:1">
+            <option value="">Seleccionar sucursal...</option>
+            <option>CDE</option>
+            <option>Suc. Casarapa</option>
+            <option>Suc. Palma Real</option>
+            <option>Suc. Miranda</option>
+            <option>Suc. La Parada</option>
+            <option>Suc. Guatire</option>
+            <option>Suc. Castillejo</option>
+            <option>Caracas</option>
+            <option>Araira</option>
+            <option>Guatire (zona)</option>
+          </select>
+          <button class="badd" style="width:auto;padding:6px 14px;" onclick="addDest()">+ Agregar</button>
         </div>
       </div>
       <div class="frow">
@@ -465,14 +489,27 @@ function renderOrders(){
   const sk={Pendiente:'p',Recogida:'r','En transito':'t',Entregada:'e'};
   el.innerHTML=list.map(o=>{
     const k=sk[o.status]||'p';
-    const d=Array.isArray(o.destinations)?o.destinations.join(', '):o.destinations;
+    // Soporta tanto el formato nuevo {sucursal,deptos} como el viejo string
+    let destsHtml='';
+    if(Array.isArray(o.destinations)){
+      if(o.destinations.length>0 && typeof o.destinations[0]==='object'){
+        destsHtml=`<div class="ocard-dests">${o.destinations.map(d=>`
+          <div style="font-size:11px;color:var(--tx2)">
+            <span style="color:var(--tx);font-weight:500">📍 ${d.sucursal}</span>
+            ${d.deptos&&d.deptos.length>0?`<span style="color:var(--acc);margin-left:5px">${d.deptos.join(' · ')}</span>`:''}
+          </div>`).join('')}</div>`;
+      }else{
+        destsHtml=`<div class="ometa">${o.destinations.join(', ')}</div>`;
+      }
+    }
     const t=o.created_at?new Date(o.created_at).toLocaleTimeString('es-VE',{hour:'2-digit',minute:'2-digit'}):'';
     return`<div class="ocard ${k}">
       <div class="omain">
         <div class="oinfo">
           <div class="otop"><span class="otype">${o.type||'Transferencia'}</span><span class="otitle">${o.department||''}</span></div>
-          <div class="ometa">${o.origin||''} &rarr; ${d||''}</div>
-          <div class="ometa">${o.driver_id||''} &middot; ${o.vehicle_id||''}</div>
+          <div class="ometa">${o.origin||''} &rarr;</div>
+          ${destsHtml}
+          <div class="ometa" style="margin-top:3px">${o.driver_id||''} &middot; ${o.vehicle_id||''}</div>
           ${o.notes?`<div class="ofooter">${o.notes}</div>`:''}
           <div class="ofooter" style="margin-top:3px">Montada por ${o.created_by||''} &middot; ${t}</div>
         </div>
@@ -537,6 +574,9 @@ function swTab(t){
   if(t==='resumen')renderResumen();
 }
 
+const DEPTOS_TRANSFER=['Charcutería','Carnicería','Desposte','Fruver','Víveres','Licores','Varios'];
+const DEPTOS_TRASLADO=['Mercadeo','Servicios Generales','Proveedores','Activos','Otro'];
+
 let tmpD=[];
 function openModal(){
   tmpD=[];
@@ -550,9 +590,53 @@ function openModal(){
   document.getElementById('modal').classList.add('open');
 }
 function closeModal(){document.getElementById('modal').classList.remove('open');}
-function addDest(){const v=document.getElementById('di').value.trim();if(!v)return;tmpD.push(v);document.getElementById('di').value='';renderDests();}
+
+function addDest(){
+  const v=document.getElementById('di').value;
+  if(!v)return;
+  if(tmpD.find(d=>d.sucursal===v)){alert('Ese destino ya fue agregado');return;}
+  tmpD.push({sucursal:v,deptos:[]});
+  document.getElementById('di').value='';
+  renderDests();
+}
+
 function remDest(i){tmpD.splice(i,1);renderDests();}
-function renderDests(){document.getElementById('dlist').innerHTML=tmpD.map((d,i)=>`<div class="ditem"><span>${d}</span><button class="dreml" onclick="remDest(${i})">&#x2715;</button></div>`).join('');}
+
+function toggleDepto(destIdx,depto){
+  const d=tmpD[destIdx];
+  const i=d.deptos.indexOf(depto);
+  if(i>=0)d.deptos.splice(i,1);else d.deptos.push(depto);
+  renderDests();
+}
+
+function addCustomDepto(destIdx){
+  const inp=document.getElementById('cdep-'+destIdx);
+  const val=inp.value.trim();
+  if(!val)return;
+  if(!tmpD[destIdx].deptos.includes(val))tmpD[destIdx].deptos.push(val);
+  inp.value='';
+  renderDests();
+}
+
+function renderDests(){
+  const tipo=document.getElementById('f-type')?document.getElementById('f-type').value:'Transferencia';
+  const deptosList=tipo==='Transferencia'?DEPTOS_TRANSFER:DEPTOS_TRASLADO;
+  document.getElementById('dlist').innerHTML=tmpD.map((d,i)=>`
+    <div class="dest-block">
+      <div class="dest-head">
+        <span class="dest-name">📍 ${d.sucursal}</span>
+        <button onclick="remDest(${i})" style="padding:2px 8px;border-radius:3px;border:none;background:var(--b1);color:var(--tx2);cursor:pointer;font-size:10px;">✕ Quitar</button>
+      </div>
+      <div class="dest-deptos">
+        ${deptosList.map(dep=>`<button class="depto-pill${d.deptos.includes(dep)?' on':''}" onclick="toggleDepto(${i},'${dep}')">${dep}</button>`).join('')}
+      </div>
+      <div class="dest-custom">
+        <input id="cdep-${i}" placeholder="Otro depto..." onkeydown="if(event.key==='Enter')addCustomDepto(${i})" />
+        <button onclick="addCustomDepto(${i})">+</button>
+      </div>
+      ${d.deptos.length>0?`<div style="padding:0 10px 8px;font-size:10px;color:var(--acc)">✓ ${d.deptos.join(' · ')}</div>`:'<div style="padding:0 10px 8px;font-size:10px;color:var(--tx3)">Selecciona al menos un departamento</div>'}
+    </div>`).join('');
+}
 
 async function sendPushToDriver(driverName, orderType, dept, origin, destinations){
   try {
@@ -577,6 +661,9 @@ async function saveOrder(){
   const driver=document.getElementById('f-driver').value;
   const vehicle=document.getElementById('f-vehicle').value;
   if(!dept||!origin||!driver||!vehicle||!tmpD.length){alert('Completa todos los campos y agrega al menos un destino');return;}
+  const sinDeptos=tmpD.filter(d=>d.deptos.length===0);
+  if(sinDeptos.length>0){alert('Agrega al menos un departamento a: '+sinDeptos.map(d=>d.sucursal).join(', '));return;}
+  const destNames=tmpD.map(d=>d.sucursal);
   const o={type:document.getElementById('f-type').value,department:dept,requested_by:dept,origin,
     destinations:tmpD,driver_id:driver,vehicle_id:vehicle,
     notes:document.getElementById('f-notes').value.trim(),
@@ -585,7 +672,7 @@ async function saveOrder(){
   if(r){
     closeModal();
     loadOrders();
-    sendPushToDriver(driver, o.type, dept, origin, tmpD);
+    sendPushToDriver(driver,o.type,dept,origin,destNames);
   }else alert('Error al guardar la orden');
 }
 
