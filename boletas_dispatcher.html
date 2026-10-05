@@ -254,16 +254,14 @@
         </div>
     </div>
 
-    <!-- Confirmación por código WhatsApp -->
-    <div style="background:#181818;border:1px dashed #444;border-radius:8px;padding:14px;margin-bottom:18px;">
-        <p style="color:#888;font-size:0.78rem;margin:0 0 8px;">📱 <strong style="color:#ccc;">Confirmar por código WhatsApp</strong> — pega lo que te mandó el chofer:</p>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            <input id="dp-inp-codigo" type="text" placeholder="EMP-0210-1430-001 ENTREGADO"
-                style="flex:1;min-width:200px;padding:9px 12px;background:#111;border:1px solid #444;color:#fff;border-radius:6px;font-family:monospace;font-size:0.85rem;"
-                onkeydown="if(event.key==='Enter') dpConfirmarCodigo()">
-            <button onclick="dpConfirmarCodigo()" style="background:#06d6a0;color:#000;border:none;padding:9px 18px;border-radius:6px;font-weight:bold;cursor:pointer;font-size:0.85rem;" id="dp-btn-confirm">✅ Confirmar</button>
-        </div>
-        <div id="dp-err" style="font-size:0.75rem;color:#ff6b6b;margin-top:5px;min-height:16px;"></div>
+
+
+    <!-- Botón reporte mensual -->
+    <div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
+        <button onclick="descargarReporteMensual()" 
+            style="background:#1e1800;color:#ffb703;border:1px solid #ffb703;padding:8px 16px;border-radius:8px;font-size:0.82rem;font-weight:700;cursor:pointer;">
+            📊 Descargar Reporte del Mes (Excel)
+        </button>
     </div>
 
     <!-- Tabla boletas -->
@@ -492,7 +490,9 @@
                         }
                     });
                 });
-            } else {
+            }
+            // Fallback: si no hay paradas pero hay destinos en el campo simple
+            if (paradas.length === 0) {
                 (b.destinos || '').split(',').map(d => d.trim()).filter(Boolean).forEach(suc => {
                     paradas.push({ num: 1, suc, recoge: '' });
                 });
@@ -560,6 +560,125 @@
 
     // Auto-refrescar cada 30 segundos
     setInterval(dpRenderPanel, 30000);
+
+    async function descargarReporteMensual() {
+        const btn = event.target;
+        btn.textContent = '⏳ Generando...';
+        btn.disabled = true;
+
+        const ahora = new Date();
+        const mes = ahora.toISOString().slice(0, 7);
+        const mesNombre = ahora.toLocaleDateString('es-VE', { month: 'long', year: 'numeric' }).toUpperCase();
+
+        // Obtener todas las boletas del mes
+        const boletas = await sbFetch('GET',
+            `/rest/v1/boletas?fecha=gte.${mes}-01&fecha=lte.${mes}-31&order=created_at.asc&select=*`
+        ) || [];
+
+        if (boletas.length === 0) {
+            mostrarToast('No hay boletas este mes aún');
+            btn.textContent = '📊 Descargar Reporte del Mes (Excel)';
+            btn.disabled = false;
+            return;
+        }
+
+        // Procesar datos
+        const stats = {};
+        const todasSucs = new Set();
+
+        boletas.forEach(b => {
+            const ch = b.chofer || 'Desconocido';
+            if (!stats[ch]) stats[ch] = { viajes: 0, completadas: 0, pendientes: 0, sucursales: {}, boletas: [] };
+            const s = stats[ch];
+            s.viajes++;
+            s.boletas.push(b);
+
+            const envios = b.envios ? JSON.parse(b.envios) : [];
+            const detalle = b.entregas_detalle ? JSON.parse(b.entregas_detalle) : {};
+
+            if (envios.length > 0) {
+                envios.forEach(e => {
+                    (e.destinos || []).forEach(dest => {
+                        s.sucursales[dest] = (s.sucursales[dest] || 0) + 1;
+                        todasSucs.add(dest);
+                        const key = `${b.id}_${e.num}_${dest}`;
+                        if (detalle[key]) s.completadas++; else s.pendientes++;
+                    });
+                });
+            } else {
+                (b.destinos || '').split(',').forEach(d => {
+                    d = d.trim();
+                    if (d) { s.sucursales[d] = (s.sucursales[d] || 0) + 1; todasSucs.add(d); }
+                });
+            }
+        });
+
+        const choferes = Object.entries(stats).sort((a, b) => b[1].viajes - a[1].viajes);
+        const sucs = Array.from(todasSucs).sort();
+
+        // Generar CSV multi-sección (compatible con Excel)
+        let csv = '\uFEFF'; // BOM para UTF-8
+
+        // ── RESUMEN ──
+        csv += `REPORTE DE VIAJES — ${mesNombre}\r\n`;
+        csv += `Generado: ${new Date().toLocaleString('es-VE')}\r\n\r\n`;
+        csv += `RESUMEN EJECUTIVO\r\n`;
+        csv += `CHOFER,VIAJES,COMPLETADAS,PENDIENTES,SUCURSALES MÁS VISITADAS\r\n`;
+
+        choferes.forEach(([ch, s]) => {
+            const top = Object.entries(s.sucursales)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 3)
+                .map(([k, v]) => `${k}(${v})`).join(' | ');
+            csv += `${ch},${s.viajes},${s.completadas},${s.pendientes},"${top}"\r\n`;
+        });
+
+        csv += `\r\n`;
+
+        // ── BARRAS VISUALES ──
+        csv += `COMPARATIVO DE VIAJES\r\n`;
+        const maxV = choferes[0][1].viajes;
+        choferes.forEach(([ch, s]) => {
+            const barra = '█'.repeat(Math.round(s.viajes / maxV * 20));
+            csv += `${ch.split(' ')[0]},${barra},${s.viajes} viajes\r\n`;
+        });
+
+        csv += `\r\n`;
+
+        // ── SUCURSALES ──
+        csv += `VISITAS POR SUCURSAL\r\n`;
+        csv += `SUCURSAL,${choferes.map(([ch]) => ch.split(' ')[0]).join(',')},TOTAL\r\n`;
+        sucs.forEach(suc => {
+            const vals = choferes.map(([ch, s]) => s.sucursales[suc] || 0);
+            const total = vals.reduce((a, b) => a + b, 0);
+            csv += `${suc},${vals.join(',')},${total}\r\n`;
+        });
+
+        csv += `TOTAL,${choferes.map(([, s]) => Object.values(s.sucursales).reduce((a, b) => a + b, 0)).join(',')}\r\n\r\n`;
+
+        // ── DETALLE BOLETAS ──
+        csv += `DETALLE DE BOLETAS\r\n`;
+        csv += `CHOFER,CÓDIGO,FECHA,HORA SALIDA,VEHÍCULO,DESTINOS,ESTADO\r\n`;
+        choferes.forEach(([ch, s]) => {
+            s.boletas.forEach(b => {
+                const estado = b.estado === 'entregada' ? 'Entregada' : 'Pendiente';
+                csv += `${ch},${b.id},${b.fecha},${b.hora_salida || ''},${b.vehiculo},"${b.destinos}",${estado}\r\n`;
+            });
+        });
+
+        // Descargar
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Reporte_Viajes_${mes}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+
+        btn.textContent = '📊 Descargar Reporte del Mes (Excel)';
+        btn.disabled = false;
+        mostrarToast('✅ Reporte descargado');
+    }
 
     /* ── PARADAS ── */
     function agregarParada() {
