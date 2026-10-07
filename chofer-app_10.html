@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Emporium — Mis Entregas</title>
+<script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+<script>
+  window.OneSignalDeferred = window.OneSignalDeferred || [];
+  OneSignalDeferred.push(async function(OneSignal) {
+    await OneSignal.init({
+      appId: "4b7c6ad7-ef30-44eb-8847-c42f1529a48f",
+      notifyButton: { enable: false },
+      allowLocalhostAsSecureOrigin: true,
+    });
+    // Registrar el chofer con su nombre como external_id
+    const guardado = localStorage.getItem('emp_chofer');
+    if (guardado) {
+      const chofer = JSON.parse(guardado);
+      const extId = chofer.nombre.toLowerCase().replace(/\s+/g, '_');
+      await OneSignal.login(extId);
+    }
+  });
+</script>
+<style>
+:root {
+    --bg: #0f0f0f;
+    --card: #181818;
+    --card2: #202020;
+    --border: #2a2a2a;
+    --gold: #ffb703;
+    --green: #06d6a0;
+    --orange: #f77f00;
+    --red: #d90429;
+    --text: #e8e8e8;
+    --muted: #666;
+    --radius: 14px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; min-height: 100vh; }
+
+/* ── PANTALLA BIENVENIDA ── */
+#screen-login {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 30px 24px;
+}
+.logo-wrap { text-align: center; margin-bottom: 40px; }
+.logo-icon { font-size: 3rem; margin-bottom: 10px; }
+.logo-title { font-size: 1.3rem; font-weight: 700; color: var(--gold); letter-spacing: 1px; }
+.logo-sub { font-size: 0.8rem; color: var(--muted); margin-top: 4px; }
+
+.select-label { font-size: 0.85rem; color: var(--muted); margin-bottom: 10px; text-align: center; }
+.chofer-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; max-width: 340px; margin-bottom: 28px; }
+.chofer-btn {
+    background: var(--card);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 10px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+}
+.chofer-btn:active { background: #252525; }
+.chofer-btn.selected { border-color: var(--gold); background: #1e1800; }
+.chofer-avatar { font-size: 1.6rem; margin-bottom: 6px; }
+.chofer-name { font-size: 0.82rem; font-weight: 600; color: var(--text); }
+.chofer-unit { font-size: 0.72rem; color: var(--muted); margin-top: 2px; }
+
+.btn-huella {
+    width: 100%;
+    max-width: 340px;
+    background: var(--gold);
+    color: #000;
+    border: none;
+    border-radius: var(--radius);
+    padding: 16px;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    transition: opacity 0.15s;
+}
+.btn-huella:active { opacity: 0.85; }
+.btn-huella:disabled { background: #333; color: #666; cursor: default; }
+.huella-icon { font-size: 1.4rem; }
+
+/* ── PANTALLA PRINCIPAL ── */
+#screen-main { display: none; min-height: 100vh; }
+
+.topbar {
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+.topbar-left { display: flex; align-items: center; gap: 12px; }
+.topbar-avatar {
+    width: 38px; height: 38px;
+    background: #1e1800;
+    border: 2px solid var(--gold);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem;
+}
+.topbar-name { font-size: 0.95rem; font-weight: 700; }
+.topbar-unit { font-size: 0.75rem; color: var(--muted); }
+.btn-salir {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 0.75rem;
+    cursor: pointer;
+}
+
+.content { padding: 20px 16px; max-width: 500px; margin: 0 auto; }
+
+.dia-label {
+    font-size: 0.75rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 16px;
+}
+
+/* Stats rápidos */
+.stats-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+.stat-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px; text-align: center; }
+.stat-n { font-size: 1.8rem; font-weight: 700; }
+.stat-l { font-size: 0.72rem; color: var(--muted); margin-top: 2px; }
+.n-pend { color: var(--orange); }
+.n-entg { color: var(--green); }
+
+/* Boletas */
+.boleta-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 14px;
+    overflow: hidden;
+    transition: border-color 0.2s;
+}
+.boleta-card.entregada { border-color: #0a3a28; }
+.boleta-card.urgente { border-color: #3a0a0a; }
+
+.boleta-header {
+    padding: 14px 16px 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+}
+.boleta-codigo { font-family: monospace; font-size: 0.78rem; color: var(--gold); letter-spacing: 0.5px; }
+.badge { display: inline-block; border-radius: 20px; padding: 3px 10px; font-size: 0.72rem; font-weight: 700; }
+.badge-pend { background: #2e1a00; color: var(--orange); }
+.badge-entg { background: #0a2e1a; color: var(--green); }
+.badge-urg  { background: #2e0a0a; color: var(--red); }
+
+.boleta-body { padding: 14px 16px; }
+.ruta-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+.origen-tag { background: #0f1a0f; color: #7fff7f; border: 1px solid #2a5a2a; border-radius: 6px; padding: 4px 10px; font-size: 0.78rem; font-weight: 600; }
+.flecha { color: var(--gold); font-size: 1rem; }
+.destinos-wrap { display: flex; flex-wrap: wrap; gap: 5px; }
+.dest-tag { background: #1e2a00; color: #b8ff6e; border: 1px solid #4a7a00; border-radius: 6px; padding: 3px 9px; font-size: 0.75rem; }
+
+.hora-salida { font-size: 0.75rem; color: var(--muted); margin-bottom: 12px; }
+
+.btn-entregar {
+    width: 100%;
+    background: var(--green);
+    color: #000;
+    border: none;
+    border-radius: 10px;
+    padding: 14px;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: opacity 0.15s, transform 0.1s;
+}
+.btn-entregar:active { opacity: 0.85; transform: scale(0.98); }
+
+.entregada-info {
+    text-align: center;
+    color: var(--green);
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 10px;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 50px 20px;
+    color: var(--muted);
+}
+.empty-icon { font-size: 3rem; margin-bottom: 12px; }
+.empty-text { font-size: 0.9rem; }
+
+/* Refresh btn */
+.btn-refresh {
+    width: 100%;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    border-radius: 10px;
+    padding: 12px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    margin-top: 10px;
+}
+.btn-refresh:active { background: var(--card2); }
+
+/* Toast */
+#toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);
+    background: var(--green); color: #000; padding: 12px 24px; border-radius: 30px;
+    font-weight: 700; font-size: 0.9rem; opacity: 0; transition: all 0.3s; pointer-events: none;
+    white-space: nowrap; z-index: 999;
+}
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+.loading { text-align: center; padding: 30px; color: var(--muted); font-size: 0.85rem; }
+</style>
+</head>
+<body>
+
+<!-- PANTALLA LOGIN -->
+<div id="screen-login">
+    <div class="logo-wrap">
+        <div class="logo-icon">🚚</div>
+        <div class="logo-title">EMPORIUM FLOTA</div>
+        <div class="logo-sub">Portal del Chofer</div>
+    </div>
+
+    <p class="select-label">Primera vez: selecciona tu nombre</p>
+
+    <div class="chofer-grid">
+        <div class="chofer-btn" onclick="seleccionarChofer(this, 'Darwin Serrano', 'NPR 04')">
+            <div class="chofer-avatar">🚛</div>
+            <div class="chofer-name">Darwin</div>
+            <div class="chofer-unit">NPR 04</div>
+        </div>
+        <div class="chofer-btn" onclick="seleccionarChofer(this, 'Daniel Subero', 'NPR 01')">
+            <div class="chofer-avatar">🚛</div>
+            <div class="chofer-name">Daniel</div>
+            <div class="chofer-unit">NPR 01</div>
+        </div>
+        <div class="chofer-btn" onclick="seleccionarChofer(this, 'Jackson Hernandez', 'L300 05')">
+            <div class="chofer-avatar">🚗</div>
+            <div class="chofer-name">Jackson</div>
+            <div class="chofer-unit">L300 05</div>
+        </div>
+        <div class="chofer-btn" onclick="seleccionarChofer(this, 'Richard Hernandez', 'NPR 02')">
+            <div class="chofer-avatar">🚛</div>
+            <div class="chofer-name">Richard</div>
+            <div class="chofer-unit">NPR 02</div>
+        </div>
+        <div class="chofer-btn" onclick="seleccionarChofer(this, 'Willmer Fernández', 'Fuso 03')">
+            <div class="chofer-avatar">🚌</div>
+            <div class="chofer-name">Willmer</div>
+            <div class="chofer-unit">Fuso 03</div>
+        </div>
+        <div class="chofer-btn" onclick="seleccionarChofer(this, 'Jesús Lara', '')">
+            <div class="chofer-avatar">🚗</div>
+            <div class="chofer-name">Jesús</div>
+            <div class="chofer-unit">Sin asignar</div>
+        </div>
+        <div class="chofer-btn" onclick="seleccionarChofer(this, 'Néstor Daniel', '')" style="grid-column: span 2;">
+            <div class="chofer-avatar">🚛</div>
+            <div class="chofer-name">Néstor</div>
+            <div class="chofer-unit">Sin asignar</div>
+        </div>
+    </div>
+
+    <button class="btn-huella" id="btn-huella" onclick="entrarConHuella()" disabled>
+        <span class="huella-icon">👆</span> Entrar con huella
+    </button>
+</div>
+
+<!-- PANTALLA PRINCIPAL -->
+<div id="screen-main">
+    <div class="topbar">
+        <div class="topbar-left">
+            <div class="topbar-avatar" id="topbar-avatar">🚚</div>
+            <div>
+                <div class="topbar-name" id="topbar-name">—</div>
+                <div class="topbar-unit" id="topbar-unit">—</div>
+            </div>
+        </div>
+        <button onclick="cambiarVehiculo()" id="btn-cambiar-vehiculo" style="display:none;background:transparent;border:1px solid #ffb703;color:#ffb703;border-radius:8px;padding:6px 10px;font-size:0.72rem;cursor:pointer;margin-right:6px;">🚗 Cambiar</button>
+        <button class="btn-salir" onclick="cerrarSesion()">Salir</button>
+    </div>
+
+    <div class="content">
+        <div class="dia-label" id="dia-label">—</div>
+
+        <div class="stats-row">
+            <div class="stat-card">
+                <div class="stat-n n-pend" id="s-pend">—</div>
+                <div class="stat-l">Entregas pendientes</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-n n-entg" id="s-entg">—</div>
+                <div class="stat-l">Entregas completadas</div>
+            </div>
+        </div>
+
+        <div id="boletas-lista">
+            <div class="loading">Cargando boletas...</div>
+        </div>
+
+        <button class="btn-refresh" onclick="cargarBoletas()">↻ Actualizar</button>
+    </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+    const SB_URL = 'https://sieadibkcqnvbwlwlmds.supabase.co';
+    const SB_KEY = 'sb_publishable_10TgLdGmmcHccAqJu2JLiw_zyYgKT_M';
+
+    const AVATARES = {
+        'Darwin Serrano': '🚗',
+        'Daniel Subero': '🚛',
+        'Jackson Hernandez': '🚚',
+        'Richard Hernandez': '🚛',
+        'Willmer Fernández': '🚌',
+        'Jesús Lara': '🚗',
+        'Néstor Daniel': '🚛'
+    };
+
+    // Choferes con vehículo fijo — no pueden cambiarlo
+    const VEHICULOS_FIJOS = ['Darwin Serrano', 'Daniel Subero', 'Jackson Hernandez', 'Richard Hernandez', 'Willmer Fernández'];
+
+    let choferSeleccionado = null;
+    let choferActual = null;
+
+    async function sbFetch(method, path, body) {
+        const res = await fetch(SB_URL + path, {
+            method,
+            headers: {
+                'apikey': SB_KEY,
+                'Authorization': 'Bearer ' + SB_KEY,
+                'Content-Type': 'application/json',
+                'Prefer': method === 'POST' ? 'resolution=merge-duplicates' : ''
+            },
+            body: body ? JSON.stringify(body) : undefined
+        });
+        if (!res.ok) return null;
+        try { return await res.json(); } catch { return null; }
+    }
+
+    function seleccionarChofer(el, nombre, unidad) {
+        document.querySelectorAll('.chofer-btn').forEach(b => b.classList.remove('selected'));
+        el.classList.add('selected');
+        choferSeleccionado = { nombre, unidad };
+        document.getElementById('btn-huella').disabled = false;
+    }
+
+    async function entrarConHuella() {
+        // Si ya tiene chofer guardado, usarlo directamente
+        const guardado = localStorage.getItem('emp_chofer');
+        const choferParaUsar = guardado ? JSON.parse(guardado) : choferSeleccionado;
+
+        if (!choferParaUsar) { mostrarToast('Selecciona tu nombre primero'); return; }
+
+        // Intentar autenticación biométrica
+        try {
+            const cred = await navigator.credentials.get({
+                publicKey: {
+                    challenge: crypto.getRandomValues(new Uint8Array(32)),
+                    timeout: 60000,
+                    userVerification: 'required',
+                    rpId: window.location.hostname || 'localhost'
+                }
+            });
+            // Si llegó aquí, huella ok
+            entrar(choferParaUsar);
+        } catch (e) {
+            // Si biometría no disponible o falla, preguntar PIN simple
+            const pin = prompt('Huella no disponible. Ingresa tu PIN (0000):');
+            if (pin === '0000' || pin === choferParaUsar.nombre.split(' ')[0].toLowerCase()) {
+                entrar(choferParaUsar);
+            } else {
+                mostrarToast('PIN incorrecto');
+            }
+        }
+    }
+
+    function entrar(chofer) {
+        // Si no tiene vehículo asignado, preguntar cuál va a usar hoy
+        if (!chofer.unidad) {
+            const vehiculos = ['NPR 01', 'NPR 02', 'NPR 04', 'Fuso 03', 'L300 05'];
+            const sel = prompt(`${chofer.nombre.split(' ')[0]}, ¿qué vehículo usas hoy?\n\n${vehiculos.map((v, i) => `${i+1}. ${v}`).join('\n')}\n\nEscribe el número:`);
+            const idx = parseInt(sel) - 1;
+            if (idx >= 0 && idx < vehiculos.length) {
+                chofer = { ...chofer, unidad: vehiculos[idx] };
+            }
+        }
+        localStorage.setItem('emp_chofer', JSON.stringify(chofer));
+        choferActual = chofer;
+
+        // Actualizar topbar
+        document.getElementById('topbar-name').textContent = chofer.nombre.split(' ')[0];
+        document.getElementById('topbar-unit').textContent = chofer.unidad || 'Sin asignar';
+        document.getElementById('topbar-avatar').textContent = AVATARES[chofer.nombre] || '🚚';
+
+        // Mostrar botón cambiar solo si no tiene vehículo fijo
+        const btnCambiar = document.getElementById('btn-cambiar-vehiculo');
+        if (!VEHICULOS_FIJOS.includes(chofer.nombre)) {
+            btnCambiar.style.display = 'inline-block';
+        } else {
+            btnCambiar.style.display = 'none';
+        }
+
+        // Mostrar pantalla principal
+        document.getElementById('screen-login').style.display = 'none';
+        document.getElementById('screen-main').style.display = 'block';
+
+        // Fecha
+        const hoy = new Date().toLocaleDateString('es-VE', {weekday:'long', day:'numeric', month:'long'});
+        document.getElementById('dia-label').textContent = hoy.charAt(0).toUpperCase() + hoy.slice(1);
+
+        cargarBoletas();
+        setInterval(cargarBoletas, 30000);
+    }
+
+    async function cargarBoletas() {
+        if (!choferActual) return;
+        const hoy = new Date().toISOString().slice(0, 10);
+        const nombre = choferActual.nombre;
+
+        const lista = await sbFetch('GET',
+            `/rest/v1/boletas?fecha=eq.${hoy}&chofer=eq.${encodeURIComponent(nombre)}&order=created_at.desc&select=*`
+        ) || [];
+
+        renderBoletas(lista);
+    }
+
+    function renderBoletas(lista) {
+        const cont = document.getElementById('boletas-lista');
+        let pend = 0, entg = 0;
+
+        if (lista.length === 0) {
+            cont.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon">📭</div>
+                    <div class="empty-text">No tienes boletas asignadas hoy.<br>Espera que el coordinador envíe una.</div>
+                </div>`;
+            document.getElementById('s-pend').textContent = 0;
+            document.getElementById('s-entg').textContent = 0;
+            return;
+        }
+
+        cont.innerHTML = '';
+        // Filtrar solo boletas pendientes para la vista del chofer
+        const listaActiva = lista.filter(b => b.estado !== 'entregada');
+        
+        if (listaActiva.length === 0 && lista.length > 0) {
+            cont.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon">🎉</div>
+                    <div class="empty-text">¡Todas las entregas completadas!<br><small style="color:var(--muted);">Buen trabajo hoy.</small></div>
+                </div>`;
+        }
+
+        listaActiva.forEach(b => {
+            const isEntg = b.estado === 'entregada';
+            const isUrg  = b.prioridad === 'Urgente';
+            if (isEntg) entg++; else pend++;
+
+            const badge = isEntg
+                ? `<span class="badge badge-entg">✅ Completa · ${b.hora_entrega || ''}</span>`
+                : isUrg ? `<span class="badge badge-urg">🔴 Urgente</span>`
+                : `<span class="badge badge-pend">🟡 Pendiente</span>`;
+
+            // Entregas por sucursal guardadas
+            const detalle = b.entregas_detalle ? JSON.parse(b.entregas_detalle) : {};
+            const envios  = b.envios ? JSON.parse(b.envios) : null;
+
+            let enviosHtml = '';
+
+            if (envios && envios.length > 0) {
+                enviosHtml = envios.map((e, ei) => {
+                    const itemsHtml = (e.items || []).map(i =>
+                        `<span style="background:#2a2200;color:#ffb703;border:1px solid #554400;border-radius:4px;padding:2px 8px;font-size:0.72rem;margin:2px;">${i.dpto}${i.detalle ? ': ' + i.detalle : ''}</span>`
+                    ).join('');
+
+                    let prioBorder = '#444';
+                    if (e.prioridad && e.prioridad.includes('Urgente')) prioBorder = '#d90429';
+                    else if (e.prioridad && e.prioridad.includes('Alta')) prioBorder = '#f77f00';
+
+                    const recoge = e.recoge || e.origen || '—';
+
+                    // Botón por sucursal de entrega
+                    const sucBtns = (e.destinos || []).map(suc => {
+                        const key = `${b.id}_${e.num}_${suc}`;
+                        const entregadaEn = detalle[key];
+                        if (entregadaEn) {
+                            return `<div style="display:flex;align-items:center;justify-content:space-between;background:#0a2e1a;border:1px solid #06d6a0;border-radius:8px;padding:10px 14px;margin-top:8px;">
+                                <span style="color:#06d6a0;font-size:0.85rem;font-weight:600;">📍 ${suc}</span>
+                                <span style="color:#06d6a0;font-size:0.78rem;">✅ ${entregadaEn}</span>
+                            </div>`;
+                        } else {
+                            return `<div style="display:flex;align-items:center;justify-content:space-between;background:#1c1c1c;border:1px solid #444;border-radius:8px;padding:10px 14px;margin-top:8px;">
+                                <span style="color:#ccc;font-size:0.85rem;">📍 ${suc}</span>
+                                <button onclick="confirmarSucursal('${b.id}', ${e.num}, '${suc}')"
+                                    style="background:#06d6a0;color:#000;border:none;border-radius:6px;padding:6px 14px;font-size:0.8rem;font-weight:700;cursor:pointer;">
+                                    Entregar
+                                </button>
+                            </div>`;
+                        }
+                    }).join('');
+
+                    return `
+                        <div style="background:#1c1c1c;border:1px solid #333;border-left:3px solid ${prioBorder};border-radius:8px;padding:12px;margin-bottom:10px;">
+                            <div style="font-size:0.72rem;color:#666;margin-bottom:8px;display:flex;justify-content:space-between;">
+                                <span>PARADA #${ei + 1}</span>
+                                <span style="color:#888;">${e.prioridad || ''}</span>
+                            </div>
+                            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
+                                <span style="background:#1e1800;color:#ffb703;border:1px solid #554400;border-radius:6px;padding:3px 10px;font-size:0.78rem;font-weight:600;">📦 ${recoge}</span>
+                                <span style="color:#ffb703;font-size:0.9rem;">→</span>
+                                <span style="color:#888;font-size:0.78rem;">entrega en:</span>
+                            </div>
+                            <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px;">${itemsHtml}</div>
+                            ${sucBtns}
+                        </div>`;
+                }).join('');
+            } else {
+                const destinos = (b.destinos || '').split(',').map(d => d.trim()).filter(Boolean);
+                enviosHtml = destinos.map(suc => {
+                    const key = `${b.id}_1_${suc}`;
+                    const entregadaEn = detalle[key];
+                    if (entregadaEn) {
+                        return `<div style="display:flex;align-items:center;justify-content:space-between;background:#0a2e1a;border:1px solid #06d6a0;border-radius:8px;padding:10px 14px;margin-top:8px;">
+                            <span style="color:#06d6a0;font-size:0.85rem;font-weight:600;">📍 ${suc}</span>
+                            <span style="color:#06d6a0;font-size:0.78rem;">✅ ${entregadaEn}</span>
+                        </div>`;
+                    } else {
+                        return `<div style="display:flex;align-items:center;justify-content:space-between;background:#1c1c1c;border:1px solid #444;border-radius:8px;padding:10px 14px;margin-top:8px;">
+                            <span style="color:#ccc;font-size:0.85rem;">📍 ${suc}</span>
+                            <button onclick="confirmarSucursal('${b.id}', 1, '${suc}')"
+                                style="background:#06d6a0;color:#000;border:none;border-radius:6px;padding:6px 14px;font-size:0.8rem;font-weight:700;cursor:pointer;">
+                                Entregar
+                            </button>
+                        </div>`;
+                    }
+                }).join('');
+            }
+
+            const card = document.createElement('div');
+            card.className = `boleta-card${isEntg ? ' entregada' : isUrg ? ' urgente' : ''}`;
+            card.innerHTML = `
+                <div class="boleta-header">
+                    <span class="boleta-codigo">${b.id}</span>
+                    ${badge}
+                </div>
+                <div class="boleta-body">
+                    <div style="display:flex;gap:16px;margin-bottom:12px;font-size:0.75rem;color:#666;">
+                        <span>Emisión: <strong style="color:#888;">${b.hora_emision || '—'}</strong></span>
+                        <span>Salida: <strong style="color:#888;">${b.hora_salida || '—'}</strong></span>
+                        <span>Unidad: <strong style="color:#888;">${b.vehiculo || '—'}</strong></span>
+                    </div>
+                    ${enviosHtml}
+                </div>
+            `;
+            cont.appendChild(card);
+        });
+
+        // Contar sucursales individuales
+        let sucPend = 0, sucEntg = 0;
+        lista.forEach(b => {
+            const detalle = b.entregas_detalle ? JSON.parse(b.entregas_detalle) : {};
+            const envios  = b.envios ? JSON.parse(b.envios) : [];
+            if (envios.length > 0) {
+                envios.forEach(e => {
+                    (e.destinos || []).forEach(suc => {
+                        const key = `${b.id}_${e.num}_${suc}`;
+                        if (detalle[key]) sucEntg++; else sucPend++;
+                    });
+                });
+            } else {
+                (b.destinos || '').split(',').filter(d => d.trim()).forEach(() => {
+                    sucPend++;
+                });
+            }
+        });
+        document.getElementById('s-pend').textContent = sucPend;
+        document.getElementById('s-entg').textContent = sucEntg;
+    }
+
+    async function confirmarSucursal(boletaId, envioNum, sucursal) {
+        const hora = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        // Cargar detalle actual
+        const lista = await sbFetch('GET', `/rest/v1/boletas?id=eq.${boletaId}&select=*`) || [];
+        if (!lista.length) return;
+        const b = lista[0];
+
+        const detalle = b.entregas_detalle ? JSON.parse(b.entregas_detalle) : {};
+        const key = `${boletaId}_${envioNum}_${sucursal}`;
+        detalle[key] = hora;
+
+        // Ver si todas las sucursales están entregadas
+        const envios = b.envios ? JSON.parse(b.envios) : null;
+        let todasEntregadas = true;
+        if (envios) {
+            envios.forEach(e => {
+                (e.destinos || []).forEach(suc => {
+                    const k = `${boletaId}_${e.num}_${suc}`;
+                    if (!detalle[k]) todasEntregadas = false;
+                });
+            });
+        }
+
+        const update = { entregas_detalle: JSON.stringify(detalle) };
+        if (todasEntregadas) {
+            update.estado = 'entregada';
+            update.hora_entrega = hora;
+        }
+
+        await sbFetch('PATCH', `/rest/v1/boletas?id=eq.${boletaId}`, update);
+        mostrarToast(`✅ ${sucursal} — entregado`);
+        await cargarBoletas();
+    }
+
+    function cambiarVehiculo() {
+        const vehiculos = ['NPR 01', 'NPR 02', 'NPR 04', 'Fuso 03', 'L300 05'];
+        const actual = choferActual.unidad || 'Sin asignar';
+        const sel = prompt(`Vehículo actual: ${actual}\n\n¿Cuál usas hoy?\n\n${vehiculos.map((v, i) => `${i+1}. ${v}`).join('\n')}\n\nEscribe el número:`);
+        const idx = parseInt(sel) - 1;
+        if (idx >= 0 && idx < vehiculos.length) {
+            choferActual = { ...choferActual, unidad: vehiculos[idx] };
+            localStorage.setItem('emp_chofer', JSON.stringify(choferActual));
+            document.getElementById('topbar-unit').textContent = choferActual.unidad;
+            mostrarToast(`✅ Vehículo cambiado a ${choferActual.unidad}`);
+        }
+    }
+
+    function cerrarSesion() {
+        if (!confirm('¿Cerrar sesión?')) return;
+        localStorage.removeItem('emp_chofer');
+        choferActual = null;
+        document.getElementById('screen-login').style.display = 'flex';
+        document.getElementById('screen-main').style.display = 'none';
+        document.querySelectorAll('.chofer-btn').forEach(b => b.classList.remove('selected'));
+        document.getElementById('btn-huella').disabled = true;
+    }
+
+    function mostrarToast(msg) {
+        const t = document.getElementById('toast');
+        t.textContent = msg; t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 2800);
+    }
+
+    // Al cargar: si ya hay chofer guardado, ir directo a huella
+    window.onload = function() {
+        const guardado = localStorage.getItem('emp_chofer');
+        if (guardado) {
+            const chofer = JSON.parse(guardado);
+            document.querySelector('.select-label').textContent =
+                `Bienvenido, ${chofer.nombre.split(' ')[0]} — toca para entrar`;
+            document.getElementById('btn-huella').disabled = false;
+            // Marcar el botón correspondiente
+            document.querySelectorAll('.chofer-btn').forEach(btn => {
+                if (btn.querySelector('.chofer-name').textContent === chofer.nombre.split(' ')[0]) {
+                    btn.classList.add('selected');
+                    choferSeleccionado = chofer;
+                }
+            });
+        }
+    };
+</script>
+</body>
+</html>
