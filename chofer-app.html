@@ -6,6 +6,24 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>Emporium — Mis Entregas</title>
+<script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+<script>
+  window.OneSignalDeferred = window.OneSignalDeferred || [];
+  OneSignalDeferred.push(async function(OneSignal) {
+    await OneSignal.init({
+      appId: "4b7c6ad7-ef30-44eb-8847-c42f1529a48f",
+      notifyButton: { enable: false },
+      allowLocalhostAsSecureOrigin: true,
+    });
+    // Registrar el chofer con su nombre como external_id
+    const guardado = localStorage.getItem('emp_chofer');
+    if (guardado) {
+      const chofer = JSON.parse(guardado);
+      const extId = chofer.nombre.toLowerCase().replace(/\s+/g, '_');
+      await OneSignal.login(extId);
+    }
+  });
+</script>
 <style>
 :root {
     --bg: #0f0f0f;
@@ -235,30 +253,40 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
     <p class="select-label">Primera vez: selecciona tu nombre</p>
 
     <div class="chofer-grid">
-        <div class="chofer-btn" onclick="seleccionarChofer(this, 'Darwin Serrano', 'L300 05')">
-            <div class="chofer-avatar">🚗</div>
+        <div class="chofer-btn" onclick="seleccionarChofer(this, 'Darwin Serrano', 'NPR 04')">
+            <div class="chofer-avatar">🚛</div>
             <div class="chofer-name">Darwin</div>
-            <div class="chofer-unit">L300 05</div>
+            <div class="chofer-unit">NPR 04</div>
         </div>
         <div class="chofer-btn" onclick="seleccionarChofer(this, 'Daniel Subero', 'NPR 01')">
             <div class="chofer-avatar">🚛</div>
             <div class="chofer-name">Daniel</div>
             <div class="chofer-unit">NPR 01</div>
         </div>
-        <div class="chofer-btn" onclick="seleccionarChofer(this, 'Jackson Hernandez', 'NPR 02')">
-            <div class="chofer-avatar">🚚</div>
+        <div class="chofer-btn" onclick="seleccionarChofer(this, 'Jackson Hernandez', 'L300 05')">
+            <div class="chofer-avatar">🚗</div>
             <div class="chofer-name">Jackson</div>
-            <div class="chofer-unit">NPR 02</div>
+            <div class="chofer-unit">L300 05</div>
         </div>
-        <div class="chofer-btn" onclick="seleccionarChofer(this, 'Richard Hernandez', 'NPR 04')">
+        <div class="chofer-btn" onclick="seleccionarChofer(this, 'Richard Hernandez', 'NPR 02')">
             <div class="chofer-avatar">🚛</div>
             <div class="chofer-name">Richard</div>
-            <div class="chofer-unit">NPR 04</div>
+            <div class="chofer-unit">NPR 02</div>
         </div>
-        <div class="chofer-btn" onclick="seleccionarChofer(this, 'Willmer Fernández', 'Fuso 03')" style="grid-column: span 2;">
+        <div class="chofer-btn" onclick="seleccionarChofer(this, 'Willmer Fernández', 'Fuso 03')">
             <div class="chofer-avatar">🚌</div>
             <div class="chofer-name">Willmer</div>
             <div class="chofer-unit">Fuso 03</div>
+        </div>
+        <div class="chofer-btn" onclick="seleccionarChofer(this, 'Jesús Lara', '')">
+            <div class="chofer-avatar">🚗</div>
+            <div class="chofer-name">Jesús</div>
+            <div class="chofer-unit">Sin asignar</div>
+        </div>
+        <div class="chofer-btn" onclick="seleccionarChofer(this, 'Néstor Daniel', '')" style="grid-column: span 2;">
+            <div class="chofer-avatar">🚛</div>
+            <div class="chofer-name">Néstor</div>
+            <div class="chofer-unit">Sin asignar</div>
         </div>
     </div>
 
@@ -277,6 +305,7 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
                 <div class="topbar-unit" id="topbar-unit">—</div>
             </div>
         </div>
+        <button onclick="cambiarVehiculo()" id="btn-cambiar-vehiculo" style="display:none;background:transparent;border:1px solid #ffb703;color:#ffb703;border-radius:8px;padding:6px 10px;font-size:0.72rem;cursor:pointer;margin-right:6px;">🚗 Cambiar</button>
         <button class="btn-salir" onclick="cerrarSesion()">Salir</button>
     </div>
 
@@ -286,11 +315,11 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
         <div class="stats-row">
             <div class="stat-card">
                 <div class="stat-n n-pend" id="s-pend">—</div>
-                <div class="stat-l">Pendientes</div>
+                <div class="stat-l">Entregas pendientes</div>
             </div>
             <div class="stat-card">
                 <div class="stat-n n-entg" id="s-entg">—</div>
-                <div class="stat-l">Entregadas</div>
+                <div class="stat-l">Entregas completadas</div>
             </div>
         </div>
 
@@ -313,8 +342,13 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
         'Daniel Subero': '🚛',
         'Jackson Hernandez': '🚚',
         'Richard Hernandez': '🚛',
-        'Willmer Fernández': '🚌'
+        'Willmer Fernández': '🚌',
+        'Jesús Lara': '🚗',
+        'Néstor Daniel': '🚛'
     };
+
+    // Choferes con vehículo fijo — no pueden cambiarlo
+    const VEHICULOS_FIJOS = ['Darwin Serrano', 'Daniel Subero', 'Jackson Hernandez', 'Richard Hernandez', 'Willmer Fernández'];
 
     let choferSeleccionado = null;
     let choferActual = null;
@@ -372,13 +406,30 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
     }
 
     function entrar(chofer) {
+        // Si no tiene vehículo asignado, preguntar cuál va a usar hoy
+        if (!chofer.unidad) {
+            const vehiculos = ['NPR 01', 'NPR 02', 'NPR 04', 'Fuso 03', 'L300 05'];
+            const sel = prompt(`${chofer.nombre.split(' ')[0]}, ¿qué vehículo usas hoy?\n\n${vehiculos.map((v, i) => `${i+1}. ${v}`).join('\n')}\n\nEscribe el número:`);
+            const idx = parseInt(sel) - 1;
+            if (idx >= 0 && idx < vehiculos.length) {
+                chofer = { ...chofer, unidad: vehiculos[idx] };
+            }
+        }
         localStorage.setItem('emp_chofer', JSON.stringify(chofer));
         choferActual = chofer;
 
         // Actualizar topbar
         document.getElementById('topbar-name').textContent = chofer.nombre.split(' ')[0];
-        document.getElementById('topbar-unit').textContent = chofer.unidad;
+        document.getElementById('topbar-unit').textContent = chofer.unidad || 'Sin asignar';
         document.getElementById('topbar-avatar').textContent = AVATARES[chofer.nombre] || '🚚';
+
+        // Mostrar botón cambiar solo si no tiene vehículo fijo
+        const btnCambiar = document.getElementById('btn-cambiar-vehiculo');
+        if (!VEHICULOS_FIJOS.includes(chofer.nombre)) {
+            btnCambiar.style.display = 'inline-block';
+        } else {
+            btnCambiar.style.display = 'none';
+        }
 
         // Mostrar pantalla principal
         document.getElementById('screen-login').style.display = 'none';
@@ -420,7 +471,18 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
         }
 
         cont.innerHTML = '';
-        lista.forEach(b => {
+        // Filtrar solo boletas pendientes para la vista del chofer
+        const listaActiva = lista.filter(b => b.estado !== 'entregada');
+        
+        if (listaActiva.length === 0 && lista.length > 0) {
+            cont.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon">🎉</div>
+                    <div class="empty-text">¡Todas las entregas completadas!<br><small style="color:var(--muted);">Buen trabajo hoy.</small></div>
+                </div>`;
+        }
+
+        listaActiva.forEach(b => {
             const isEntg = b.estado === 'entregada';
             const isUrg  = b.prioridad === 'Urgente';
             if (isEntg) entg++; else pend++;
@@ -524,8 +586,26 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
             cont.appendChild(card);
         });
 
-        document.getElementById('s-pend').textContent = pend;
-        document.getElementById('s-entg').textContent = entg;
+        // Contar sucursales individuales
+        let sucPend = 0, sucEntg = 0;
+        lista.forEach(b => {
+            const detalle = b.entregas_detalle ? JSON.parse(b.entregas_detalle) : {};
+            const envios  = b.envios ? JSON.parse(b.envios) : [];
+            if (envios.length > 0) {
+                envios.forEach(e => {
+                    (e.destinos || []).forEach(suc => {
+                        const key = `${b.id}_${e.num}_${suc}`;
+                        if (detalle[key]) sucEntg++; else sucPend++;
+                    });
+                });
+            } else {
+                (b.destinos || '').split(',').filter(d => d.trim()).forEach(() => {
+                    sucPend++;
+                });
+            }
+        });
+        document.getElementById('s-pend').textContent = sucPend;
+        document.getElementById('s-entg').textContent = sucEntg;
     }
 
     async function confirmarSucursal(boletaId, envioNum, sucursal) {
@@ -561,6 +641,19 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
         await sbFetch('PATCH', `/rest/v1/boletas?id=eq.${boletaId}`, update);
         mostrarToast(`✅ ${sucursal} — entregado`);
         await cargarBoletas();
+    }
+
+    function cambiarVehiculo() {
+        const vehiculos = ['NPR 01', 'NPR 02', 'NPR 04', 'Fuso 03', 'L300 05'];
+        const actual = choferActual.unidad || 'Sin asignar';
+        const sel = prompt(`Vehículo actual: ${actual}\n\n¿Cuál usas hoy?\n\n${vehiculos.map((v, i) => `${i+1}. ${v}`).join('\n')}\n\nEscribe el número:`);
+        const idx = parseInt(sel) - 1;
+        if (idx >= 0 && idx < vehiculos.length) {
+            choferActual = { ...choferActual, unidad: vehiculos[idx] };
+            localStorage.setItem('emp_chofer', JSON.stringify(choferActual));
+            document.getElementById('topbar-unit').textContent = choferActual.unidad;
+            mostrarToast(`✅ Vehículo cambiado a ${choferActual.unidad}`);
+        }
     }
 
     function cerrarSesion() {
