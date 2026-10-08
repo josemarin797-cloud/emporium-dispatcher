@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Emporium Flota - Generador de Boletas</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         :root {
             --bg-main: #111111;
@@ -163,15 +164,20 @@
         </div>
 
         <label>Chofer Asignado</label>
-        <select id="chofer" onchange="actualizarVista()">
+        <select id="chofer" onchange="onChoferChange()">
             <option>Darwin Serrano</option>
             <option>Daniel Subero</option>
             <option>Richard Hernandez</option>
             <option>Jackson Hernandez</option>
             <option>Willmer Fernández</option>
+            <option>Jesús Lara</option>
+            <option>Néstor Daniel</option>
         </select>
 
-        <label>Vehículo / Unidad</label>
+        <label>Vehículo / Unidad <button type="button" id="btn-desbloquear-vehiculo" onclick="desbloquearVehiculo()"
+            style="display:none;background:transparent;border:1px solid #ffb703;color:#ffb703;border-radius:4px;padding:2px 8px;font-size:0.72rem;cursor:pointer;margin-left:8px;">
+            🔓 Cambiar
+        </button></label>
         <select id="vehiculo" onchange="actualizarVista()">
             <option>NPR 01</option>
             <option>NPR 02</option>
@@ -219,6 +225,11 @@
             <button class="btn btn-whatsapp" onclick="confirmarYCopiar()">✅ Confirmar y Copiar WhatsApp</button>
             <button class="btn btn-download" onclick="confirmarYDescargar()">✅ Confirmar y Descargar</button>
         </div>
+        <div style="margin-top:8px;">
+            <button onclick="descargarPDF()" style="width:100%;background:#1a0a2e;color:#b388ff;border:1px solid #7c4dff;border-radius:8px;padding:10px;font-size:0.88rem;font-weight:700;cursor:pointer;">
+                📄 Descargar Boleta PDF
+            </button>
+        </div>
         <small style="display:block; text-align:center; margin-top:10px; color:var(--text-muted); font-size:0.8rem;">
             La hora de salida se registra automáticamente al confirmar.
         </small>
@@ -255,6 +266,14 @@
     </div>
 
 
+
+    <!-- Resumen del día por chofer -->
+    <div id="resumen-dia" style="background:#181818;border:1px solid #333;border-radius:10px;padding:14px;margin-bottom:16px;display:none;">
+        <div style="font-size:0.75rem;color:#ffb703;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;">
+            📋 Resumen del día por chofer
+        </div>
+        <div id="resumen-dia-lista"></div>
+    </div>
 
     <!-- Botón reporte mensual -->
     <div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
@@ -342,11 +361,61 @@
     function confirmarYCopiar()   { confirmar(); setTimeout(copiarTextoWhatsApp, 100); }
     function confirmarYDescargar(){ confirmar(); setTimeout(descargarImagen, 150); }
 
+    async function descargarPDF() {
+        const elemento = document.getElementById('preview-boleta') || document.querySelector('.preview-section');
+        if (!elemento) { mostrarToast('No hay boleta para exportar'); return; }
+        mostrarToast('Generando PDF...');
+        try {
+            const canvas = await html2canvas(elemento, {
+                backgroundColor: '#181818',
+                scale: 2,
+                useCORS: true,
+                logging: false
+            });
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+            const imgW = 190;
+            const imgH = (canvas.height * imgW) / canvas.width;
+            pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 10, 10, imgW, imgH);
+            pdf.save(`Boleta_${codigoBoleta}.pdf`);
+            mostrarToast('✅ PDF descargado');
+        } catch(e) {
+            mostrarToast('Error al generar PDF');
+            console.error(e);
+        }
+    }
+
     /* ══════════════════════════════════════════
        SUPABASE CONFIG
     ══════════════════════════════════════════ */
     const SB_URL  = 'https://sieadibkcqnvbwlwlmds.supabase.co';
     const SB_KEY  = 'sb_publishable_10TgLdGmmcHccAqJu2JLiw_zyYgKT_M';
+    const OS_APP_ID  = '4b7c6ad7-ef30-44eb-8847-c42f1529a48f';
+    const OS_API_KEY = '3zibhkte6eaenfxva6fiedj7g';
+
+    async function enviarNotificacion(chofer, destinos) {
+        const extId = chofer.toLowerCase().replace(/\s+/g, '_');
+        const nombre = chofer.split(' ')[0];
+        try {
+            await fetch('https://api.onesignal.com/notifications', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Key ${OS_API_KEY}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    app_id: OS_APP_ID,
+                    include_aliases: { external_id: [extId] },
+                    target_channel: 'push',
+                    headings: { en: '📦 Nueva boleta asignada' },
+                    contents: { en: `${nombre} — ${destinos}` },
+                    url: 'https://emporium-dispatcher.vercel.app/chofer-app.html'
+                })
+            });
+        } catch(e) {
+            console.log('Notificación no enviada:', e);
+        }
+    }
 
     async function sbFetch(method, path, body) {
         const res = await fetch(SB_URL + path, {
@@ -418,6 +487,7 @@
         };
 
         await sbFetch('POST', '/rest/v1/boletas', boleta);
+        await enviarNotificacion(chofer, todosDestinos.join(', '));
         await dpRenderPanel();
 
         setTimeout(() => {
@@ -547,6 +617,50 @@
         document.getElementById('dp-total').textContent = totalSuc;
         document.getElementById('dp-pend').textContent  = pendSuc;
         document.getElementById('dp-entg').textContent  = entgSuc;
+
+        // Resumen por chofer
+        const resumenMap = {};
+        lista.forEach(b => {
+            const ch = b.chofer || '?';
+            if (!resumenMap[ch]) resumenMap[ch] = { boletas: 0, entg: 0, pend: 0 };
+            resumenMap[ch].boletas++;
+            const envios  = b.envios ? JSON.parse(b.envios) : [];
+            const detalle = b.entregas_detalle ? JSON.parse(b.entregas_detalle) : {};
+            if (envios.length > 0) {
+                envios.forEach(e => {
+                    (e.destinos || []).forEach(suc => {
+                        const key = `${b.id}_${e.num}_${suc}`;
+                        if (detalle[key]) resumenMap[ch].entg++;
+                        else resumenMap[ch].pend++;
+                    });
+                });
+            }
+        });
+
+        const resumenDiv = document.getElementById('resumen-dia');
+        const resumenLista = document.getElementById('resumen-dia-lista');
+
+        if (Object.keys(resumenMap).length > 0) {
+            resumenDiv.style.display = 'block';
+            resumenLista.innerHTML = Object.entries(resumenMap).map(([ch, s]) => {
+                const completo = s.pend === 0;
+                const nombre = ch.split(' ')[0];
+                return `
+                    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-radius:6px;margin-bottom:6px;background:${completo ? '#0a2e1a' : '#1c1c1c'};border:1px solid ${completo ? '#06d6a0' : '#333'};">
+                        <div style="display:flex;align-items:center;gap:10px;">
+                            <span style="font-size:1rem;">${completo ? '✅' : '🟡'}</span>
+                            <span style="color:${completo ? '#06d6a0' : '#e0e0e0'};font-weight:600;font-size:0.85rem;">${nombre}</span>
+                            <span style="color:#666;font-size:0.75rem;">${s.boletas} boleta${s.boletas>1?'s':''}</span>
+                        </div>
+                        <div style="text-align:right;">
+                            <span style="color:#06d6a0;font-size:0.78rem;font-weight:600;">${s.entg} entregadas</span>
+                            ${s.pend > 0 ? `<span style="color:#f77f00;font-size:0.78rem;margin-left:8px;">${s.pend} pendientes</span>` : ''}
+                        </div>
+                    </div>`;
+            }).join('');
+        } else {
+            resumenDiv.style.display = 'none';
+        }
         document.getElementById('dp-fecha').textContent = new Date().toLocaleDateString('es-VE', {weekday:'long', year:'numeric', month:'long', day:'numeric'});
     }
 
@@ -966,6 +1080,43 @@
         card.remove();
         actualizarNumeracion();
         actualizarVista();
+    }
+
+    const VEHICULOS_CHOFER = {
+        'Darwin Serrano':    'NPR 04',
+        'Daniel Subero':     'NPR 01',
+        'Richard Hernandez': 'NPR 02',
+        'Jackson Hernandez': 'L300 05',
+        'Willmer Fernández': 'Fuso 03',
+        'Jesús Lara':        '',
+        'Néstor Daniel':     ''
+    };
+
+    function onChoferChange() {
+        const chofer = document.getElementById('chofer').value;
+        const vehiculoFijo = VEHICULOS_CHOFER[chofer];
+        const selVehiculo = document.getElementById('vehiculo');
+        const btnDesbloquear = document.getElementById('btn-desbloquear-vehiculo');
+        if (vehiculoFijo) {
+            selVehiculo.value = vehiculoFijo;
+            selVehiculo.disabled = true;
+            selVehiculo.style.opacity = '0.6';
+            btnDesbloquear.style.display = 'inline-block';
+        } else {
+            selVehiculo.disabled = false;
+            selVehiculo.style.opacity = '1';
+            btnDesbloquear.style.display = 'none';
+        }
+        actualizarVista();
+    }
+
+    function desbloquearVehiculo() {
+        const selVehiculo = document.getElementById('vehiculo');
+        const btnDesbloquear = document.getElementById('btn-desbloquear-vehiculo');
+        selVehiculo.disabled = false;
+        selVehiculo.style.opacity = '1';
+        btnDesbloquear.style.display = 'none';
+        selVehiculo.focus();
     }
 
     function moverParada(btn, direccion) {
