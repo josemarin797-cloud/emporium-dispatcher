@@ -457,13 +457,26 @@
                 if (dpto) items.push({ dpto, detalle });
             });
 
-            // Destinos de entrega
-            const destinos = Array.from(
-                document.getElementById('destinos-entrega-' + pid)?.querySelectorAll('.input-destino-entrega') || []
-            ).map(sel => sel.value).filter(Boolean);
+            // Destinos de entrega con prioridad por sucursal
+            const sucCards2 = card.querySelectorAll('[data-sid]');
+            const destinos = [];
+            const prioSuc = {};
+            sucCards2.forEach(sc => {
+                const suc = sc.querySelector('.input-suc-entrega')?.value;
+                const ps  = sc.querySelector('.input-prio-suc')?.value || 'Normal';
+                const nota = sc.querySelector('.input-nota-suc')?.value || '';
+                if (suc) { destinos.push(suc); prioSuc[suc] = ps; if (nota) prioSuc[suc+'_nota'] = nota; }
+            });
+
+            // Fallback si usa el sistema antiguo
+            if (destinos.length === 0) {
+                Array.from(
+                    document.getElementById('destinos-entrega-' + pid)?.querySelectorAll('.input-destino-entrega') || []
+                ).map(sel => sel.value).filter(Boolean).forEach(s => destinos.push(s));
+            }
 
             destinos.forEach(s => { if (!todosDestinos.includes(s)) todosDestinos.push(s); });
-            envios.push({ num: idx + 1, recoge, destinos, prioridad, items });
+            envios.push({ num: idx + 1, recoge, destinos, prioridad, prioSuc, items });
         });
 
         let prioMax = 'Normal';
@@ -583,15 +596,30 @@
             const badgeBg    = isEntg ? '#0a2e22' : isUrg ? '#2e0a0a' : '#2e1a00';
             const badgeLabel = isEntg ? `✅ Completa` : `🟡 ${bEntg}/${paradas.length} entregas`;
 
-            const sucursalesHtml = paradas.map(p => {
-                const key = `${b.id}_${p.num}_${p.suc}`;
-                const hora = detalle[key];
-                const origenLabel = p.origen ? `<span style="color:#555;font-size:0.65rem;margin-right:2px;">E${p.num}</span>` : '';
-                if (hora) {
-                    return `<div style="display:inline-flex;align-items:center;gap:4px;background:#0a2e1a;border:1px solid #06d6a0;border-radius:4px;padding:3px 9px;margin:2px;font-size:0.72rem;color:#06d6a0;">${origenLabel}✅ ${p.suc} · ${hora}</div>`;
-                } else {
-                    return `<div style="display:inline-flex;align-items:center;gap:4px;background:#2e1a00;border:1px solid #f77f00;border-radius:4px;padding:3px 9px;margin:2px;font-size:0.72rem;color:#f77f00;">${origenLabel}🟡 ${p.suc}</div>`;
-                }
+            // Agrupar paradas por envio para mostrar recogida + entregas
+            const paradasPorEnvio = {};
+            paradas.forEach(p => {
+                if (!paradasPorEnvio[p.num]) paradasPorEnvio[p.num] = { recoge: p.recoge, destinos: [] };
+                paradasPorEnvio[p.num].destinos.push(p.suc);
+            });
+
+            const sucursalesHtml = Object.entries(paradasPorEnvio).map(([num, ep]) => {
+                const keyRec = `${b.id}_${num}_recogida`;
+                const horaRec = detalle[keyRec];
+                const recogidaHtml = ep.recoge ? (horaRec
+                    ? `<div style="display:inline-flex;align-items:center;gap:4px;background:#1e1000;border:1px solid #ffb703;border-radius:4px;padding:3px 9px;margin:2px;font-size:0.72rem;color:#ffb703;">📦 ${ep.recoge} ✅ ${horaRec}</div>`
+                    : `<div style="display:inline-flex;align-items:center;gap:4px;background:#1e1000;border:1px dashed #554400;border-radius:4px;padding:3px 9px;margin:2px;font-size:0.72rem;color:#554400;">📦 ${ep.recoge} · sin recoger</div>`
+                ) : '';
+                const destHtml = ep.destinos.map(suc => {
+                    const key = `${b.id}_${num}_${suc}`;
+                    const hora = detalle[key];
+                    if (hora) {
+                        return `<div style="display:inline-flex;align-items:center;gap:4px;background:#0a2e1a;border:1px solid #06d6a0;border-radius:4px;padding:3px 9px;margin:2px;font-size:0.72rem;color:#06d6a0;">✅ ${suc} · ${hora.split(' — ')[0]}</div>`;
+                    } else {
+                        return `<div style="display:inline-flex;align-items:center;gap:4px;background:#2e1a00;border:1px solid #f77f00;border-radius:4px;padding:3px 9px;margin:2px;font-size:0.72rem;color:#f77f00;">🟡 ${suc}</div>`;
+                    }
+                }).join('');
+                return recogidaHtml + destHtml;
             }).join('');
 
             const row = document.createElement('div');
@@ -835,14 +863,9 @@
                 ${idx > 0 ? `<button type="button" class="btn-remove" onclick="eliminarParada(this)">✕ Eliminar</button>` : ''}
             </div>
 
-            <div style="margin-bottom:12px;">
-                <label>Prioridad</label>
-                <select class="input-prioridad" onchange="actualizarVista()">
-                    <option value="🟢 Normal">🟢 Normal</option>
-                    <option value="🟠 Alta Prioridad">🟠 Alta Prioridad</option>
-                    <option value="🔴 Urgente">🔴 Urgente</option>
-                </select>
-            </div>
+            <select class="input-prioridad" style="display:none;">
+                <option value="🟢 Normal">🟢 Normal</option>
+            </select>
 
             <!-- ══ RECOGE EN ══ -->
             <div style="background:#1a1200;border:1px solid #554400;border-radius:8px;padding:12px;margin-bottom:12px;">
@@ -851,19 +874,13 @@
                     style="background:#111;border:1px solid #554400;color:#ffdb6d;border-radius:6px;padding:8px;width:100%;font-size:0.9rem;">
                     ${sucOptions}
                 </select>
-                <div style="margin-top:10px;font-size:0.75rem;color:#888;font-weight:600;margin-bottom:6px;">¿QUÉ LLEVA?</div>
-                <div id="items-recoge-${pid}"></div>
-                <button type="button" onclick="agregarItemRecoge('${pid}')"
-                    style="background:#2a1f00;color:#ffb703;border:1px dashed #554400;width:100%;padding:7px;border-radius:6px;font-size:0.8rem;cursor:pointer;margin-top:6px;">
-                    + Agregar departamento
-                </button>
             </div>
 
             <!-- ══ ENTREGA EN ══ -->
             <div style="background:#0a1a0a;border:1px solid #2a5a2a;border-radius:8px;padding:12px;">
                 <div style="font-size:0.8rem;color:#06d6a0;font-weight:700;margin-bottom:8px;">📍 ENTREGA EN</div>
-                <div id="destinos-entrega-${pid}"></div>
-                <button type="button" onclick="agregarDestinoEntrega('${pid}')"
+                <div id="suc-entregas-${pid}"></div>
+                <button type="button" onclick="agregarSucEntrega('${pid}')"
                     style="background:#0a2e1a;color:#06d6a0;border:1px dashed #06d6a0;width:100%;padding:7px;border-radius:6px;font-size:0.8rem;cursor:pointer;margin-top:6px;">
                     + Agregar sucursal de entrega
                 </button>
@@ -927,27 +944,51 @@
         const cont = document.getElementById('suc-entregas-' + pid);
         const sid  = 'suc-' + Date.now();
         const sucOptions = sucursales.map(s => `<option value="${s}">${s}</option>`).join('');
-        const dptoOptions = departamentos.map(d => `<option value="${d}">${d}</option>`).join('');
         const div = document.createElement('div');
         div.dataset.sid = sid;
-        div.style.cssText = 'background:#1c1c1c;border:1px solid #333;border-radius:8px;padding:12px;margin-bottom:10px;';
+        const dptoOptions = departamentos.map(d => `<option value="${d}">${d}</option>`).join('');
+        div.style.cssText = 'background:#111f11;border:1px solid #2a5a2a;border-radius:8px;padding:12px;margin-bottom:8px;';
         div.innerHTML = `
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-                <span style="font-size:0.78rem;color:#06d6a0;font-weight:700;">📍 Sucursal</span>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+                <span style="font-size:0.78rem;color:#06d6a0;font-weight:700;">📍 Sucursal de entrega</span>
                 <button type="button" onclick="this.closest('[data-sid]').remove();actualizarVista();"
                     style="background:transparent;border:none;color:#666;cursor:pointer;font-size:0.9rem;">✕</button>
             </div>
-            <select class="input-suc-entrega" onchange="actualizarVista()" style="margin-bottom:8px;">
+            <select class="input-suc-entrega" onchange="actualizarVista()"
+                style="width:100%;background:#0a2e1a;border:1px solid #2a5a2a;color:#7fff7f;border-radius:6px;padding:8px;font-size:0.85rem;margin-bottom:8px;">
                 ${sucOptions}
             </select>
-            <div class="items-suc-container"></div>
-            <button type="button" onclick="agregarItemSuc(this)"
-                style="background:#222;color:#888;border:1px dashed #444;width:100%;padding:7px;border-radius:6px;font-size:0.78rem;cursor:pointer;margin-top:6px;">
-                + Agregar departamento
-            </button>
+            <select class="input-prio-suc" onchange="actualizarVista()"
+                style="width:100%;background:#1c1c1c;border:1px solid #333;color:#e0e0e0;border-radius:6px;padding:8px;font-size:0.82rem;margin-bottom:8px;">
+                <option value="Normal">🟢 Normal</option>
+                <option value="Alta">🟡 Alta prioridad</option>
+                <option value="Urgente">🔴 Urgente</option>
+            </select>
+            <textarea class="input-nota-suc" placeholder="Nota (ej: 10 reses con traste, 5 cajas jamón...)" oninput="actualizarVista()"
+                style="width:100%;background:#0d1f0d;border:1px solid #2a5a2a;color:#ccc;border-radius:6px;padding:8px;font-size:0.82rem;font-family:inherit;height:55px;resize:vertical;margin-top:4px;"></textarea>
         `;
         cont.appendChild(div);
-        agregarItemSuc(div.querySelector('button[onclick*="agregarItemSuc"]'));
+        actualizarVista();
+    }
+
+    function agregarItemSucEntrega(btn) {
+        const cont = btn.previousElementSibling;
+        const dptoOptions = departamentos.map(d => `<option value="${d}">${d}</option>`).join('');
+        const div = document.createElement('div');
+        div.style.cssText = 'background:#0d1f0d;border:1px solid #2a5a2a;border-radius:6px;padding:8px;margin-bottom:6px;';
+        div.innerHTML = `
+            <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+                <span style="font-size:0.72rem;color:#06d6a0;">ÍTEM</span>
+                <button type="button" onclick="this.closest('div[style]').remove();actualizarVista();"
+                    style="background:transparent;border:none;color:#555;cursor:pointer;font-size:0.8rem;">✕</button>
+            </div>
+            <select class="item-suc-dpto" onchange="actualizarVista()" style="margin-bottom:4px;background:#0a2e1a;border:1px solid #2a5a2a;color:#7fff7f;border-radius:6px;padding:6px;width:100%;font-size:0.82rem;">
+                ${dptoOptions}
+            </select>
+            <textarea class="item-suc-detalle" placeholder="Descripción (ej: 10 reses con traste)..." oninput="actualizarVista()"
+                style="height:45px;background:#111;border:1px solid #2a5a2a;color:#ccc;border-radius:6px;padding:6px;width:100%;font-size:0.82rem;font-family:inherit;resize:vertical;"></textarea>
+        `;
+        cont.appendChild(div);
         actualizarVista();
     }
 
@@ -1070,6 +1111,12 @@
     }
 
     function getSucursalesSeleccionadas(card) {
+        // Nuevo sistema con data-sid
+        const sucCards = card.querySelectorAll('[data-sid]');
+        if (sucCards.length > 0) {
+            return Array.from(sucCards).map(sc => sc.querySelector('.input-suc-entrega')?.value).filter(Boolean);
+        }
+        // Fallback sistema anterior
         return Array.from(card.querySelectorAll('.suc-check-item input[type="checkbox"]'))
             .filter(cb => cb.checked).map(cb => cb.value);
     }
@@ -1222,10 +1269,25 @@
                 }
             });
 
-            // Destinos entrega
-            const destinosHtml = Array.from(
-                document.getElementById('destinos-entrega-' + pid)?.querySelectorAll('.input-destino-entrega') || []
-            ).map(sel => `<span class="destino-tag">📍 ${sel.value}</span>`).join('') || '<span style="color:var(--text-muted);font-size:0.78rem;">Sin destino</span>';
+            // Destinos entrega — nuevo sistema con prioridad por sucursal
+            const sucCards3 = document.getElementById('suc-entregas-' + pid)?.querySelectorAll('[data-sid]') || [];
+            const destinosHtml = Array.from(sucCards3).map((sc, si) => {
+                const suc = sc.querySelector('.input-suc-entrega')?.value || '';
+                const ps  = sc.querySelector('.input-prio-suc')?.value || 'Normal';
+                const pColor = ps === 'Urgente' ? '#d90429' : ps === 'Alta' ? '#f77f00' : '#444';
+                const pLabel = ps === 'Urgente' ? '🔴 URGENTE' : ps === 'Alta' ? '🟡 ALTA' : '🟢 Normal';
+                // Nota por sucursal
+                const nota = sc.querySelector('.input-nota-suc')?.value || '';
+                const itemsHtmlSuc = nota ? `<div style="font-size:0.75rem;color:#888;margin-top:4px;">📝 ${nota}</div>` : '';
+                return suc ? `<div style="background:#1c1c1c;border:1px solid ${pColor};border-radius:6px;padding:6px 10px;margin:2px 0;width:100%;">
+                    <div style="display:flex;align-items:center;gap:6px;">
+                        <span style="background:${pColor};color:#fff;border-radius:50%;width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:700;">${si+1}</span>
+                        <span style="color:#e0e0e0;font-size:0.82rem;font-weight:600;">📍 ${suc}</span>
+                        <span style="color:${pColor};font-size:0.68rem;font-weight:700;margin-left:auto;">${pLabel}</span>
+                    </div>
+                    ${itemsHtmlSuc}
+                </div>` : '';
+            }).filter(Boolean).join('') || '<span style="color:var(--text-muted);font-size:0.78rem;">Sin destino</span>';
 
             const fotosHtml = fotos.length > 0
                 ? `<div class="boleta-fotos-grid">${fotos.map(f => `<img src="${f}">`).join('')}</div>` : '';
@@ -1233,9 +1295,8 @@
             const div = document.createElement('div');
             div.className = `parada-view ${claseP}`;
             div.innerHTML = `
-                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                <div style="margin-bottom:10px;">
                     <span style="font-size:0.78rem;color:var(--text-muted);">PARADA #${idx + 1}</span>
-                    <span class="prioridad-badge">${prioridad}</span>
                 </div>
                 <div class="ruta-linea" style="margin-bottom:6px;">
                     <span class="ruta-origen-badge" style="background:#1e1800;color:#ffb703;border-color:#554400;">📦 ${recoge}</span>
