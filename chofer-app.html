@@ -253,40 +253,33 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
     <p class="select-label">Primera vez: selecciona tu nombre</p>
 
     <div class="chofer-grid">
-        <div class="chofer-btn" onclick="seleccionarChofer(this, 'Darwin Serrano', 'NPR 04')">
+        <div class="chofer-btn" onclick="seleccionarChofer(this, 'Darwin Serrano', '')">
             <div class="chofer-avatar">🚛</div>
             <div class="chofer-name">Darwin</div>
-            <div class="chofer-unit">NPR 04</div>
         </div>
-        <div class="chofer-btn" onclick="seleccionarChofer(this, 'Daniel Subero', 'NPR 01')">
+        <div class="chofer-btn" onclick="seleccionarChofer(this, 'Daniel Subero', '')">
             <div class="chofer-avatar">🚛</div>
             <div class="chofer-name">Daniel</div>
-            <div class="chofer-unit">NPR 01</div>
         </div>
-        <div class="chofer-btn" onclick="seleccionarChofer(this, 'Jackson Hernandez', 'L300 05')">
+        <div class="chofer-btn" onclick="seleccionarChofer(this, 'Jackson Hernandez', '')">
             <div class="chofer-avatar">🚗</div>
             <div class="chofer-name">Jackson</div>
-            <div class="chofer-unit">L300 05</div>
         </div>
-        <div class="chofer-btn" onclick="seleccionarChofer(this, 'Richard Hernandez', 'NPR 02')">
+        <div class="chofer-btn" onclick="seleccionarChofer(this, 'Richard Hernandez', '')">
             <div class="chofer-avatar">🚛</div>
             <div class="chofer-name">Richard</div>
-            <div class="chofer-unit">NPR 02</div>
         </div>
-        <div class="chofer-btn" onclick="seleccionarChofer(this, 'Willmer Fernández', 'Fuso 03')">
+        <div class="chofer-btn" onclick="seleccionarChofer(this, 'Willmer Fernández', '')">
             <div class="chofer-avatar">🚌</div>
             <div class="chofer-name">Willmer</div>
-            <div class="chofer-unit">Fuso 03</div>
         </div>
         <div class="chofer-btn" onclick="seleccionarChofer(this, 'Jesús Lara', '')">
             <div class="chofer-avatar">🚗</div>
             <div class="chofer-name">Jesús</div>
-            <div class="chofer-unit">Sin asignar</div>
         </div>
         <div class="chofer-btn" onclick="seleccionarChofer(this, 'Néstor Daniel', '')" style="grid-column: span 2;">
             <div class="chofer-avatar">🚛</div>
             <div class="chofer-name">Néstor</div>
-            <div class="chofer-unit">Sin asignar</div>
         </div>
     </div>
 
@@ -305,7 +298,6 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
                 <div class="topbar-unit" id="topbar-unit">—</div>
             </div>
         </div>
-        <button onclick="cambiarVehiculo()" id="btn-cambiar-vehiculo" style="display:none;background:transparent;border:1px solid #ffb703;color:#ffb703;border-radius:8px;padding:6px 10px;font-size:0.72rem;cursor:pointer;margin-right:6px;">🚗 Cambiar</button>
         <button class="btn-salir" onclick="cerrarSesion()">Salir</button>
     </div>
 
@@ -347,8 +339,7 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
         'Néstor Daniel': '🚛'
     };
 
-    // Choferes con vehículo fijo — no pueden cambiarlo
-    const VEHICULOS_FIJOS = ['Darwin Serrano', 'Daniel Subero', 'Jackson Hernandez', 'Richard Hernandez', 'Willmer Fernández'];
+
 
     let choferSeleccionado = null;
     let choferActual = null;
@@ -423,13 +414,7 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
         document.getElementById('topbar-unit').textContent = chofer.unidad || 'Sin asignar';
         document.getElementById('topbar-avatar').textContent = AVATARES[chofer.nombre] || '🚚';
 
-        // Mostrar botón cambiar solo si no tiene vehículo fijo
-        const btnCambiar = document.getElementById('btn-cambiar-vehiculo');
-        if (!VEHICULOS_FIJOS.includes(chofer.nombre)) {
-            btnCambiar.style.display = 'inline-block';
-        } else {
-            btnCambiar.style.display = 'none';
-        }
+
 
         // Mostrar pantalla principal
         document.getElementById('screen-login').style.display = 'none';
@@ -443,6 +428,30 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
         setInterval(cargarBoletas, 30000);
     }
 
+    // Sonido de alerta para urgentes
+    function sonarAlarma() {
+        try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const beep = (freq, start, dur) => {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.frequency.value = freq;
+                osc.type = 'square';
+                gain.gain.setValueAtTime(0.3, ctx.currentTime + start);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + start + dur);
+                osc.start(ctx.currentTime + start);
+                osc.stop(ctx.currentTime + start + dur);
+            };
+            beep(880, 0, 0.15);
+            beep(880, 0.2, 0.15);
+            beep(1100, 0.4, 0.3);
+        } catch(e) {}
+    }
+
+    let boletasUrgentesVistas = new Set();
+
     async function cargarBoletas() {
         if (!choferActual) return;
         const hoy = new Date().toISOString().slice(0, 10);
@@ -451,6 +460,17 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
         const lista = await sbFetch('GET',
             `/rest/v1/boletas?fecha=eq.${hoy}&chofer=eq.${encodeURIComponent(nombre)}&order=created_at.desc&select=*`
         ) || [];
+
+        // Detectar nuevas boletas urgentes
+        lista.forEach(b => {
+            if (b.prioridad && b.prioridad.includes('Urgente') && b.estado !== 'entregada') {
+                if (!boletasUrgentesVistas.has(b.id)) {
+                    boletasUrgentesVistas.add(b.id);
+                    sonarAlarma();
+                    mostrarToast('🔴 ¡BOLETA URGENTE RECIBIDA!');
+                }
+            }
+        });
 
         renderBoletas(lista);
     }
@@ -510,21 +530,73 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 
                     const recoge = e.recoge || e.origen || '—';
 
+                    // Botón de confirmación de recogida
+                    const keyRecoge = `${b.id}_${e.num}_recogida`;
+                    const recogidaEn = detalle[keyRecoge];
+                    const uidRec = `rec_${b.id}_${e.num}`.replace(/[^a-zA-Z0-9_]/g,'_');
+                    const recogidaHtml = recogidaEn
+                        ? `<div style="background:#1e1000;border:1px solid #ffb703;border-radius:6px;padding:8px 12px;margin-bottom:8px;">
+                            <div style="display:flex;align-items:center;justify-content:space-between;">
+                                <span style="color:#ffb703;font-size:0.8rem;font-weight:600;">📦 Recogido en ${recoge}</span>
+                                <span style="color:#ffb703;font-size:0.75rem;">✅ ${recogidaEn.split('|')[0]}</span>
+                            </div>
+                            ${recogidaEn.includes('|foto:') ? `<img src="${recogidaEn.split('|foto:')[1]}" style="width:100%;border-radius:6px;margin-top:6px;max-height:150px;object-fit:cover;">` : ''}
+                           </div>`
+                        : `<div style="background:#1e1800;border:1px solid #ffb703;border-radius:6px;padding:10px;margin-bottom:8px;">
+                            <div style="font-size:0.78rem;color:#ffb703;font-weight:700;margin-bottom:8px;">📦 Confirmar recogida en ${recoge}</div>
+                            <div style="display:flex;gap:6px;margin-bottom:8px;">
+                                <button onclick="tomarFotoRecogida('${uidRec}')" 
+                                    style="flex:1;background:#2a1f00;color:#ffb703;border:1px solid #554400;border-radius:6px;padding:7px;font-size:0.78rem;cursor:pointer;">
+                                    📷 Foto
+                                </button>
+                                <button onclick="confirmarRecogida('${b.id}', ${e.num}, '${recoge}', null)"
+                                    style="flex:1;background:#2a1f00;color:#ffb703;border:1px solid #554400;border-radius:6px;padding:7px;font-size:0.78rem;cursor:pointer;">
+                                    ✅ Sin foto
+                                </button>
+                            </div>
+                            <div id="preview_${uidRec}" style="display:none;margin-bottom:8px;">
+                                <img id="img_${uidRec}" style="width:100%;border-radius:6px;max-height:120px;object-fit:cover;">
+                                <button onclick="confirmarRecogida('${b.id}', ${e.num}, '${recoge}', '${uidRec}')"
+                                    style="width:100%;background:#ffb703;color:#000;border:none;border-radius:6px;padding:8px;font-size:0.82rem;font-weight:700;cursor:pointer;margin-top:6px;">
+                                    ✅ Confirmar con foto
+                                </button>
+                            </div>
+                            <input type="file" id="file_${uidRec}" accept="image/*" capture="environment" style="display:none;"
+                                onchange="previewFotoRecogida('${uidRec}', this)">
+                           </div>`;
+
                     // Botón por sucursal de entrega
-                    const sucBtns = (e.destinos || []).map(suc => {
+                    const sucBtns = (e.destinos || []).map((suc, si) => {
                         const key = `${b.id}_${e.num}_${suc}`;
                         const entregadaEn = detalle[key];
                         if (entregadaEn) {
-                            return `<div style="display:flex;align-items:center;justify-content:space-between;background:#0a2e1a;border:1px solid #06d6a0;border-radius:8px;padding:10px 14px;margin-top:8px;">
-                                <span style="color:#06d6a0;font-size:0.85rem;font-weight:600;">📍 ${suc}</span>
-                                <span style="color:#06d6a0;font-size:0.78rem;">✅ ${entregadaEn}</span>
+                            return `<div style="background:#0a2e1a;border:1px solid #06d6a0;border-radius:8px;padding:10px 14px;margin-top:8px;">
+                                <div style="display:flex;align-items:center;justify-content:space-between;">
+                                    <span style="color:#06d6a0;font-size:0.85rem;font-weight:600;">📍 ${suc}</span>
+                                    <span style="color:#06d6a0;font-size:0.78rem;">✅ ${entregadaEn.split(' — ')[0]}</span>
+                                </div>
+                                ${entregadaEn.includes(' — ') ? `<div style="color:#888;font-size:0.75rem;margin-top:4px;">💬 ${entregadaEn.split(' — ').slice(1).join(' — ')}</div>` : ''}
                             </div>`;
                         } else {
-                            return `<div style="display:flex;align-items:center;justify-content:space-between;background:#1c1c1c;border:1px solid #444;border-radius:8px;padding:10px 14px;margin-top:8px;">
-                                <span style="color:#ccc;font-size:0.85rem;">📍 ${suc}</span>
-                                <button onclick="confirmarSucursal('${b.id}', ${e.num}, '${suc}')"
-                                    style="background:#06d6a0;color:#000;border:none;border-radius:6px;padding:6px 14px;font-size:0.8rem;font-weight:700;cursor:pointer;">
-                                    Entregar
+                            const uid = `obs_${b.id}_${e.num}_${suc}`.replace(/[^a-zA-Z0-9_]/g,'_');
+                            const prioSuc = (e.prioSuc && e.prioSuc[suc]) || 'Normal';
+                            const notaSuc = (e.prioSuc && e.prioSuc[suc+'_nota']) || '';
+                            const prioBorder = prioSuc === 'Urgente' ? '#d90429' : prioSuc === 'Alta' ? '#f77f00' : '#333';
+                            const prioColor  = prioSuc === 'Urgente' ? '#d90429' : prioSuc === 'Alta' ? '#f77f00' : '#06d6a0';
+                            const prioLabel  = prioSuc === 'Urgente' ? '🔴 ENTREGAR PRIMERO' : prioSuc === 'Alta' ? '🟡 ALTA PRIORIDAD' : '🟢 Normal';
+                            const orden = si + 1;
+                            return `<div style="background:#1c1c1c;border:2px solid ${prioBorder};border-radius:8px;padding:12px;margin-top:8px;">
+                                <div style="display:flex;align-items:center;gap:8px;margin-bottom:${notaSuc ? '6px' : '8px'};">
+                                    <span style="background:${prioColor};color:#000;border-radius:50%;width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;font-size:0.8rem;font-weight:700;flex-shrink:0;">${orden}</span>
+                                    <span style="color:#e0e0e0;font-size:0.9rem;font-weight:700;">📍 ${suc}</span>
+                                    <span style="color:${prioColor};font-size:0.72rem;font-weight:700;margin-left:auto;">${prioLabel}</span>
+                                </div>
+                                ${notaSuc ? `<div style="background:#111;border:1px solid #333;border-radius:6px;padding:6px 10px;margin-bottom:8px;font-size:0.8rem;color:#aaa;">📝 ${notaSuc}</div>` : ''}
+                                <input id="${uid}" type="text" placeholder="Observación (opcional)..."
+                                    style="width:100%;padding:8px 10px;background:#111;border:1px solid #333;color:#ccc;border-radius:6px;font-size:0.82rem;font-family:inherit;margin-bottom:8px;">
+                                <button onclick="confirmarSucursal('${b.id}', ${e.num}, '${suc}', document.getElementById('${uid}').value)"
+                                    style="width:100%;background:#06d6a0;color:#000;border:none;border-radius:6px;padding:10px;font-size:0.85rem;font-weight:700;cursor:pointer;">
+                                    ✅ Confirmar entrega
                                 </button>
                             </div>`;
                         }
@@ -542,6 +614,7 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
                                 <span style="color:#888;font-size:0.78rem;">entrega en:</span>
                             </div>
                             <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px;">${itemsHtml}</div>
+                            ${recogidaHtml}
                             ${sucBtns}
                         </div>`;
                 }).join('');
@@ -608,7 +681,61 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
         document.getElementById('s-entg').textContent = sucEntg;
     }
 
-    async function confirmarSucursal(boletaId, envioNum, sucursal) {
+    const fotosRecogida = {};
+
+    function tomarFotoRecogida(uid) {
+        document.getElementById('file_' + uid)?.click();
+    }
+
+    function previewFotoRecogida(uid, input) {
+        const file = input.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = e => {
+            fotosRecogida[uid] = e.target.result;
+            const img = document.getElementById('img_' + uid);
+            const prev = document.getElementById('preview_' + uid);
+            if (img) img.src = e.target.result;
+            if (prev) prev.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+    }
+
+    async function confirmarRecogida(boletaId, envioNum, origen, fotoUid) {
+        const hora = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const boleta = await sbFetch('GET', `/rest/v1/boletas?id=eq.${boletaId}&select=entregas_detalle`);
+        if (!boleta || !boleta[0]) return;
+        const detalle = JSON.parse(boleta[0].entregas_detalle || '{}');
+        const key = `${boletaId}_${envioNum}_recogida`;
+
+        let valorFinal = hora;
+        if (fotoUid && fotosRecogida[fotoUid]) {
+            // Subir foto a Supabase Storage
+            try {
+                const base64 = fotosRecogida[fotoUid].split(',')[1];
+                const blob = await fetch(fotosRecogida[fotoUid]).then(r => r.blob());
+                const nombreFoto = `recogidas/${boletaId}_${envioNum}_${Date.now()}.jpg`;
+                const uploadRes = await fetch(`${SB_URL}/storage/v1/object/fotos-flota/${nombreFoto}`, {
+                    method: 'POST',
+                    headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'image/jpeg' },
+                    body: blob
+                });
+                if (uploadRes.ok) {
+                    const fotoUrl = `${SB_URL}/storage/v1/object/public/fotos-flota/${nombreFoto}`;
+                    valorFinal = `${hora}|foto:${fotoUrl}`;
+                }
+            } catch(e) {
+                console.log('Error subiendo foto:', e);
+            }
+        }
+
+        detalle[key] = valorFinal;
+        await sbFetch('PATCH', `/rest/v1/boletas?id=eq.${boletaId}`, { entregas_detalle: JSON.stringify(detalle) });
+        mostrarToast(`✅ Recogida confirmada en ${origen} — ${hora}`);
+        await cargarBoletas();
+    }
+
+    async function confirmarSucursal(boletaId, envioNum, sucursal, observacion = '') {
         const hora = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
         // Cargar detalle actual
@@ -618,7 +745,7 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 
         const detalle = b.entregas_detalle ? JSON.parse(b.entregas_detalle) : {};
         const key = `${boletaId}_${envioNum}_${sucursal}`;
-        detalle[key] = hora;
+        detalle[key] = observacion ? `${hora} — ${observacion}` : hora;
 
         // Ver si todas las sucursales están entregadas
         const envios = b.envios ? JSON.parse(b.envios) : null;
