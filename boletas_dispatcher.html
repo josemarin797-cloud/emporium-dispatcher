@@ -447,7 +447,9 @@
         document.querySelectorAll('.parada-card').forEach((card, idx) => {
             const pid       = card.dataset.pid;
             const prioridad = card.querySelector('.input-prioridad').value;
-            const recoge    = card.querySelector('.input-origen-parada')?.value || '';
+            const origenSel = card.querySelector('.input-origen-parada')?.value || '';
+            const origenLib = card.querySelector('.input-dir-libre-origen')?.value || '';
+            const recoge    = requiereDir.includes(origenSel) && origenLib ? origenLib : origenSel;
 
             // Ítems que recoge
             const items = [];
@@ -465,7 +467,13 @@
                 const suc = sc.querySelector('.input-suc-entrega')?.value;
                 const ps  = sc.querySelector('.input-prio-suc')?.value || 'Normal';
                 const nota = sc.querySelector('.input-nota-suc')?.value || '';
-                if (suc) { destinos.push(suc); prioSuc[suc] = ps; if (nota) prioSuc[suc+'_nota'] = nota; }
+                const maps = sc.querySelector('.input-maps-suc')?.value || '';
+                if (suc) { 
+                    destinos.push(suc); 
+                    prioSuc[suc] = ps; 
+                    if (nota) prioSuc[suc+'_nota'] = nota;
+                    if (maps) prioSuc[suc+'_maps'] = maps;
+                }
             });
 
             // Fallback si usa el sistema antiguo
@@ -934,10 +942,16 @@
             <!-- ══ RECOGE EN ══ -->
             <div style="background:#1a1200;border:1px solid #554400;border-radius:8px;padding:12px;margin-bottom:12px;">
                 <div style="font-size:0.8rem;color:#ffb703;font-weight:700;margin-bottom:8px;">📦 RECOGE EN</div>
-                <select class="input-origen-parada" onchange="actualizarVista()"
-                    style="background:#111;border:1px solid #554400;color:#ffdb6d;border-radius:6px;padding:8px;width:100%;font-size:0.9rem;margin-bottom:10px;">
+                <select class="input-origen-parada" onchange="toggleDirLibreOrigen(this);actualizarVista()"
+                    style="background:#111;border:1px solid #554400;color:#ffdb6d;border-radius:6px;padding:8px;width:100%;font-size:0.9rem;margin-bottom:6px;">
                     ${sucOptions}
                 </select>
+                <input type="text" class="input-dir-libre-origen" placeholder="Escribe la dirección exacta (ej: Rimara, Quinta Crespo - Caracas)..."
+                    style="display:none;width:100%;background:#111;border:1px solid #ffb703;color:#ffdb6d;border-radius:6px;padding:8px;font-size:0.85rem;font-family:inherit;margin-bottom:4px;"
+                    oninput="actualizarVista()">
+                <input type="text" class="input-maps-origen" placeholder="🗺️ Enlace de Google Maps (opcional)..."
+                    style="display:none;width:100%;background:#111;border:1px solid #2a5a2a;color:#06d6a0;border-radius:6px;padding:7px;font-size:0.78rem;font-family:inherit;margin-bottom:10px;"
+                    oninput="actualizarVista()">
                 <div style="font-size:0.75rem;color:#888;font-weight:600;margin-bottom:6px;">¿QUÉ LLEVA?</div>
                 <div id="items-recoge-${pid}"></div>
                 <button type="button" onclick="agregarItemRecoge('${pid}')"
@@ -1036,9 +1050,26 @@
             </select>
             <textarea class="input-nota-suc" placeholder="Nota (ej: 10 reses con traste, 5 cajas jamón...)" oninput="actualizarVista()"
                 style="width:100%;background:#0d1f0d;border:1px solid #2a5a2a;color:#ccc;border-radius:6px;padding:8px;font-size:0.82rem;font-family:inherit;height:55px;resize:vertical;margin-top:4px;"></textarea>
+            <input type="text" class="input-maps-suc" placeholder="🗺️ Enlace de Google Maps (opcional)..." oninput="actualizarVista()"
+                style="width:100%;background:#0d1f0d;border:1px solid #2a5a2a;color:#06d6a0;border-radius:6px;padding:7px;font-size:0.78rem;font-family:inherit;margin-top:4px;">
         `;
         cont.appendChild(div);
         actualizarVista();
+    }
+
+    function toggleDirLibreOrigen(sel) {
+        const inputDir  = sel.nextElementSibling;
+        const inputMaps = inputDir.nextElementSibling;
+        if (requiereDir.includes(sel.value)) {
+            inputDir.style.display = 'block';
+            inputMaps.style.display = 'block';
+            inputDir.focus();
+        } else {
+            inputDir.style.display = 'none';
+            inputMaps.style.display = 'none';
+            inputDir.value = '';
+            inputMaps.value = '';
+        }
     }
 
     function agregarItemSucEntrega(btn) {
@@ -1321,7 +1352,9 @@
         paradas.forEach((card, idx) => {
             const pid       = card.dataset.pid;
             const prioridad = card.querySelector('.input-prioridad').value;
-            const recoge    = card.querySelector('.input-origen-parada')?.value || '—';
+            const origenSelP = card.querySelector('.input-origen-parada')?.value || '—';
+            const origenLibP = card.querySelector('.input-dir-libre-origen')?.value || '';
+            const recoge    = requiereDir.includes(origenSelP) && origenLibP ? origenLibP : origenSelP;
             const fotos     = fotosMap[pid] || [];
 
             let claseP = 'normal';
