@@ -643,6 +643,7 @@
                         <span style="background:${badgeBg};color:${badgeColor};border-radius:4px;padding:3px 8px;font-size:0.72rem;font-weight:bold;">${badgeLabel}</span>
                         ${!isEntg ? `<button onclick="dpMarcarEntregada('${b.id}')" style="background:#1a2e1a;color:#06d6a0;border:1px solid #06d6a0;padding:4px 10px;border-radius:5px;cursor:pointer;font-size:0.72rem;font-weight:bold;">Entregar todo</button>` : ''}
                         <button onclick="editarBoleta('${b.id}')" style="background:#1a1a2e;color:#7c9ff5;border:1px solid #3a5aad;padding:4px 10px;border-radius:5px;cursor:pointer;font-size:0.72rem;font-weight:bold;">✏️ Editar</button>
+                        <button onclick="agregarParadaABoleta('${b.id}', '${b.chofer}')" style="background:#1a2e2e;color:#06d6a0;border:1px solid #06d6a0;padding:4px 10px;border-radius:5px;cursor:pointer;font-size:0.72rem;font-weight:bold;">➕ Parada</button>
                     </div>
                 </div>
                 <div style="display:flex;flex-wrap:wrap;gap:2px;">${sucursalesHtml}</div>
@@ -711,6 +712,95 @@
             resumenDiv.style.display = 'none';
         }
         document.getElementById('dp-fecha').textContent = new Date().toLocaleDateString('es-VE', {weekday:'long', year:'numeric', month:'long', day:'numeric'});
+    }
+
+    async function agregarParadaABoleta(boletaId, chofer) {
+        // Crear modal
+        const modal = document.createElement('div');
+        modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:9999;display:flex;align-items:center;justify-content:center;';
+        const sucOpts = sucursales.map(s => `<option value="${s}">${s}</option>`).join('');
+        modal.innerHTML = `
+            <div style="background:#1c1c1c;border:1px solid #ffb703;border-radius:12px;padding:20px;width:90%;max-width:420px;">
+                <div style="font-size:0.9rem;color:#ffb703;font-weight:700;margin-bottom:14px;">➕ Nueva parada — ${boletaId}</div>
+                <label style="font-size:0.75rem;color:#888;">RECOGE EN</label>
+                <select id="np-recoge" style="width:100%;background:#111;border:1px solid #554400;color:#ffdb6d;border-radius:6px;padding:8px;margin-bottom:10px;font-size:0.85rem;">
+                    ${sucOpts}
+                </select>
+                <label style="font-size:0.75rem;color:#888;">ENTREGA EN</label>
+                <select id="np-entrega" style="width:100%;background:#0a2e1a;border:1px solid #2a5a2a;color:#7fff7f;border-radius:6px;padding:8px;margin-bottom:8px;font-size:0.85rem;">
+                    ${sucOpts}
+                </select>
+                <select id="np-prio" style="width:100%;background:#1c1c1c;border:1px solid #333;color:#e0e0e0;border-radius:6px;padding:8px;margin-bottom:10px;font-size:0.82rem;">
+                    <option value="Normal">🟢 Normal</option>
+                    <option value="Alta">🟡 Alta prioridad</option>
+                    <option value="Urgente">🔴 Urgente</option>
+                </select>
+                <textarea id="np-nota" placeholder="Nota (opcional)..." style="width:100%;background:#111;border:1px solid #333;color:#ccc;border-radius:6px;padding:8px;font-size:0.82rem;height:50px;font-family:inherit;margin-bottom:12px;"></textarea>
+                <div style="display:flex;gap:8px;">
+                    <button onclick="this.closest('div[style*=fixed]').remove()" style="flex:1;background:#2a2a2a;color:#888;border:1px solid #444;border-radius:6px;padding:10px;cursor:pointer;font-size:0.85rem;">Cancelar</button>
+                    <button onclick="confirmarNuevaParada('${boletaId}', '${chofer}')" style="flex:2;background:#ffb703;color:#000;border:none;border-radius:6px;padding:10px;cursor:pointer;font-size:0.85rem;font-weight:700;">✅ Agregar parada</button>
+                </div>
+            </div>`;
+        document.body.appendChild(modal);
+    }
+
+    async function confirmarNuevaParada(boletaId, chofer) {
+        const recoge  = document.getElementById('np-recoge').value;
+        const entrega = document.getElementById('np-entrega').value;
+        const prio    = document.getElementById('np-prio').value;
+        const nota    = document.getElementById('np-nota').value;
+
+        // Obtener boleta actual
+        const lista = await sbFetch('GET', `/rest/v1/boletas?id=eq.${boletaId}&select=*`);
+        if (!lista || !lista[0]) return;
+        const b = lista[0];
+        const envios = JSON.parse(b.envios || '[]');
+        const prioSuc = {};
+        prioSuc[entrega] = prio;
+        if (nota) prioSuc[entrega+'_nota'] = nota;
+
+        // Agregar nueva parada
+        const nuevoNum = envios.length + 1;
+        envios.push({
+            num: nuevoNum,
+            recoge,
+            destinos: [entrega],
+            prioridad: prio,
+            prioSuc,
+            items: []
+        });
+
+        // Actualizar destinos
+        const destActual = b.destinos || '';
+        const destNuevo  = destActual ? `${destActual}, ${entrega}` : entrega;
+
+        await sbFetch('PATCH', `/rest/v1/boletas?id=eq.${boletaId}`, {
+            envios: JSON.stringify(envios),
+            destinos: destNuevo,
+            estado: 'pendiente'
+        });
+
+        // Notificar OneSignal al chofer
+        const extId = chofer.toLowerCase().replace(/\s+/g, '_');
+        try {
+            await fetch('https://api.onesignal.com/notifications', {
+                method: 'POST',
+                headers: { 'Authorization': `Key ${OS_API_KEY}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    app_id: OS_APP_ID,
+                    include_aliases: { external_id: [extId] },
+                    target_channel: 'push',
+                    headings: { en: '➕ Nueva parada agregada' },
+                    contents: { en: `${chofer.split(' ')[0]} — Recoge en ${recoge} → ${entrega}` },
+                    url: 'https://emporium-dispatcher.vercel.app/chofer-app.html'
+                })
+            });
+        } catch(e) {}
+
+        // Cerrar modal y refrescar
+        document.querySelector('div[style*="position:fixed"]')?.remove();
+        mostrarToast(`✅ Nueva parada agregada a ${boletaId}`);
+        await dpRenderPanel();
     }
 
     async function editarBoleta(id) {
