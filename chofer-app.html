@@ -564,7 +564,7 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
                     const recoge = e.recoge || e.origen || '—';
 
                     // Botón de confirmación de recogida con foto por departamento
-                    const keyRecoge = `${b.id}_${e.num}_recogida`;
+                    const keyRecoge = `${b.id}_${parseInt(e.num)}_recogida`;
                     const recogidaEn = detalle[keyRecoge];
                     const uidRec = `rec_${b.id}_${e.num}`.replace(/[^a-zA-Z0-9_]/g,'_');
                     const items = e.items || [];
@@ -710,7 +710,7 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
             if (envios.length > 0) {
                 envios.forEach(e => {
                     (e.destinos || []).forEach(suc => {
-                        const key = `${b.id}_${e.num}_${suc}`;
+                        const key = `${b.id}_${parseInt(e.num)}_${suc}`;
                         if (detalle[key]) sucEntg++; else sucPend++;
                     });
                 });
@@ -848,7 +848,7 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
         if (envios) {
             envios.forEach(e => {
                 (e.destinos || []).forEach(suc => {
-                    const k = `${boletaId}_${e.num}_${suc}`;
+                    const k = `${boletaId}_${parseInt(e.num)}_${suc}`;
                     if (!detalle[k]) todasEntregadas = false;
                 });
             });
@@ -883,7 +883,7 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
             let resumenEntregas = '';
             enviosList.forEach(e => {
                 (e.destinos || []).forEach(suc => {
-                    const k = `${boletaId}_${e.num}_${suc}`;
+                    const k = `${boletaId}_${parseInt(e.num)}_${suc}`;
                     const horaE = detalle[k] ? detalle[k].split(' — ')[0] : '—';
                     resumenEntregas += `\n📍 ${suc}   ✅ ${horaE}`;
                 });
