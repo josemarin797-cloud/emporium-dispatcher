@@ -597,9 +597,22 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
                                     <input type="file" id="file_${uidItem}" accept="image/*" capture="environment" style="display:none;"
                                         onchange="previewFotoItem('${uidItem}', this)">
                                 </div>`;
-                            }).join('') : ''}
+                            }).join('') : `
+                                <div style="display:flex;gap:6px;margin-bottom:8px;">
+                                    <button onclick="tomarFotoItem('${uidRec}_gen')"
+                                        style="flex:1;background:#2a1f00;color:#ffb703;border:1px solid #554400;border-radius:6px;padding:8px;font-size:0.8rem;cursor:pointer;">
+                                        📷 Tomar foto
+                                    </button>
+                                    <span id="estado_${uidRec}_gen" style="font-size:0.72rem;color:#555;align-self:center;">Sin foto</span>
+                                </div>
+                                <div id="preview_${uidRec}_gen" style="display:none;margin-bottom:8px;">
+                                    <img id="img_${uidRec}_gen" style="width:100%;border-radius:6px;max-height:120px;object-fit:cover;">
+                                </div>
+                                <input type="file" id="file_${uidRec}_gen" accept="image/*" capture="environment" style="display:none;"
+                                    onchange="previewFotoItem('${uidRec}_gen', this)">
+                            `}
                             <div style="display:flex;gap:6px;margin-top:8px;">
-                                <button onclick="confirmarRecogida('${b.id}', ${e.num}, '${recoge}', '${uidRec}', ${items.length})"
+                                <button onclick="confirmarRecogida('${b.id}', ${e.num}, '${recoge}', '${uidRec}', ${items.length > 0 ? items.length : -1})"
                                     style="flex:1;background:#ffb703;color:#000;border:none;border-radius:6px;padding:8px;font-size:0.82rem;font-weight:700;cursor:pointer;">
                                     ✅ Confirmar recogida
                                 </button>
@@ -637,7 +650,13 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
                                 ${mapsSuc ? `<a href="${mapsSuc}" target="_blank" style="display:block;background:#0a2e1a;border:1px solid #06d6a0;border-radius:6px;padding:7px;text-align:center;color:#06d6a0;font-size:0.82rem;font-weight:700;text-decoration:none;margin-bottom:8px;">🗺️ Abrir en Google Maps</a>` : ''}
                                 <input id="${uid}" type="text" placeholder="Observación (opcional)..."
                                     style="width:100%;padding:8px 10px;background:#111;border:1px solid #333;color:#ccc;border-radius:6px;font-size:0.82rem;font-family:inherit;margin-bottom:8px;">
-                                <button onclick="this.disabled=true;this.textContent='⏳ Confirmando...';confirmarSucursal('${b.id}', ${e.num}, '${suc}', document.getElementById('${uid}').value)"
+                                <button onclick="
+                                        const cont = this.closest('div[style*=border]');
+                                        this.disabled=true;
+                                        this.textContent='⏳ Confirmando...';
+                                        confirmarSucursal('${b.id}', ${e.num}, '${suc}', document.getElementById('${uid}').value).then(() => {
+                                            if(cont) cont.style.display='none';
+                                        });"
                                     style="width:100%;background:#06d6a0;color:#000;border:none;border-radius:6px;padding:10px;font-size:0.85rem;font-weight:700;cursor:pointer;">
                                     ✅ Confirmar entrega
                                 </button>
@@ -772,10 +791,11 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
         const key = `${boletaId}_${envioNum}_recogida`;
 
         let valorFinal = hora;
-        // Subir fotos de cada ítem
+        // Subir fotos de cada ítem (o foto general si numItems === -1)
         const fotosUrls = [];
-        for (let i = 0; i < (numItems || 0); i++) {
-            const uidItem = `${uidRec}_item${i}`;
+        const itemsASubir = numItems === -1 ? ['_gen'] : Array.from({length: numItems}, (_, i) => `_item${i}`);
+        for (const sufijo of itemsASubir) {
+            const uidItem = `${uidRec}${sufijo}`;
             if (fotosRecogida[uidItem]) {
                 try {
                     const blob = await fetch(fotosRecogida[uidItem]).then(r => r.blob());
@@ -788,7 +808,7 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
                     if (uploadRes.ok) {
                         fotosUrls.push(`${SB_URL}/storage/v1/object/public/fotos-flota/${nombreFoto}`);
                     }
-                } catch(e) { console.log('Error subiendo foto item:', e); }
+                } catch(e) { console.log('Error subiendo foto:', e); }
             }
         }
         if (fotosUrls.length > 0) {
