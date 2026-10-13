@@ -530,39 +530,47 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 
                     const recoge = e.recoge || e.origen || '—';
 
-                    // Botón de confirmación de recogida
+                    // Botón de confirmación de recogida con foto por departamento
                     const keyRecoge = `${b.id}_${e.num}_recogida`;
                     const recogidaEn = detalle[keyRecoge];
                     const uidRec = `rec_${b.id}_${e.num}`.replace(/[^a-zA-Z0-9_]/g,'_');
+                    const items = e.items || [];
+
                     const recogidaHtml = recogidaEn
                         ? `<div style="background:#1e1000;border:1px solid #ffb703;border-radius:6px;padding:8px 12px;margin-bottom:8px;">
                             <div style="display:flex;align-items:center;justify-content:space-between;">
                                 <span style="color:#ffb703;font-size:0.8rem;font-weight:600;">📦 Recogido en ${recoge}</span>
                                 <span style="color:#ffb703;font-size:0.75rem;">✅ ${recogidaEn.split('|')[0]}</span>
                             </div>
-                            ${recogidaEn.includes('|foto:') ? `<img src="${recogidaEn.split('|foto:')[1]}" style="width:100%;border-radius:6px;margin-top:6px;max-height:150px;object-fit:cover;">` : ''}
                            </div>`
                         : `<div style="background:#1e1800;border:1px solid #ffb703;border-radius:6px;padding:10px;margin-bottom:8px;">
                             <div style="font-size:0.78rem;color:#ffb703;font-weight:700;margin-bottom:8px;">📦 Confirmar recogida en ${recoge}</div>
-                            <div style="display:flex;gap:6px;margin-bottom:8px;">
-                                <button onclick="tomarFotoRecogida('${uidRec}')" 
-                                    style="flex:1;background:#2a1f00;color:#ffb703;border:1px solid #554400;border-radius:6px;padding:7px;font-size:0.78rem;cursor:pointer;">
-                                    📷 Foto
-                                </button>
-                                <button onclick="confirmarRecogida('${b.id}', ${e.num}, '${recoge}', null)"
-                                    style="flex:1;background:#2a1f00;color:#ffb703;border:1px solid #554400;border-radius:6px;padding:7px;font-size:0.78rem;cursor:pointer;">
-                                    ✅ Sin foto
+                            ${items.length > 0 ? items.map((item, ii) => {
+                                const uidItem = `${uidRec}_item${ii}`;
+                                return `<div style="background:#111;border:1px solid #333;border-radius:6px;padding:8px;margin-bottom:6px;">
+                                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+                                        <span style="color:#ffb703;font-size:0.78rem;font-weight:600;">📋 ${item.dpto}${item.detalle ? ': '+item.detalle : ''}</span>
+                                        <span id="estado_${uidItem}" style="font-size:0.72rem;color:#555;">Sin foto</span>
+                                    </div>
+                                    <div style="display:flex;gap:6px;">
+                                        <button onclick="tomarFotoItem('${uidItem}')"
+                                            style="flex:1;background:#2a1f00;color:#ffb703;border:1px solid #554400;border-radius:6px;padding:6px;font-size:0.75rem;cursor:pointer;">
+                                            📷 Foto
+                                        </button>
+                                    </div>
+                                    <div id="preview_${uidItem}" style="display:none;margin-top:6px;">
+                                        <img id="img_${uidItem}" style="width:100%;border-radius:6px;max-height:100px;object-fit:cover;">
+                                    </div>
+                                    <input type="file" id="file_${uidItem}" accept="image/*" capture="environment" style="display:none;"
+                                        onchange="previewFotoItem('${uidItem}', this)">
+                                </div>`;
+                            }).join('') : ''}
+                            <div style="display:flex;gap:6px;margin-top:8px;">
+                                <button onclick="confirmarRecogida('${b.id}', ${e.num}, '${recoge}', '${uidRec}', ${items.length})"
+                                    style="flex:1;background:#ffb703;color:#000;border:none;border-radius:6px;padding:8px;font-size:0.82rem;font-weight:700;cursor:pointer;">
+                                    ✅ Confirmar recogida
                                 </button>
                             </div>
-                            <div id="preview_${uidRec}" style="display:none;margin-bottom:8px;">
-                                <img id="img_${uidRec}" style="width:100%;border-radius:6px;max-height:120px;object-fit:cover;">
-                                <button onclick="confirmarRecogida('${b.id}', ${e.num}, '${recoge}', '${uidRec}')"
-                                    style="width:100%;background:#ffb703;color:#000;border:none;border-radius:6px;padding:8px;font-size:0.82rem;font-weight:700;cursor:pointer;margin-top:6px;">
-                                    ✅ Confirmar con foto
-                                </button>
-                            </div>
-                            <input type="file" id="file_${uidRec}" accept="image/*" capture="environment" style="display:none;"
-                                onchange="previewFotoRecogida('${uidRec}', this)">
                            </div>`;
 
                     // Botón por sucursal de entrega
@@ -687,6 +695,26 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
         document.getElementById('file_' + uid)?.click();
     }
 
+    function tomarFotoItem(uid) {
+        document.getElementById('file_' + uid)?.click();
+    }
+
+    function previewFotoItem(uid, input) {
+        const file = input.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = e => {
+            fotosRecogida[uid] = e.target.result;
+            const img = document.getElementById('img_' + uid);
+            const prev = document.getElementById('preview_' + uid);
+            const estado = document.getElementById('estado_' + uid);
+            if (img) img.src = e.target.result;
+            if (prev) prev.style.display = 'block';
+            if (estado) { estado.textContent = '📷 Foto lista'; estado.style.color = '#06d6a0'; }
+        };
+        reader.readAsDataURL(file);
+    }
+
     function previewFotoRecogida(uid, input) {
         const file = input.files[0];
         if (!file) return;
@@ -701,7 +729,7 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
         reader.readAsDataURL(file);
     }
 
-    async function confirmarRecogida(boletaId, envioNum, origen, fotoUid) {
+    async function confirmarRecogida(boletaId, envioNum, origen, uidRec, numItems) {
         const hora = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         const boleta = await sbFetch('GET', `/rest/v1/boletas?id=eq.${boletaId}&select=entregas_detalle`);
         if (!boleta || !boleta[0]) return;
@@ -709,24 +737,27 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
         const key = `${boletaId}_${envioNum}_recogida`;
 
         let valorFinal = hora;
-        if (fotoUid && fotosRecogida[fotoUid]) {
-            // Subir foto a Supabase Storage
-            try {
-                const base64 = fotosRecogida[fotoUid].split(',')[1];
-                const blob = await fetch(fotosRecogida[fotoUid]).then(r => r.blob());
-                const nombreFoto = `recogidas/${boletaId}_${envioNum}_${Date.now()}.jpg`;
-                const uploadRes = await fetch(`${SB_URL}/storage/v1/object/fotos-flota/${nombreFoto}`, {
-                    method: 'POST',
-                    headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'image/jpeg' },
-                    body: blob
-                });
-                if (uploadRes.ok) {
-                    const fotoUrl = `${SB_URL}/storage/v1/object/public/fotos-flota/${nombreFoto}`;
-                    valorFinal = `${hora}|foto:${fotoUrl}`;
-                }
-            } catch(e) {
-                console.log('Error subiendo foto:', e);
+        // Subir fotos de cada ítem
+        const fotosUrls = [];
+        for (let i = 0; i < (numItems || 0); i++) {
+            const uidItem = `${uidRec}_item${i}`;
+            if (fotosRecogida[uidItem]) {
+                try {
+                    const blob = await fetch(fotosRecogida[uidItem]).then(r => r.blob());
+                    const nombreFoto = `recogidas/${boletaId}_${envioNum}_item${i}_${Date.now()}.jpg`;
+                    const uploadRes = await fetch(`${SB_URL}/storage/v1/object/fotos-flota/${nombreFoto}`, {
+                        method: 'POST',
+                        headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'image/jpeg' },
+                        body: blob
+                    });
+                    if (uploadRes.ok) {
+                        fotosUrls.push(`${SB_URL}/storage/v1/object/public/fotos-flota/${nombreFoto}`);
+                    }
+                } catch(e) { console.log('Error subiendo foto item:', e); }
             }
+        }
+        if (fotosUrls.length > 0) {
+            valorFinal = `${hora}|fotos:${fotosUrls.join(',')}`;
         }
 
         detalle[key] = valorFinal;
@@ -811,17 +842,20 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
     window.onload = function() {
         const guardado = localStorage.getItem('emp_chofer');
         if (guardado) {
-            const chofer = JSON.parse(guardado);
-            document.querySelector('.select-label').textContent =
-                `Bienvenido, ${chofer.nombre.split(' ')[0]} — toca para entrar`;
-            document.getElementById('btn-huella').disabled = false;
-            // Marcar el botón correspondiente
-            document.querySelectorAll('.chofer-btn').forEach(btn => {
-                if (btn.querySelector('.chofer-name').textContent === chofer.nombre.split(' ')[0]) {
-                    btn.classList.add('selected');
-                    choferSeleccionado = chofer;
-                }
-            });
+            try {
+                const chofer = JSON.parse(guardado);
+                // Entrar automáticamente sin pedir huella de nuevo
+                choferActual = chofer;
+                document.getElementById('pantalla-login').style.display = 'none';
+                document.getElementById('pantalla-main').style.display = 'block';
+                document.getElementById('topbar-name').textContent = chofer.nombre.split(' ')[0];
+                document.getElementById('topbar-unit').textContent = chofer.unidad || '';
+                document.getElementById('topbar-avatar').textContent = AVATARES[chofer.nombre] || '🚚';
+                cargarBoletas();
+                mostrarToast(`👋 Bienvenido de vuelta, ${chofer.nombre.split(' ')[0]}`);
+            } catch(e) {
+                localStorage.removeItem('emp_chofer');
+            }
         }
     };
 </script>
