@@ -329,6 +329,37 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
     const SB_URL = 'https://sieadibkcqnvbwlwlmds.supabase.co';
     const SB_KEY = 'sb_publishable_10TgLdGmmcHccAqJu2JLiw_zyYgKT_M';
 
+    const DISCORD_WEBHOOKS = {
+        'Darwin Serrano':    'https://discord.com/api/webhooks/1502385562844139627/ZXLNCWCxD_CChv_s1P9Bj0D4RlcaLhyOQeCnjwstB7LrLxvzjOL9N1nZh0mKvNLo4zkb',
+        'Daniel Subero':     'https://discord.com/api/webhooks/1502381757486338068/LZM4F-lSvlcTL-UiDpsu-8Cj3pn4x51YdQk6bTvpfsqZvVJsybjygo9AjZD2g-eY9pRu',
+        'Richard Hernandez': 'https://discord.com/api/webhooks/1502384852001886358/mNtpqadkHNu3qMYhLNGV_RFQ1Ju_PSFLt7GJNzRJ3cS7of5NGH0da_xLNj1tGfNlSIDz',
+        'Willmer Fernández': 'https://discord.com/api/webhooks/1502385224175063082/oUu-T5-mVatGrCJa_vlFtG6e1mZtZN9BwIf_JVXCjq4NRGWs_zyHPVwdg6LXccMq1LpU',
+        'Jackson Hernandez': 'https://discord.com/api/webhooks/1502385365305000058/syirI93eXxrKposvFYj21DbWChBoy0KtEXkz10ZtKTHzYCVuRu50Tw7DWUj08LEEBDt2',
+        'Jesús Lara':        'https://discord.com/api/webhooks/1502385365305000058/syirI93eXxrKposvFYj21DbWChBoy0KtEXkz10ZtKTHzYCVuRu50Tw7DWUj08LEEBDt2',
+        'Néstor Daniel':     'https://discord.com/api/webhooks/1502385365305000058/syirI93eXxrKposvFYj21DbWChBoy0KtEXkz10ZtKTHzYCVuRu50Tw7DWUj08LEEBDt2'
+    };
+
+    async function notificarDiscord(chofer, mensaje, fotoUrl) {
+        const webhook = DISCORD_WEBHOOKS[chofer];
+        if (!webhook) return;
+        try {
+            const body = {
+                username: '🚛 Emporium Flota',
+                embeds: [{
+                    description: mensaje,
+                    color: 0xFFB703,
+                    timestamp: new Date().toISOString(),
+                    image: fotoUrl ? { url: fotoUrl } : undefined
+                }]
+            };
+            await fetch(webhook, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+        } catch(e) { console.log('Discord webhook error:', e); }
+    }
+
     const AVATARES = {
         'Darwin Serrano': '🚗',
         'Daniel Subero': '🚛',
@@ -763,6 +794,15 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
         detalle[key] = valorFinal;
         await sbFetch('PATCH', `/rest/v1/boletas?id=eq.${boletaId}`, { entregas_detalle: JSON.stringify(detalle) });
         mostrarToast(`✅ Recogida confirmada en ${origen} — ${hora}`);
+
+        // Notificar Discord
+        const primerFotoUrl = fotosUrls.length > 0 ? fotosUrls[0] : null;
+        await notificarDiscord(
+            choferActual.nombre,
+            `📦 **Recogida confirmada en ${origen}**\n🕐 ${hora} | ${choferActual.unidad || ''}\n📋 Boleta: ${boletaId}`,
+            primerFotoUrl
+        );
+
         await cargarBoletas();
     }
 
@@ -777,6 +817,12 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
         const detalle = b.entregas_detalle ? JSON.parse(b.entregas_detalle) : {};
         const key = `${boletaId}_${envioNum}_${sucursal}`;
         detalle[key] = observacion ? `${hora} — ${observacion}` : hora;
+
+        // Notificar Discord
+        await notificarDiscord(
+            choferActual.nombre,
+            `✅ **Entrega confirmada en ${sucursal}**\n🕐 ${hora} | ${choferActual.unidad || ''}\n📋 Boleta: ${boletaId}${observacion ? '\n💬 ' + observacion : ''}`
+        );
 
         // Ver si todas las sucursales están entregadas
         const envios = b.envios ? JSON.parse(b.envios) : null;
