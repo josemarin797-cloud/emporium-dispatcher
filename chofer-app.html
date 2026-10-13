@@ -620,6 +620,7 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
                             const uid = `obs_${b.id}_${e.num}_${suc}`.replace(/[^a-zA-Z0-9_]/g,'_');
                             const prioSuc = (e.prioSuc && e.prioSuc[suc]) || 'Normal';
                             const notaSuc = (e.prioSuc && e.prioSuc[suc+'_nota']) || '';
+                            const mapsSuc = (e.prioSuc && e.prioSuc[suc+'_maps']) || '';
                             const prioBorder = prioSuc === 'Urgente' ? '#d90429' : prioSuc === 'Alta' ? '#f77f00' : '#333';
                             const prioColor  = prioSuc === 'Urgente' ? '#d90429' : prioSuc === 'Alta' ? '#f77f00' : '#06d6a0';
                             const prioLabel  = prioSuc === 'Urgente' ? '🔴 ENTREGAR PRIMERO' : prioSuc === 'Alta' ? '🟡 ALTA PRIORIDAD' : '🟢 Normal';
@@ -630,7 +631,8 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
                                     <span style="color:#e0e0e0;font-size:0.9rem;font-weight:700;">📍 ${suc}</span>
                                     <span style="color:${prioColor};font-size:0.72rem;font-weight:700;margin-left:auto;">${prioLabel}</span>
                                 </div>
-                                ${notaSuc ? `<div style="background:#111;border:1px solid #333;border-radius:6px;padding:6px 10px;margin-bottom:8px;font-size:0.8rem;color:#aaa;">📝 ${notaSuc}</div>` : ''}
+                                ${notaSuc ? `<div style="background:#111;border:1px solid #333;border-radius:6px;padding:6px 10px;margin-bottom:6px;font-size:0.8rem;color:#aaa;">📝 ${notaSuc}</div>` : ''}
+                                ${mapsSuc ? `<a href="${mapsSuc}" target="_blank" style="display:block;background:#0a2e1a;border:1px solid #06d6a0;border-radius:6px;padding:7px;text-align:center;color:#06d6a0;font-size:0.82rem;font-weight:700;text-decoration:none;margin-bottom:8px;">🗺️ Abrir en Google Maps</a>` : ''}
                                 <input id="${uid}" type="text" placeholder="Observación (opcional)..."
                                     style="width:100%;padding:8px 10px;background:#111;border:1px solid #333;color:#ccc;border-radius:6px;font-size:0.82rem;font-family:inherit;margin-bottom:8px;">
                                 <button onclick="confirmarSucursal('${b.id}', ${e.num}, '${suc}', document.getElementById('${uid}').value)"
