@@ -634,6 +634,7 @@
                     <div style="display:flex;align-items:center;gap:8px;">
                         <span style="background:${badgeBg};color:${badgeColor};border-radius:4px;padding:3px 8px;font-size:0.72rem;font-weight:bold;">${badgeLabel}</span>
                         ${!isEntg ? `<button onclick="dpMarcarEntregada('${b.id}')" style="background:#1a2e1a;color:#06d6a0;border:1px solid #06d6a0;padding:4px 10px;border-radius:5px;cursor:pointer;font-size:0.72rem;font-weight:bold;">Entregar todo</button>` : ''}
+                        <button onclick="editarBoleta('${b.id}')" style="background:#1a1a2e;color:#7c9ff5;border:1px solid #3a5aad;padding:4px 10px;border-radius:5px;cursor:pointer;font-size:0.72rem;font-weight:bold;">✏️ Editar</button>
                     </div>
                 </div>
                 <div style="display:flex;flex-wrap:wrap;gap:2px;">${sucursalesHtml}</div>
@@ -702,6 +703,57 @@
             resumenDiv.style.display = 'none';
         }
         document.getElementById('dp-fecha').textContent = new Date().toLocaleDateString('es-VE', {weekday:'long', year:'numeric', month:'long', day:'numeric'});
+    }
+
+    async function editarBoleta(id) {
+        const lista = await sbFetch('GET', `/rest/v1/boletas?id=eq.${id}&select=*`);
+        if (!lista || !lista[0]) return;
+        const b = lista[0];
+        const envios = JSON.parse(b.envios || '[]');
+
+        // Construir resumen editable
+        let resumen = '';
+        envios.forEach((e, ei) => {
+            const items = (e.items || []).map(i => `${i.dpto}${i.detalle ? ': '+i.detalle : ''}`).join(', ');
+            const dests = (e.destinos || []).join(', ');
+            resumen += `Parada ${ei+1}: Recoge en ${e.recoge || e.origen} | Lleva: ${items || '—'} | Entrega en: ${dests}\n`;
+        });
+
+        const nota = prompt(
+            `✏️ EDITAR BOLETA ${id}\n\nResumen actual:\n${resumen}\n¿Qué corrección necesitas hacer?\n(Escribe el cambio, ej: "Cambiar Víveres por Charcutería en parada 1")\n\nNota de corrección:`,
+            ''
+        );
+
+        if (!nota) return;
+
+        // Guardar nota de corrección en Supabase
+        await sbFetch('PATCH', `/rest/v1/boletas?id=eq.${id}`, {
+            observaciones: nota
+        });
+
+        // Notificar al chofer vía OneSignal
+        const chofer = b.chofer || '';
+        const extId = chofer.toLowerCase().replace(/\s+/g, '_');
+        try {
+            await fetch('https://api.onesignal.com/notifications', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Key ${OS_API_KEY}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    app_id: OS_APP_ID,
+                    include_aliases: { external_id: [extId] },
+                    target_channel: 'push',
+                    headings: { en: '✏️ Boleta corregida' },
+                    contents: { en: `${id}: ${nota}` },
+                    url: 'https://emporium-dispatcher.vercel.app/chofer-app.html'
+                })
+            });
+        } catch(e) {}
+
+        mostrarToast('✅ Corrección guardada y notificada al chofer');
+        await dpRenderPanel();
     }
 
     async function limpiarDia() {
