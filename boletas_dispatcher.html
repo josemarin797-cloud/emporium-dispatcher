@@ -871,9 +871,15 @@
             <div style="background:#1a1200;border:1px solid #554400;border-radius:8px;padding:12px;margin-bottom:12px;">
                 <div style="font-size:0.8rem;color:#ffb703;font-weight:700;margin-bottom:8px;">📦 RECOGE EN</div>
                 <select class="input-origen-parada" onchange="actualizarVista()"
-                    style="background:#111;border:1px solid #554400;color:#ffdb6d;border-radius:6px;padding:8px;width:100%;font-size:0.9rem;">
+                    style="background:#111;border:1px solid #554400;color:#ffdb6d;border-radius:6px;padding:8px;width:100%;font-size:0.9rem;margin-bottom:10px;">
                     ${sucOptions}
                 </select>
+                <div style="font-size:0.75rem;color:#888;font-weight:600;margin-bottom:6px;">¿QUÉ LLEVA?</div>
+                <div id="items-recoge-${pid}"></div>
+                <button type="button" onclick="agregarItemRecoge('${pid}')"
+                    style="background:#2a1f00;color:#ffb703;border:1px dashed #554400;width:100%;padding:7px;border-radius:6px;font-size:0.8rem;cursor:pointer;margin-top:6px;">
+                    + Agregar departamento
+                </button>
             </div>
 
             <!-- ══ ENTREGA EN ══ -->
