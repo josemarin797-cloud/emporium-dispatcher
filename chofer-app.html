@@ -608,7 +608,7 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 
                     // Botón por sucursal de entrega
                     const sucBtns = (e.destinos || []).map((suc, si) => {
-                        const key = `${b.id}_${e.num}_${suc}`;
+                        const key = `${b.id}_${parseInt(e.num)}_${suc}`;
                         const entregadaEn = detalle[key];
                         if (entregadaEn) {
                             return `<div style="background:#0a2e1a;border:1px solid #06d6a0;border-radius:8px;padding:10px 14px;margin-top:8px;">
@@ -833,7 +833,7 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
         const b = lista[0];
 
         const detalle = b.entregas_detalle ? JSON.parse(b.entregas_detalle) : {};
-        const key = `${boletaId}_${envioNum}_${sucursal}`;
+        const key = `${boletaId}_${parseInt(envioNum)}_${sucursal}`;
         detalle[key] = observacion ? `${hora} — ${observacion}` : hora;
 
         // Notificar Discord
@@ -900,7 +900,8 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 
         await sbFetch('PATCH', `/rest/v1/boletas?id=eq.${boletaId}`, update);
         mostrarToast(`✅ ${sucursal} — entregado`);
-        await cargarBoletas();
+        // Esperar un momento y recargar
+        setTimeout(async () => { await cargarBoletas(); }, 800);
     }
 
     function cambiarVehiculo() {
