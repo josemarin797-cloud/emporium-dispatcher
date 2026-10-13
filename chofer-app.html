@@ -640,7 +640,8 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
                             const prioColor  = prioSuc === 'Urgente' ? '#d90429' : prioSuc === 'Alta' ? '#f77f00' : '#06d6a0';
                             const prioLabel  = prioSuc === 'Urgente' ? '🔴 ENTREGAR PRIMERO' : prioSuc === 'Alta' ? '🟡 ALTA PRIORIDAD' : '🟢 Normal';
                             const orden = si + 1;
-                            return `<div style="background:#1c1c1c;border:2px solid ${prioBorder};border-radius:8px;padding:12px;margin-top:8px;">
+                            const contId = `cont_${uid}`;
+                            return `<div id="${contId}" style="background:#1c1c1c;border:2px solid ${prioBorder};border-radius:8px;padding:12px;margin-top:8px;">
                                 <div style="display:flex;align-items:center;gap:8px;margin-bottom:${notaSuc ? '6px' : '8px'};">
                                     <span style="background:${prioColor};color:#000;border-radius:50%;width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;font-size:0.8rem;font-weight:700;flex-shrink:0;">${orden}</span>
                                     <span style="color:#e0e0e0;font-size:0.9rem;font-weight:700;">📍 ${suc}</span>
@@ -651,11 +652,11 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
                                 <input id="${uid}" type="text" placeholder="Observación (opcional)..."
                                     style="width:100%;padding:8px 10px;background:#111;border:1px solid #333;color:#ccc;border-radius:6px;font-size:0.82rem;font-family:inherit;margin-bottom:8px;">
                                 <button onclick="
-                                        const cont = this.closest('div[style*=border]');
                                         this.disabled=true;
                                         this.textContent='⏳ Confirmando...';
                                         confirmarSucursal('${b.id}', ${e.num}, '${suc}', document.getElementById('${uid}').value).then(() => {
-                                            if(cont) cont.style.display='none';
+                                            const c = document.getElementById('${contId}');
+                                            if(c) c.style.display='none';
                                         });"
                                     style="width:100%;background:#06d6a0;color:#000;border:none;border-radius:6px;padding:10px;font-size:0.85rem;font-weight:700;cursor:pointer;">
                                     ✅ Confirmar entrega
@@ -920,8 +921,12 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 
         await sbFetch('PATCH', `/rest/v1/boletas?id=eq.${boletaId}`, update);
         mostrarToast(`✅ ${sucursal} — entregado`);
-        // Esperar un momento y recargar
-        setTimeout(async () => { await cargarBoletas(); }, 800);
+        // Ocultar el contenedor del botón por ID antes de recargar
+        const uid2 = `obs_${boletaId}_${parseInt(envioNum)}_${sucursal}`.replace(/[^a-zA-Z0-9_]/g,'_');
+        const contId2 = `cont_${uid2}`;
+        const contEl = document.getElementById(contId2);
+        if (contEl) contEl.style.display = 'none';
+        setTimeout(async () => { await cargarBoletas(); }, 2000);
     }
 
     function cambiarVehiculo() {
