@@ -800,6 +800,14 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
     }
 
     // Al cargar: si ya hay chofer guardado, ir directo a huella
+    // Recargar boletas automáticamente cuando el chofer vuelve a la app
+    document.addEventListener('visibilitychange', function() {
+        if (document.visibilityState === 'visible' && choferActual) {
+            mostrarToast('🔄 Actualizando boletas...');
+            cargarBoletas();
+        }
+    });
+
     window.onload = function() {
         const guardado = localStorage.getItem('emp_chofer');
         if (guardado) {
