@@ -856,6 +856,44 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
         if (todasEntregadas) {
             update.estado = 'entregada';
             update.hora_entrega = hora;
+
+            // Calcular duración total
+            const horaSalida = b.hora_salida || '';
+            let duracion = '';
+            if (horaSalida) {
+                try {
+                    const parsarHora = h => {
+                        const clean = h.replace(/\s*(a\.m\.|p\.m\.)\s*/gi, m => m.toLowerCase().includes('p') ? ' PM' : ' AM');
+                        return new Date('1970/01/01 ' + clean);
+                    };
+                    const sal = parsarHora(horaSalida);
+                    const ent = parsarHora(hora);
+                    let diff = (ent - sal) / 60000;
+                    if (diff < 0) diff += 1440;
+                    const hh = Math.floor(diff / 60);
+                    const mm = Math.round(diff % 60);
+                    duracion = hh > 0 ? `${hh}h ${mm}min` : `${mm}min`;
+                } catch(e) {}
+            }
+
+            // Armar resumen de entregas para Discord
+            const enviosList = b.envios ? JSON.parse(b.envios) : [];
+            let resumenEntregas = '';
+            enviosList.forEach(e => {
+                (e.destinos || []).forEach(suc => {
+                    const k = `${boletaId}_${e.num}_${suc}`;
+                    const horaE = detalle[k] ? detalle[k].split(' — ')[0] : '—';
+                    resumenEntregas += `\n📍 ${suc}   ✅ ${horaE}`;
+                });
+            });
+
+            // Notificar Discord — boleta completada con duración
+            await notificarDiscord(
+                choferActual.nombre,
+                `🏁 **Boleta completada — ${boletaId}**\n👤 ${choferActual.nombre.split(' ')[0]} | 🚛 ${choferActual.unidad || ''}\n🕐 Salida: ${horaSalida} → Última entrega: ${hora}${duracion ? '\n⏱️ Duración total: ' + duracion : ''}${resumenEntregas}`
+            );
+
+            update.duracion = duracion;
         }
 
         await sbFetch('PATCH', `/rest/v1/boletas?id=eq.${boletaId}`, update);
