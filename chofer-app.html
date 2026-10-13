@@ -795,11 +795,25 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
         await sbFetch('PATCH', `/rest/v1/boletas?id=eq.${boletaId}`, { entregas_detalle: JSON.stringify(detalle) });
         mostrarToast(`✅ Recogida confirmada en ${origen} — ${hora}`);
 
+        // Armar detalle de qué lleva
+        const boletaInfo = await sbFetch('GET', `/rest/v1/boletas?id=eq.${boletaId}&select=envios`);
+        let detalleItems = '';
+        if (boletaInfo && boletaInfo[0]) {
+            const envios = JSON.parse(boletaInfo[0].envios || '[]');
+            const envio  = envios.find(e => e.num === envioNum || e.num === parseInt(envioNum));
+            if (envio) {
+                const items = (envio.items || []).map(i => `• ${i.dpto}${i.detalle ? ': '+i.detalle : ''}`).join('\n');
+                const dests = (envio.destinos || []).join(', ');
+                if (items) detalleItems += `\n📦 Lleva:\n${items}`;
+                if (dests) detalleItems += `\n📍 Destinos: ${dests}`;
+            }
+        }
+
         // Notificar Discord
         const primerFotoUrl = fotosUrls.length > 0 ? fotosUrls[0] : null;
         await notificarDiscord(
             choferActual.nombre,
-            `📦 **Recogida confirmada en ${origen}**\n🕐 ${hora} | ${choferActual.unidad || ''}\n📋 Boleta: ${boletaId}`,
+            `📦 **Recogida confirmada en ${origen}**\n🕐 ${hora} | ${choferActual.unidad || ''}\n📋 Boleta: ${boletaId}${detalleItems}`,
             primerFotoUrl
         );
 
