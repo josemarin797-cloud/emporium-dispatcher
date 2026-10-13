@@ -599,10 +599,24 @@
             const bPend = paradas.length - bEntg;
             if (bPend > 0) ; // sigue pendiente
 
-            const borderLeft = isUrg && !isEntg ? 'border-left:3px solid #d90429;' : isEntg ? 'border-left:3px solid #06d6a0;' : 'border-left:3px solid #f77f00;';
-            const badgeColor = isEntg ? '#06d6a0' : isUrg ? '#d90429' : '#f77f00';
-            const badgeBg    = isEntg ? '#0a2e22' : isUrg ? '#2e0a0a' : '#2e1a00';
-            const badgeLabel = isEntg ? `✅ Completa` : `🟡 ${bEntg}/${paradas.length} entregas`;
+            // Calcular estado semáforo
+            const tieneRecogida = Object.keys(detalle).some(k => k.includes('_recogida'));
+            let semaforoColor, semaforoLabel, semaforoBg;
+            if (isEntg) {
+                semaforoColor = '#06d6a0'; semaforoBg = '#0a2e1a';
+                semaforoLabel = '🟢 Entregado';
+            } else if (tieneRecogida) {
+                semaforoColor = '#f77f00'; semaforoBg = '#2e1a00';
+                semaforoLabel = '🟡 En ruta';
+            } else {
+                semaforoColor = '#d90429'; semaforoBg = '#2e0a0a';
+                semaforoLabel = '🔴 No salió';
+            }
+
+            const borderLeft = `border-left:4px solid ${semaforoColor};`;
+            const badgeColor = semaforoColor;
+            const badgeBg    = semaforoBg;
+            const badgeLabel = `${semaforoLabel} · ${bEntg}/${paradas.length}`;
 
             // Agrupar paradas por envio para mostrar recogida + entregas
             const paradasPorEnvio = {};
