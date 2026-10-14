@@ -630,8 +630,9 @@
             const sucursalesHtml = Object.entries(paradasPorEnvio).map(([num, ep]) => {
                 const keyRec = `${b.id}_${num}_recogida`;
                 const horaRec = detalle[keyRec];
+                const horaRecLimpia = horaRec ? horaRec.split('|')[0] : '';
                 const recogidaHtml = ep.recoge ? (horaRec
-                    ? `<div style="display:inline-flex;align-items:center;gap:4px;background:#1e1000;border:1px solid #ffb703;border-radius:4px;padding:3px 9px;margin:2px;font-size:0.72rem;color:#ffb703;">📦 ${ep.recoge} ✅ ${horaRec}</div>`
+                    ? `<div style="display:inline-flex;align-items:center;gap:4px;background:#1e1000;border:1px solid #ffb703;border-radius:4px;padding:3px 9px;margin:2px;font-size:0.72rem;color:#ffb703;">📦 ${ep.recoge} ✅ ${horaRecLimpia}</div>`
                     : `<div style="display:inline-flex;align-items:center;gap:4px;background:#1e1000;border:1px dashed #554400;border-radius:4px;padding:3px 9px;margin:2px;font-size:0.72rem;color:#554400;">📦 ${ep.recoge} · sin recoger</div>`
                 ) : '';
                 const destHtml = ep.destinos.map(suc => {
