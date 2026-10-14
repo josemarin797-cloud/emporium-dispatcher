@@ -624,7 +624,7 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
                     // Botón por sucursal de entrega
                     const sucBtns = (e.destinos || []).map((suc, si) => {
                         const key = `${b.id}_${parseInt(e.num)}_${suc}`;
-                        const entregadaEn = detalle[key];
+                        const entregadaEn = detalle[key] || entregasConfirmadas[key];
                         if (entregadaEn) {
                             return `<div style="background:#0a2e1a;border:1px solid #06d6a0;border-radius:8px;padding:10px 14px;margin-top:8px;">
                                 <div style="display:flex;align-items:center;justify-content:space-between;">
@@ -747,6 +747,8 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 
     const fotosRecogida = {};
     let boletasCache = [];
+    // Guardar localmente las entregas confirmadas para que no reaparezcan
+    const entregasConfirmadas = JSON.parse(localStorage.getItem('entregasConfirmadas') || '{}');
 
     function tomarFotoRecogida(uid) {
         document.getElementById('file_' + uid)?.click();
@@ -850,6 +852,9 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
     async function confirmarSucursal(boletaId, envioNum, sucursal, observacion = '') {
         const hora = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         const entKey = `${boletaId}_${parseInt(envioNum)}_${sucursal}`;
+        // Guardar localmente para que no reaparezca el botón
+        entregasConfirmadas[entKey] = hora;
+        localStorage.setItem('entregasConfirmadas', JSON.stringify(entregasConfirmadas));
 
         // Cargar boleta actual
         const lista = await sbFetch('GET', `/rest/v1/boletas?id=eq.${boletaId}&select=*`) || [];
