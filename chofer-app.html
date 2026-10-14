@@ -550,10 +550,22 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
                 </div>`;
         }
 
+        // Calcular contadores por sucursal sobre TODA la lista
+        lista.forEach(b => {
+            const detalleTodo = b.entregas_detalle ? JSON.parse(b.entregas_detalle) : {};
+            const enviosTodo = b.envios ? JSON.parse(b.envios) : [];
+            enviosTodo.forEach(e => {
+                (e.destinos || []).forEach(suc => {
+                    const k = `${b.id}_${parseInt(e.num)}_${suc}`;
+                    if (detalleTodo[k] || entregasConfirmadas[k]) entg++;
+                    else pend++;
+                });
+            });
+        });
+
         listaActiva.forEach(b => {
             const isEntg = b.estado === 'entregada';
             const isUrg  = b.prioridad === 'Urgente';
-            if (isEntg) entg++; else pend++;
 
             const badge = isEntg
                 ? `<span class="badge badge-entg">✅ Completa · ${b.hora_entrega || ''}</span>`
