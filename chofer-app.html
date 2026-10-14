@@ -912,6 +912,11 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 
         const update = { entregas_detalle: JSON.stringify(detalle) };
 
+        // Siempre notificar la entrega individual
+        await notificarDiscord(choferActual.nombre,
+            `✅ **Entrega confirmada en ${sucursal}**\n🕐 ${hora} | ${choferActual.unidad || ''}\n📋 Boleta: ${boletaId}${observacion ? '\n💬 ' + observacion : ''}`
+        );
+
         if (todasEntregadas) {
             update.estado = 'entregada';
             update.hora_entrega = hora;
@@ -942,10 +947,6 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
             });
             await notificarDiscord(choferActual.nombre,
                 `🏁 **Boleta completada — ${boletaId}**\n👤 ${choferActual.nombre.split(' ')[0]} | 🚛 ${choferActual.unidad || ''}\n🕐 Salida: ${b.hora_salida} → Última entrega: ${hora}${duracion ? '\n⏱️ Duración total: ' + duracion : ''}${resumen}`
-            );
-        } else {
-            await notificarDiscord(choferActual.nombre,
-                `✅ **Entrega confirmada en ${sucursal}**\n🕐 ${hora} | ${choferActual.unidad || ''}\n📋 Boleta: ${boletaId}${observacion ? '\n💬 ' + observacion : ''}`
             );
         }
 
