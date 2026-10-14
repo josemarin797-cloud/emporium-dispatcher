@@ -424,7 +424,7 @@
                 'apikey': SB_KEY,
                 'Authorization': 'Bearer ' + SB_KEY,
                 'Content-Type': 'application/json',
-                'Prefer': method === 'POST' ? 'resolution=merge-duplicates' : ''
+                'Prefer': method === 'POST' ? 'resolution=merge-duplicates' : method === 'PATCH' ? 'return=minimal' : ''
             },
             body: body ? JSON.stringify(body) : undefined
         });
@@ -564,7 +564,7 @@
 
         dp.innerHTML = '';
         lista.forEach(b => {
-            const isEntg = b.estado === 'entregada';
+            let isEntg = b.estado === 'entregada';
             const isUrg  = b.prioridad === 'Urgente';
             const detalle = b.entregas_detalle ? JSON.parse(b.entregas_detalle) : {};
             const envios  = b.envios ? JSON.parse(b.envios) : null;
@@ -592,7 +592,7 @@
             // Contadores de esta boleta
             let bEntg = 0;
             paradas.forEach(p => {
-                const key = `${b.id}_${p.num}_${p.suc}`;
+                const key = `${b.id}_${parseInt(p.num)}_${p.suc}`;
                 if (detalle[key]) { bEntg++; entgSuc++; }
                 totalSuc++;
             });
@@ -601,8 +601,10 @@
 
             // Calcular estado semáforo
             const tieneRecogida = Object.keys(detalle).some(k => k.includes('_recogida'));
+            const todasEntregadas = paradas.length > 0 && bEntg === paradas.length;
+            if (todasEntregadas) isEntg = true;
             let semaforoColor, semaforoLabel, semaforoBg;
-            if (isEntg) {
+            if (isEntg || todasEntregadas) {
                 semaforoColor = '#06d6a0'; semaforoBg = '#0a2e1a';
                 semaforoLabel = '🟢 Entregado';
             } else if (tieneRecogida) {
@@ -749,6 +751,12 @@
                     <option value="Alta">🟡 Alta prioridad</option>
                     <option value="Urgente">🔴 Urgente</option>
                 </select>
+                <label style="font-size:0.75rem;color:#888;display:block;margin-bottom:4px;">¿QUÉ LLEVA?</label>
+                <div id="np-items-cont"></div>
+                <button type="button" onclick="agregarItemNuevaParada()"
+                    style="background:#2a1f00;color:#ffb703;border:1px dashed #554400;width:100%;padding:7px;border-radius:6px;font-size:0.78rem;cursor:pointer;margin-bottom:10px;">
+                    + Agregar departamento
+                </button>
                 <textarea id="np-nota" placeholder="Nota (opcional)..." style="width:100%;background:#111;border:1px solid #333;color:#ccc;border-radius:6px;padding:8px;font-size:0.82rem;height:50px;font-family:inherit;margin-bottom:12px;"></textarea>
                 <div style="display:flex;gap:8px;">
                     <button onclick="this.closest('div[style*=fixed]').remove()" style="flex:1;background:#2a2a2a;color:#888;border:1px solid #444;border-radius:6px;padding:10px;cursor:pointer;font-size:0.85rem;">Cancelar</button>
@@ -758,11 +766,30 @@
         document.body.appendChild(modal);
     }
 
+    function agregarItemNuevaParada() {
+        const cont = document.getElementById('np-items-cont');
+        const dptoOptions = departamentos.map(d => `<option value="${d}">${d}</option>`).join('');
+        const div = document.createElement('div');
+        div.style.cssText = 'background:#1a1000;border:1px solid #554400;border-radius:6px;padding:8px;margin-bottom:6px;display:flex;gap:6px;align-items:center;';
+        div.innerHTML = `
+            <select class="np-item-dpto" style="flex:1;background:#111;border:1px solid #554400;color:#ffdb6d;border-radius:6px;padding:6px;font-size:0.82rem;">
+                ${dptoOptions}
+            </select>
+            <input type="text" class="np-item-detalle" placeholder="Descripción..." style="flex:2;background:#111;border:1px solid #333;color:#ccc;border-radius:6px;padding:6px;font-size:0.82rem;">
+            <button type="button" onclick="this.parentElement.remove()" style="background:transparent;border:none;color:#555;cursor:pointer;font-size:0.9rem;">✕</button>
+        `;
+        cont.appendChild(div);
+    }
+
     async function confirmarNuevaParada(boletaId, chofer) {
         const recoge  = document.getElementById('np-recoge').value;
         const entrega = document.getElementById('np-entrega').value;
         const prio    = document.getElementById('np-prio').value;
         const nota    = document.getElementById('np-nota').value;
+        const items   = Array.from(document.querySelectorAll('#np-items-cont > div')).map(d => ({
+            dpto: d.querySelector('.np-item-dpto')?.value || '',
+            detalle: d.querySelector('.np-item-detalle')?.value || ''
+        })).filter(i => i.dpto);
 
         // Obtener boleta actual
         const lista = await sbFetch('GET', `/rest/v1/boletas?id=eq.${boletaId}&select=*`);
@@ -781,7 +808,7 @@
             destinos: [entrega],
             prioridad: prio,
             prioSuc,
-            items: []
+            items
         });
 
         // Actualizar destinos
