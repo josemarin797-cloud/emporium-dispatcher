@@ -803,7 +803,7 @@
         if (nota) prioSuc[entrega+'_nota'] = nota;
 
         // Agregar nueva parada
-        const nuevoNum = envios.length + 1;
+        const nuevoNum = parseInt(envios.length + 1);
         envios.push({
             num: nuevoNum,
             recoge,
