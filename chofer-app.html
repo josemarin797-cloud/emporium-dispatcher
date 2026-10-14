@@ -652,7 +652,10 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
                                 <input id="${uid}" type="text" placeholder="Observación (opcional)..."
                                     style="width:100%;padding:8px 10px;background:#111;border:1px solid #333;color:#ccc;border-radius:6px;font-size:0.82rem;font-family:inherit;margin-bottom:8px;">
                                 <button onclick="
+                                        if(this.disabled) return;
                                         this.disabled=true;
+                                        this.style.background='#333';
+                                        this.style.color='#888';
                                         this.textContent='⏳ Confirmando...';
                                         confirmarSucursal('${b.id}', ${e.num}, '${suc}', document.getElementById('${uid}').value).then(() => {
                                             const c = document.getElementById('${contId}');
@@ -922,10 +925,12 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
         await sbFetch('PATCH', `/rest/v1/boletas?id=eq.${boletaId}`, update);
         mostrarToast(`✅ ${sucursal} — entregado`);
         // Ocultar el contenedor del botón por ID antes de recargar
-        const uid2 = `obs_${boletaId}_${parseInt(envioNum)}_${sucursal}`.replace(/[^a-zA-Z0-9_]/g,'_');
-        const contId2 = `cont_${uid2}`;
-        const contEl = document.getElementById(contId2);
-        if (contEl) contEl.style.display = 'none';
+        // Ocultar todos los contenedores de entrega pendientes de esta boleta
+        document.querySelectorAll(`[id^="cont_obs_"]`).forEach(el => {
+            if (el.id.includes(boletaId.replace(/[^a-zA-Z0-9_]/g,'_'))) {
+                el.style.display = 'none';
+            }
+        });
         setTimeout(async () => { await cargarBoletas(); }, 2000);
     }
 
