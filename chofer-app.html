@@ -524,6 +524,8 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
         }
 
         cont.innerHTML = '';
+        // Guardar en caché para actualizaciones locales
+        boletasCache = lista;
         // Filtrar solo boletas pendientes para la vista del chofer
         const listaActiva = lista.filter(b => b.estado !== 'entregada');
         
@@ -744,6 +746,7 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
     }
 
     const fotosRecogida = {};
+    let boletasCache = [];
 
     function tomarFotoRecogida(uid) {
         document.getElementById('file_' + uid)?.click();
@@ -846,86 +849,66 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 
     async function confirmarSucursal(boletaId, envioNum, sucursal, observacion = '') {
         const hora = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const entKey = `${boletaId}_${parseInt(envioNum)}_${sucursal}`;
 
-        // Cargar detalle actual
+        // Cargar boleta actual
         const lista = await sbFetch('GET', `/rest/v1/boletas?id=eq.${boletaId}&select=*`) || [];
         if (!lista.length) return;
         const b = lista[0];
-
         const detalle = b.entregas_detalle ? JSON.parse(b.entregas_detalle) : {};
-        const key = `${boletaId}_${parseInt(envioNum)}_${sucursal}`;
-        detalle[key] = observacion ? `${hora} — ${observacion}` : hora;
+        detalle[entKey] = observacion ? `${hora} — ${observacion}` : hora;
 
-        // Notificar Discord
-        await notificarDiscord(
-            choferActual.nombre,
-            `✅ **Entrega confirmada en ${sucursal}**\n🕐 ${hora} | ${choferActual.unidad || ''}\n📋 Boleta: ${boletaId}${observacion ? '\n💬 ' + observacion : ''}`
-        );
-
-        // Ver si todas las sucursales están entregadas
-        const envios = b.envios ? JSON.parse(b.envios) : null;
+        // Ver si todas entregadas
+        const envios = b.envios ? JSON.parse(b.envios) : [];
         let todasEntregadas = true;
-        if (envios) {
-            envios.forEach(e => {
-                (e.destinos || []).forEach(suc => {
-                    const k = `${boletaId}_${parseInt(e.num)}_${suc}`;
-                    if (!detalle[k]) todasEntregadas = false;
-                });
+        envios.forEach(e => {
+            (e.destinos || []).forEach(s => {
+                if (!detalle[`${boletaId}_${parseInt(e.num)}_${s}`]) todasEntregadas = false;
             });
-        }
+        });
 
         const update = { entregas_detalle: JSON.stringify(detalle) };
+
         if (todasEntregadas) {
             update.estado = 'entregada';
             update.hora_entrega = hora;
-
-            // Calcular duración total
-            const horaSalida = b.hora_salida || '';
+            // Calcular duración
             let duracion = '';
-            if (horaSalida) {
-                try {
-                    const parsarHora = h => {
-                        const clean = h.replace(/\s*(a\.m\.|p\.m\.)\s*/gi, m => m.toLowerCase().includes('p') ? ' PM' : ' AM');
-                        return new Date('1970/01/01 ' + clean);
-                    };
-                    const sal = parsarHora(horaSalida);
-                    const ent = parsarHora(hora);
-                    let diff = (ent - sal) / 60000;
-                    if (diff < 0) diff += 1440;
-                    const hh = Math.floor(diff / 60);
-                    const mm = Math.round(diff % 60);
-                    duracion = hh > 0 ? `${hh}h ${mm}min` : `${mm}min`;
-                } catch(e) {}
-            }
+            try {
+                const parsarHora = h => {
+                    const clean = h.replace(/\s*(a\.m\.|p\.m\.)\s*/gi, m => m.toLowerCase().includes('p') ? ' PM' : ' AM');
+                    return new Date('1970/01/01 ' + clean);
+                };
+                const sal = parsarHora(b.hora_salida || '');
+                const ent = parsarHora(hora);
+                let diff = (ent - sal) / 60000;
+                if (diff < 0) diff += 1440;
+                const hh = Math.floor(diff / 60);
+                const mm = Math.round(diff % 60);
+                duracion = hh > 0 ? `${hh}h ${mm}min` : `${mm}min`;
+            } catch(ex) {}
+            update.duracion = duracion;
 
-            // Armar resumen de entregas para Discord
-            const enviosList = b.envios ? JSON.parse(b.envios) : [];
-            let resumenEntregas = '';
-            enviosList.forEach(e => {
-                (e.destinos || []).forEach(suc => {
-                    const k = `${boletaId}_${parseInt(e.num)}_${suc}`;
-                    const horaE = detalle[k] ? detalle[k].split(' — ')[0] : '—';
-                    resumenEntregas += `\n📍 ${suc}   ✅ ${horaE}`;
+            // Resumen Discord
+            let resumen = '';
+            envios.forEach(e => {
+                (e.destinos || []).forEach(s => {
+                    const horaE = detalle[`${boletaId}_${parseInt(e.num)}_${s}`]?.split(' — ')[0] || '—';
+                    resumen += `\n📍 ${s}   ✅ ${horaE}`;
                 });
             });
-
-            // Notificar Discord — boleta completada con duración
-            await notificarDiscord(
-                choferActual.nombre,
-                `🏁 **Boleta completada — ${boletaId}**\n👤 ${choferActual.nombre.split(' ')[0]} | 🚛 ${choferActual.unidad || ''}\n🕐 Salida: ${horaSalida} → Última entrega: ${hora}${duracion ? '\n⏱️ Duración total: ' + duracion : ''}${resumenEntregas}`
+            await notificarDiscord(choferActual.nombre,
+                `🏁 **Boleta completada — ${boletaId}**\n👤 ${choferActual.nombre.split(' ')[0]} | 🚛 ${choferActual.unidad || ''}\n🕐 Salida: ${b.hora_salida} → Última entrega: ${hora}${duracion ? '\n⏱️ Duración total: ' + duracion : ''}${resumen}`
             );
-
-            update.duracion = duracion;
+        } else {
+            await notificarDiscord(choferActual.nombre,
+                `✅ **Entrega confirmada en ${sucursal}**\n🕐 ${hora} | ${choferActual.unidad || ''}\n📋 Boleta: ${boletaId}${observacion ? '\n💬 ' + observacion : ''}`
+            );
         }
 
         await sbFetch('PATCH', `/rest/v1/boletas?id=eq.${boletaId}`, update);
         mostrarToast(`✅ ${sucursal} — entregado`);
-        // Ocultar el contenedor del botón por ID antes de recargar
-        // Ocultar el contenedor de esta entrega específica
-        const uidConf = `obs_${boletaId}_${parseInt(envioNum)}_${sucursal}`.replace(/[^a-zA-Z0-9_]/g,'_');
-        const contConf = document.getElementById(`cont_${uidConf}`);
-        if (contConf) contConf.style.display = 'none';
-        setTimeout(async () => { await cargarBoletas(); }, 2000);
+        // NO recargar — el auto-refresh cada 30s se encarga
     }
 
     function cambiarVehiculo() {
