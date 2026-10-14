@@ -880,13 +880,16 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
             }
         }
 
-        // Notificar Discord
-        const primerFotoUrl = fotosUrls.length > 0 ? fotosUrls[0] : null;
+        // Notificar Discord — primera foto con el mensaje principal
         await notificarDiscord(
             choferActual.nombre,
             `📦 **Recogida confirmada en ${origen}**\n🕐 ${hora} | ${choferActual.unidad || ''}\n📋 Boleta: ${boletaId}${detalleItems}`,
-            primerFotoUrl
+            fotosUrls.length > 0 ? fotosUrls[0] : null
         );
+        // Fotos adicionales como mensajes separados
+        for (let fi = 1; fi < fotosUrls.length; fi++) {
+            await notificarDiscord(choferActual.nombre, `📷 Foto ${fi + 1} de ${fotosUrls.length}`, fotosUrls[fi]);
+        }
 
         await cargarBoletas();
     }
