@@ -526,8 +526,21 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
         cont.innerHTML = '';
         // Guardar en caché para actualizaciones locales
         boletasCache = lista;
-        // Filtrar solo boletas pendientes para la vista del chofer
-        const listaActiva = lista.filter(b => b.estado !== 'entregada');
+        // Filtrar boletas: ocultar las que están entregadas o completadas localmente
+        const listaActiva = lista.filter(b => {
+            if (b.estado === 'entregada') return false;
+            // Verificar si todas las entregas están confirmadas localmente
+            const envios = b.envios ? JSON.parse(b.envios) : [];
+            const detalle = b.entregas_detalle ? JSON.parse(b.entregas_detalle) : {};
+            let todasOk = envios.length > 0;
+            envios.forEach(e => {
+                (e.destinos || []).forEach(suc => {
+                    const k = `${b.id}_${parseInt(e.num)}_${suc}`;
+                    if (!detalle[k] && !entregasConfirmadas[k]) todasOk = false;
+                });
+            });
+            return !todasOk;
+        });
         
         if (listaActiva.length === 0 && lista.length > 0) {
             cont.innerHTML = `
@@ -748,6 +761,12 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
     const fotosRecogida = {};
     let boletasCache = [];
     // Guardar localmente las entregas confirmadas para que no reaparezcan
+    // Limpiar entregas de días anteriores
+    const hoyKey = new Date().toISOString().slice(0,10);
+    if (localStorage.getItem('entregasFecha') !== hoyKey) {
+        localStorage.removeItem('entregasConfirmadas');
+        localStorage.setItem('entregasFecha', hoyKey);
+    }
     const entregasConfirmadas = JSON.parse(localStorage.getItem('entregasConfirmadas') || '{}');
 
     function tomarFotoRecogida(uid) {
