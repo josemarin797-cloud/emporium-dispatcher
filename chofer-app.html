@@ -465,7 +465,7 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
         document.getElementById('dia-label').textContent = hoy.charAt(0).toUpperCase() + hoy.slice(1);
 
         cargarBoletas();
-        setInterval(cargarBoletas, 30000);
+        setInterval(() => { if (!fotoEnProceso) cargarBoletas(); }, 30000);
     }
 
     // Sonido de alerta para urgentes
@@ -796,9 +796,12 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
         document.getElementById('file_' + uid)?.click();
     }
 
+    let fotoEnProceso = false;
+
     function previewFotoItem(uid, input) {
         const file = input.files[0];
         if (!file) return;
+        fotoEnProceso = true; // Pausar auto-refresh
         const reader = new FileReader();
         reader.onload = e => {
             fotosRecogida[uid] = e.target.result;
@@ -858,6 +861,7 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
             valorFinal = `${hora}|fotos:${fotosUrls.join(',')}`;
         }
 
+        fotoEnProceso = false; // Reactivar auto-refresh
         detalle[key] = valorFinal;
         await sbFetch('PATCH', `/rest/v1/boletas?id=eq.${boletaId}`, { entregas_detalle: JSON.stringify(detalle) });
         mostrarToast(`✅ Recogida confirmada en ${origen} — ${hora}`);
@@ -987,7 +991,7 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
     // Al cargar: si ya hay chofer guardado, ir directo a huella
     // Recargar boletas automáticamente cuando el chofer vuelve a la app
     document.addEventListener('visibilitychange', function() {
-        if (document.visibilityState === 'visible' && choferActual) {
+        if (document.visibilityState === 'visible' && choferActual && !fotoEnProceso) {
             mostrarToast('🔄 Actualizando boletas...');
             cargarBoletas();
         }
