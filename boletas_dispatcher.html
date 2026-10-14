@@ -453,9 +453,10 @@
 
             // Ítems que recoge
             const items = [];
-            document.getElementById('items-recoge-' + pid)?.querySelectorAll('div[style]').forEach(item => {
-                const dpto    = item.querySelector('.item-select-dpto')?.value || '';
-                const detalle = item.querySelector('.item-detalle')?.value || '';
+            document.getElementById('items-recoge-' + pid)?.querySelectorAll('.item-select-dpto').forEach(sel => {
+                const dpto    = sel.value || '';
+                const detalle = sel.parentElement?.querySelector('.item-detalle')?.value || 
+                               sel.closest('div')?.querySelector('.item-detalle')?.value || '';
                 if (dpto) items.push({ dpto, detalle });
             });
 
