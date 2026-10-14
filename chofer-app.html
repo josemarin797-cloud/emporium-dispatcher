@@ -654,13 +654,9 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
                                 <button onclick="
                                         if(this.disabled) return;
                                         this.disabled=true;
-                                        this.style.background='#333';
-                                        this.style.color='#888';
-                                        this.textContent='⏳ Confirmando...';
-                                        confirmarSucursal('${b.id}', ${e.num}, '${suc}', document.getElementById('${uid}').value).then(() => {
-                                            const c = document.getElementById('${contId}');
-                                            if(c) c.style.display='none';
-                                        });"
+                                        const c = document.getElementById('${contId}');
+                                        if(c) c.style.display='none';
+                                        confirmarSucursal('${b.id}', ${e.num}, '${suc}', document.getElementById('${uid}').value);"
                                     style="width:100%;background:#06d6a0;color:#000;border:none;border-radius:6px;padding:10px;font-size:0.85rem;font-weight:700;cursor:pointer;">
                                     ✅ Confirmar entrega
                                 </button>
