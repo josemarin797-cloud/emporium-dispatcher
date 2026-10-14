@@ -378,17 +378,24 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
     let choferActual = null;
 
     async function sbFetch(method, path, body) {
+        const headers = {
+            'apikey': SB_KEY,
+            'Authorization': 'Bearer ' + SB_KEY,
+            'Content-Type': 'application/json',
+        };
+        if (method === 'POST') headers['Prefer'] = 'resolution=merge-duplicates';
+        if (method === 'PATCH') headers['Prefer'] = 'return=minimal';
+
         const res = await fetch(SB_URL + path, {
             method,
-            headers: {
-                'apikey': SB_KEY,
-                'Authorization': 'Bearer ' + SB_KEY,
-                'Content-Type': 'application/json',
-                'Prefer': method === 'POST' ? 'resolution=merge-duplicates' : ''
-            },
+            headers,
             body: body ? JSON.stringify(body) : undefined
         });
-        if (!res.ok) return null;
+        if (!res.ok) {
+            const err = await res.text().catch(() => '');
+            console.error('sbFetch error', method, path, res.status, err);
+            return null;
+        }
         try { return await res.json(); } catch { return null; }
     }
 
@@ -835,7 +842,7 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
             if (fotosRecogida[uidItem]) {
                 try {
                     const blob = await fetch(fotosRecogida[uidItem]).then(r => r.blob());
-                    const nombreFoto = `recogidas/${boletaId}_${envioNum}_item${i}_${Date.now()}.jpg`;
+                    const nombreFoto = `recogidas/${boletaId}_${envioNum}_${sufijo}_${Date.now()}.jpg`;
                     const uploadRes = await fetch(`${SB_URL}/storage/v1/object/fotos-flota/${nombreFoto}`, {
                         method: 'POST',
                         headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'image/jpeg' },
