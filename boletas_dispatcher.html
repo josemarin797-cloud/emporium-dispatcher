@@ -594,7 +594,10 @@
             let bEntg = 0;
             paradas.forEach(p => {
                 const key = `${b.id}_${parseInt(p.num)}_${p.suc}`;
-                if (detalle[key]) { bEntg++; entgSuc++; }
+                if (detalle[key]) {
+                    if (!detalle[key].startsWith('CANCELADA')) { bEntg++; entgSuc++; }
+                    else { bEntg++; } // cancelada cuenta como procesada
+                }
                 totalSuc++;
             });
             const bPend = paradas.length - bEntg;
@@ -639,11 +642,16 @@
                 const destHtml = ep.destinos.map(suc => {
                     const key = `${b.id}_${num}_${suc}`;
                     const hora = detalle[key];
-                    if (hora) {
+                    if (hora && hora.startsWith('CANCELADA')) {
+                        return `<div style="display:inline-flex;align-items:center;gap:4px;background:#1a0a0a;border:1px solid #555;border-radius:4px;padding:3px 9px;margin:2px;font-size:0.72rem;color:#666;text-decoration:line-through;">🚫 ${suc}</div>`;
+                    } else if (hora) {
                         return `<div style="display:inline-flex;align-items:center;gap:4px;background:#0a2e1a;border:1px solid #06d6a0;border-radius:4px;padding:3px 9px;margin:2px;font-size:0.72rem;color:#06d6a0;">✅ ${suc} · ${hora.split(' — ')[0]}</div>`;
                     } else {
-                        return `<div style="display:inline-flex;align-items:center;gap:4px;background:#2e1a00;border:1px solid #f77f00;border-radius:4px;padding:3px 9px;margin:2px;font-size:0.72rem;color:#f77f00;">🟡 ${suc}</div>`;
-                    }
+                        return `<div style="display:inline-flex;align-items:center;gap:4px;background:#2e1a00;border:1px solid #f77f00;border-radius:4px;padding:3px 9px;margin:2px;font-size:0.72rem;color:#f77f00;">
+                            🟡 ${suc}
+                            <button onclick="cancelarParada('${b.id}', ${num}, '${suc}')" title="Cancelar esta parada"
+                                style="background:transparent;border:none;color:#d90429;cursor:pointer;font-size:0.75rem;padding:0;margin-left:2px;">✕</button>
+                        </div>`;
                 }).join('');
                 return recogidaHtml + destHtml;
             }).join('');
@@ -659,7 +667,8 @@
                     </div>
                     <div style="display:flex;align-items:center;gap:8px;">
                         <span style="background:${badgeBg};color:${badgeColor};border-radius:4px;padding:3px 8px;font-size:0.72rem;font-weight:bold;">${badgeLabel}</span>
-                        ${!isEntg ? `<button onclick="dpMarcarEntregada('${b.id}')" style="background:#1a2e1a;color:#06d6a0;border:1px solid #06d6a0;padding:4px 10px;border-radius:5px;cursor:pointer;font-size:0.72rem;font-weight:bold;">Entregar todo</button>` : ''}
+                        ${!isEntg ? `<button onclick="dpMarcarEntregada('${b.id}')" style="background:#1a2e1a;color:#06d6a0;border:1px solid #06d6a0;padding:4px 10px;border-radius:5px;cursor:pointer;font-size:0.72rem;font-weight:bold;">✅ Entregar todo</button>` : ''}
+                        <button onclick="verDetalleBoleta('${b.id}')" style="background:#1a1a1a;color:#aaa;border:1px solid #444;padding:4px 10px;border-radius:5px;cursor:pointer;font-size:0.72rem;font-weight:bold;">📋 Detalle</button>
                         <button onclick="editarBoleta('${b.id}')" style="background:#1a1a2e;color:#7c9ff5;border:1px solid #3a5aad;padding:4px 10px;border-radius:5px;cursor:pointer;font-size:0.72rem;font-weight:bold;">✏️ Editar</button>
                         <button onclick="agregarParadaABoleta('${b.id}', '${b.chofer}')" style="background:#1a2e2e;color:#06d6a0;border:1px solid #06d6a0;padding:4px 10px;border-radius:5px;cursor:pointer;font-size:0.72rem;font-weight:bold;">➕ Parada</button>
                     </div>
@@ -730,6 +739,100 @@
             resumenDiv.style.display = 'none';
         }
         document.getElementById('dp-fecha').textContent = new Date().toLocaleDateString('es-VE', {weekday:'long', year:'numeric', month:'long', day:'numeric'});
+    }
+
+    async function verDetalleBoleta(boletaId) {
+        const lista = await sbFetch('GET', `/rest/v1/boletas?id=eq.${boletaId}&select=*`);
+        if (!lista || !lista[0]) return;
+        const b = lista[0];
+        const envios = JSON.parse(b.envios || '[]');
+        const detalle = JSON.parse(b.entregas_detalle || '{}');
+
+        const paradasHtml = envios.map((e, ei) => {
+            const recoge = e.recoge || e.origen || '—';
+            const items = (e.items || []).map(i => `<div style="color:#ffb703;font-size:0.78rem;margin-left:12px;">• ${i.dpto}${i.detalle ? ': ' + i.detalle : ''}</div>`).join('');
+            const prioSuc = e.prioSuc || {};
+
+            const destinos = (e.destinos || []).map((suc, si) => {
+                const key = `${boletaId}_${parseInt(e.num)}_${suc}`;
+                const val = detalle[key];
+                const prio = prioSuc[suc] || 'Normal';
+                const nota = prioSuc[suc + '_nota'] || '';
+                const cancelada = val && val.startsWith('CANCELADA');
+                const entregada = val && !cancelada;
+                const prioColor = prio === 'Urgente' ? '#d90429' : prio === 'Alta' ? '#f77f00' : '#06d6a0';
+                const prioLabel = prio === 'Urgente' ? '🔴 URGENTE' : prio === 'Alta' ? '🟡 ALTA' : '🟢 Normal';
+                const estadoHtml = cancelada 
+                    ? `<span style="color:#555;text-decoration:line-through;">🚫 Cancelada</span>`
+                    : entregada 
+                    ? `<span style="color:#06d6a0;">✅ ${val.split(' — ')[0]}</span>`
+                    : `<span style="color:#f77f00;">🟡 Pendiente</span>`;
+                return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #222;">
+                    <span style="background:${prioColor};color:#000;border-radius:50%;width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;font-size:0.68rem;font-weight:700;">${si+1}</span>
+                    <span style="color:#e0e0e0;font-size:0.85rem;">📍 ${suc}</span>
+                    <span style="color:${prioColor};font-size:0.72rem;">${prioLabel}</span>
+                    <span style="margin-left:auto;font-size:0.78rem;">${estadoHtml}</span>
+                </div>
+                ${nota ? `<div style="color:#888;font-size:0.75rem;margin-left:26px;margin-bottom:4px;">📝 ${nota}</div>` : ''}`;
+            }).join('');
+
+            const keyRec = `${boletaId}_${parseInt(e.num)}_recogida`;
+            const recogida = detalle[keyRec] ? `✅ ${detalle[keyRec].split('|')[0]}` : '🟡 Sin recoger';
+
+            return `<div style="background:#1c1c1c;border:1px solid #333;border-radius:8px;padding:12px;margin-bottom:10px;">
+                <div style="font-size:0.72rem;color:#666;margin-bottom:6px;">PARADA #${ei+1}</div>
+                <div style="color:#ffb703;font-size:0.85rem;font-weight:700;margin-bottom:4px;">📦 Recoge en: ${recoge} <span style="font-size:0.72rem;color:#888;">${recogida}</span></div>
+                ${items}
+                <div style="margin-top:8px;">${destinos}</div>
+            </div>`;
+        }).join('');
+
+        const obs = b.observaciones || '';
+
+        const modal = document.createElement('div');
+        modal.id = 'modal-detalle';
+        modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;';
+        modal.innerHTML = `
+            <div style="background:#1c1c1c;border:1px solid #333;border-radius:12px;padding:20px;width:100%;max-width:480px;max-height:85vh;overflow-y:auto;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+                    <div>
+                        <div style="color:#ffb703;font-size:0.85rem;font-weight:700;">📋 ${boletaId}</div>
+                        <div style="color:#888;font-size:0.75rem;">${b.chofer} · ${b.vehiculo} · ${b.hora_salida || 'Sin salida'}</div>
+                    </div>
+                    <button onclick="document.getElementById('modal-detalle').remove()" style="background:transparent;border:none;color:#888;cursor:pointer;font-size:1.2rem;">✕</button>
+                </div>
+                ${paradasHtml}
+                ${obs ? `<div style="background:#1a1000;border:1px solid #554400;border-radius:6px;padding:10px;margin-top:8px;font-size:0.78rem;color:#888;"><strong style="color:#ffb703;">📝 Observaciones:</strong><br>${obs.replace(/\n/g,'<br>')}</div>` : ''}
+                <button onclick="document.getElementById('modal-detalle').remove()" style="width:100%;background:#333;color:#888;border:none;border-radius:6px;padding:10px;cursor:pointer;font-size:0.85rem;margin-top:12px;">Cerrar</button>
+            </div>`;
+        document.body.appendChild(modal);
+    }
+
+    async function cancelarParada(boletaId, envioNum, sucursal) {
+        const motivo = prompt(`🗑️ Cancelar entrega en ${sucursal}\n\nMotivo (requerido):`, '');
+        if (!motivo) return;
+        const hora = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        const lista = await sbFetch('GET', `/rest/v1/boletas?id=eq.${boletaId}&select=*`);
+        if (!lista || !lista[0]) return;
+        const b = lista[0];
+        const envios = JSON.parse(b.envios || '[]');
+        const detalle = JSON.parse(b.entregas_detalle || '{}');
+
+        // Marcar como cancelada en el detalle
+        const key = `${boletaId}_${parseInt(envioNum)}_${sucursal}`;
+        detalle[key] = `CANCELADA ${hora} — ${motivo}`;
+
+        // Registrar en observaciones
+        const obs = b.observaciones ? b.observaciones + `\n[${hora}] Cancelada entrega en ${sucursal}: ${motivo}` : `[${hora}] Cancelada entrega en ${sucursal}: ${motivo}`;
+
+        await sbFetch('PATCH', `/rest/v1/boletas?id=eq.${boletaId}`, {
+            entregas_detalle: JSON.stringify(detalle),
+            observaciones: obs
+        });
+
+        mostrarToast(`✅ Parada ${sucursal} cancelada`);
+        await dpRenderPanel();
     }
 
     async function agregarParadaABoleta(boletaId, chofer) {
