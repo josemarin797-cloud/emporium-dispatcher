@@ -494,7 +494,7 @@
             else if (e.prioridad.includes('Alta') && prioMax !== 'Urgente') prioMax = 'Alta';
         });
 
-        const hoy = new Date().toISOString().slice(0,10);
+        const _f=new Date(); const hoy=`${_f.getFullYear()}-${String(_f.getMonth()+1).padStart(2,"0")}-${String(_f.getDate()).padStart(2,"0")}`;
         const boleta = {
             id:          codigoBoleta,
             chofer:      chofer,
@@ -549,7 +549,8 @@
     }
 
     async function dpRenderPanel() {
-        const hoy   = new Date().toISOString().slice(0,10);
+        const ahora2 = new Date();
+        const hoy   = `${ahora2.getFullYear()}-${String(ahora2.getMonth()+1).padStart(2,'0')}-${String(ahora2.getDate()).padStart(2,'0')}`;
         const lista = await sbFetch('GET', `/rest/v1/boletas?fecha=eq.${hoy}&order=created_at.desc&select=*`) || [];
 
         let totalSuc = 0, entgSuc = 0;
@@ -1003,7 +1004,7 @@
 
     async function limpiarDia() {
         if (!confirm('¿Limpiar todas las boletas del día del panel?')) return;
-        const hoy = new Date().toISOString().slice(0,10);
+        const _f2=new Date(); const hoy=`${_f2.getFullYear()}-${String(_f2.getMonth()+1).padStart(2,"0")}-${String(_f2.getDate()).padStart(2,"0")}`;
         await sbFetch('DELETE', `/rest/v1/boletas?fecha=eq.${hoy}`);
         await dpRenderPanel();
         mostrarToast('Panel limpiado');
