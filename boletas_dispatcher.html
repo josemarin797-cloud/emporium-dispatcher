@@ -648,10 +648,18 @@
                     } else if (hora) {
                         return `<div style="display:inline-flex;align-items:center;gap:4px;background:#0a2e1a;border:1px solid #06d6a0;border-radius:4px;padding:3px 9px;margin:2px;font-size:0.72rem;color:#06d6a0;">✅ ${suc} · ${hora.split(' — ')[0]}</div>`;
                     } else {
-                        return `<div style="display:inline-flex;align-items:center;gap:4px;background:#2e1a00;border:1px solid #f77f00;border-radius:4px;padding:3px 9px;margin:2px;font-size:0.72rem;color:#f77f00;">
-                            🟡 ${suc}
-                            <button onclick="cancelarParada('${b.id}', ${num}, '${suc}')" title="Cancelar esta parada"
-                                style="background:transparent;border:none;color:#d90429;cursor:pointer;font-size:0.75rem;padding:0;margin-left:2px;">✕</button>
+                        const itemsSuc = (ep.items || []).map(i => 
+                            `<div style="font-size:0.7rem;color:#aaa;padding:2px 0;">• ${i.dpto}${i.detalle ? ': '+i.detalle : ''}</div>`
+                        ).join('');
+                        const acordeonId = `ac_${b.id}_${num}_${suc}`.replace(/[^a-zA-Z0-9_]/g,'_');
+                        return `<div style="display:inline-flex;flex-direction:column;background:#2e1a00;border:1px solid #f77f00;border-radius:4px;padding:3px 9px;margin:2px;font-size:0.72rem;color:#f77f00;max-width:100%;">
+                            <div style="display:flex;align-items:center;gap:4px;">
+                                🟡 ${suc}
+                                ${itemsSuc ? `<button onclick="document.getElementById('${acordeonId}').style.display=document.getElementById('${acordeonId}').style.display==='none'?'block':'none'" style="background:transparent;border:none;color:#f77f00;cursor:pointer;font-size:0.7rem;padding:0;">▼</button>` : ''}
+                                <button onclick="cancelarParada('${b.id}', ${num}, '${suc}')" title="Cancelar esta parada"
+                                    style="background:transparent;border:none;color:#d90429;cursor:pointer;font-size:0.75rem;padding:0;margin-left:2px;">✕</button>
+                            </div>
+                            ${itemsSuc ? `<div id="${acordeonId}" style="display:none;padding-top:4px;border-top:1px solid #554400;margin-top:4px;">${itemsSuc}</div>` : ''}
                         </div>`;
                     }
                 }).join('');
