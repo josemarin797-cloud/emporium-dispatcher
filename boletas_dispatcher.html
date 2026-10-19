@@ -673,6 +673,7 @@
                         <button onclick="verDetalleBoleta('${b.id}')" style="background:#1a1a1a;color:#aaa;border:1px solid #444;padding:4px 10px;border-radius:5px;cursor:pointer;font-size:0.72rem;font-weight:bold;">📋 Detalle</button>
                         <button onclick="editarBoleta('${b.id}')" style="background:#1a1a2e;color:#7c9ff5;border:1px solid #3a5aad;padding:4px 10px;border-radius:5px;cursor:pointer;font-size:0.72rem;font-weight:bold;">✏️ Editar</button>
                         <button onclick="agregarParadaABoleta('${b.id}', '${b.chofer}')" style="background:#1a2e2e;color:#06d6a0;border:1px solid #06d6a0;padding:4px 10px;border-radius:5px;cursor:pointer;font-size:0.72rem;font-weight:bold;">➕ Parada</button>
+                        ${!isEntg ? `<button onclick="cancelarBoletaCompleta('${b.id}', '${b.chofer}')" style="background:#2e0a0a;color:#d90429;border:1px solid #d90429;padding:4px 10px;border-radius:5px;cursor:pointer;font-size:0.72rem;font-weight:bold;">🗑️ Cancelar</button>` : ''}
                     </div>
                 </div>
                 <div style="display:flex;flex-wrap:wrap;gap:2px;">${sucursalesHtml}</div>
@@ -810,8 +811,8 @@
         document.body.appendChild(modal);
     }
 
-    async function cancelarParada(boletaId, envioNum, sucursal) {
-        const motivo = prompt(`🗑️ Cancelar entrega en ${sucursal}\n\nMotivo (requerido):`, '');
+    async function cancelarBoletaCompleta(boletaId, chofer) {
+        const motivo = prompt(`🗑️ Cancelar boleta ${boletaId}\n\nEsta acción cancela todas las paradas pendientes.\n\nMotivo (requerido):`, '');
         if (!motivo) return;
         const hora = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
@@ -821,19 +822,85 @@
         const envios = JSON.parse(b.envios || '[]');
         const detalle = JSON.parse(b.entregas_detalle || '{}');
 
-        // Marcar como cancelada en el detalle
-        const key = `${boletaId}_${parseInt(envioNum)}_${sucursal}`;
-        detalle[key] = `CANCELADA ${hora} — ${motivo}`;
+        // Cancelar todas las sucursales pendientes
+        envios.forEach(e => {
+            (e.destinos || []).forEach(suc => {
+                const key = `${boletaId}_${parseInt(e.num)}_${suc}`;
+                if (!detalle[key]) {
+                    detalle[key] = `CANCELADA ${hora} — ${motivo}`;
+                }
+            });
+        });
 
-        // Registrar en observaciones
-        const obs = b.observaciones ? b.observaciones + `\n[${hora}] Cancelada entrega en ${sucursal}: ${motivo}` : `[${hora}] Cancelada entrega en ${sucursal}: ${motivo}`;
+        const obs = b.observaciones
+            ? b.observaciones + `\n[${hora}] Boleta cancelada: ${motivo}`
+            : `[${hora}] Boleta cancelada: ${motivo}`;
+
+        await sbFetch('PATCH', `/rest/v1/boletas?id=eq.${boletaId}`, {
+            estado: 'entregada',
+            entregas_detalle: JSON.stringify(detalle),
+            observaciones: obs
+        });
+
+        mostrarToast(`✅ Boleta ${boletaId} cancelada`);
+        await dpRenderPanel();
+    }
+
+    async function cancelarParada(boletaId, envioNum, sucursal) {
+        const lista = await sbFetch('GET', `/rest/v1/boletas?id=eq.${boletaId}&select=*`);
+        if (!lista || !lista[0]) return;
+        const b = lista[0];
+        const envios = JSON.parse(b.envios || '[]');
+        const detalle = JSON.parse(b.entregas_detalle || '{}');
+        const hora = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        // Buscar el envío correspondiente
+        const envio = envios.find(e => parseInt(e.num) === parseInt(envioNum));
+        const items = envio?.items || [];
+
+        let opcion = 'sucursal';
+        let itemSeleccionado = null;
+
+        if (items.length > 1) {
+            // Mostrar modal con opciones
+            const opcionesItems = items.map((it, i) => `${i+1}. Solo ${it.dpto}${it.detalle ? ': '+it.detalle : ''}`).join('\n');
+            const respuesta = prompt(
+                `🗑️ Cancelar en ${sucursal}\n\n¿Qué deseas cancelar?\n0. Toda la sucursal\n${opcionesItems}\n\nEscribe el número:`,
+                '0'
+            );
+            if (respuesta === null) return;
+            const idx = parseInt(respuesta);
+            if (idx > 0 && idx <= items.length) {
+                opcion = 'item';
+                itemSeleccionado = items[idx - 1];
+            }
+        }
+
+        const motivo = prompt(`💬 Motivo de cancelación:`, '');
+        if (!motivo) return;
+
+        if (opcion === 'sucursal') {
+            // Cancelar toda la sucursal
+            const key = `${boletaId}_${parseInt(envioNum)}_${sucursal}`;
+            detalle[key] = `CANCELADA ${hora} — ${motivo}`;
+        } else {
+            // Cancelar solo ese departamento — marcarlo en el item
+            if (itemSeleccionado) {
+                itemSeleccionado.cancelado = `${hora} — ${motivo}`;
+                await sbFetch('PATCH', `/rest/v1/boletas?id=eq.${boletaId}`, { envios: JSON.stringify(envios) });
+            }
+        }
+
+        const obs = b.observaciones
+            ? b.observaciones + `\n[${hora}] Cancelado en ${sucursal}${itemSeleccionado ? ' ('+itemSeleccionado.dpto+')' : ''}: ${motivo}`
+            : `[${hora}] Cancelado en ${sucursal}${itemSeleccionado ? ' ('+itemSeleccionado.dpto+')' : ''}: ${motivo}`;
 
         await sbFetch('PATCH', `/rest/v1/boletas?id=eq.${boletaId}`, {
             entregas_detalle: JSON.stringify(detalle),
             observaciones: obs
         });
 
-        mostrarToast(`✅ Parada ${sucursal} cancelada`);
+        mostrarToast(`✅ Cancelado en ${sucursal}`);
         await dpRenderPanel();
     }
 
