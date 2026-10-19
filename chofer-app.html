@@ -498,7 +498,7 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
         const nombre = choferActual.nombre;
 
         const lista = await sbFetch('GET',
-            `/rest/v1/boletas?fecha=eq.${hoy}&chofer=eq.${encodeURIComponent(nombre)}&order=created_at.desc&select=*`
+            `/rest/v1/boletas?fecha=eq.${hoy}&chofer=eq.${encodeURIComponent(nombre)}&order=created_at.asc&select=*`
         ) || [];
 
         // Detectar nuevas boletas urgentes
@@ -570,7 +570,9 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
             });
         });
 
-        listaActiva.forEach(b => {
+        const totalActivas = listaActiva.length;
+        listaActiva.forEach((b, bIdx) => {
+            const ordenNum = bIdx + 1;
             const isEntg = b.estado === 'entregada';
             const isUrg  = b.prioridad === 'Urgente';
 
@@ -578,6 +580,13 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
                 ? `<span class="badge badge-entg">✅ Completa · ${b.hora_entrega || ''}</span>`
                 : isUrg ? `<span class="badge badge-urg">🔴 Urgente</span>`
                 : `<span class="badge badge-pend">🟡 Pendiente</span>`;
+
+            // Etiqueta de orden cuando hay más de una boleta activa
+            const ordenLabel = totalActivas > 1
+                ? bIdx === 0
+                    ? `<div style="background:#ffb703;color:#000;text-align:center;font-size:0.75rem;font-weight:900;padding:5px;border-radius:6px 6px 0 0;letter-spacing:0.5px;">⬆️ EJECUTAR PRIMERO</div>`
+                    : `<div style="background:#333;color:#888;text-align:center;font-size:0.75rem;font-weight:700;padding:5px;border-radius:6px 6px 0 0;letter-spacing:0.5px;">⏳ ESPERAR — CUANDO TERMINES LA ANTERIOR</div>`
+                : '';
 
             // Entregas por sucursal guardadas
             const detalle = b.entregas_detalle ? JSON.parse(b.entregas_detalle) : {};
@@ -611,7 +620,13 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
                             </div>
                            </div>`
                         : `<div style="background:#1e1800;border:1px solid #ffb703;border-radius:6px;padding:10px;margin-bottom:8px;">
-                            <div style="font-size:0.78rem;color:#ffb703;font-weight:700;margin-bottom:8px;">📦 Confirmar recogida en ${recoge}</div>
+                            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+                                <div style="font-size:0.78rem;color:#ffb703;font-weight:700;">📦 Confirmar recogida en ${recoge}</div>
+                                <button onclick="reportarProblema('${b.id}', ${e.num}, '${recoge}')"
+                                    style="background:#2e0a0a;color:#d90429;border:1px solid #d90429;border-radius:6px;padding:4px 8px;font-size:0.72rem;cursor:pointer;">
+                                    ⚠️ No hay mercancía
+                                </button>
+                            </div>
                             ${items.length > 0 ? items.map((item, ii) => {
                                 const uidItem = `${uidRec}_item${ii}`;
                                 return `<div style="background:#111;border:1px solid #333;border-radius:6px;padding:8px;margin-bottom:6px;">
@@ -656,8 +671,19 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
                     // Botón por sucursal de entrega
                     const sucBtns = (e.destinos || []).map((suc, si) => {
                         const key = `${b.id}_${parseInt(e.num)}_${suc}`;
-                        const entregadaEn = detalle[key] || entregasConfirmadas[key];
-                        if (entregadaEn) {
+                        const valorDetalle = detalle[key] || entregasConfirmadas[key];
+                        const esCancelada = valorDetalle && valorDetalle.toString().startsWith('CANCELADA');
+                        const entregadaEn = esCancelada ? null : valorDetalle;
+                        if (esCancelada) {
+                            const motivoCan = valorDetalle.toString().replace(/^CANCELADA \d+:\d+.*? — /, '');
+                            return `<div style="background:#1a0a0a;border:1px solid #444;border-radius:8px;padding:10px 14px;margin-top:8px;">
+                                <div style="display:flex;align-items:center;justify-content:space-between;">
+                                    <span style="color:#555;font-size:0.85rem;font-weight:600;text-decoration:line-through;">📍 ${suc}</span>
+                                    <span style="color:#d90429;font-size:0.75rem;font-weight:700;">🚫 Cancelada</span>
+                                </div>
+                                <div style="color:#555;font-size:0.75rem;margin-top:4px;">💬 ${motivoCan}</div>
+                            </div>`;
+                        } else if (entregadaEn) {
                             return `<div style="background:#0a2e1a;border:1px solid #06d6a0;border-radius:8px;padding:10px 14px;margin-top:8px;">
                                 <div style="display:flex;align-items:center;justify-content:space-between;">
                                     <span style="color:#06d6a0;font-size:0.85rem;font-weight:600;">📍 ${suc}</span>
@@ -683,8 +709,13 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
                                 </div>
                                 ${notaSuc ? `<div style="background:#111;border:1px solid #333;border-radius:6px;padding:6px 10px;margin-bottom:6px;font-size:0.8rem;color:#aaa;">📝 ${notaSuc}</div>` : ''}
                                 ${mapsSuc ? `<a href="${mapsSuc}" target="_blank" style="display:block;background:#0a2e1a;border:1px solid #06d6a0;border-radius:6px;padding:7px;text-align:center;color:#06d6a0;font-size:0.82rem;font-weight:700;text-decoration:none;margin-bottom:8px;">🗺️ Abrir en Google Maps</a>` : ''}
-                                <input id="${uid}" type="text" placeholder="Observación (opcional)..."
-                                    style="width:100%;padding:8px 10px;background:#111;border:1px solid #333;color:#ccc;border-radius:6px;font-size:0.82rem;font-family:inherit;margin-bottom:8px;">
+                                <select id="nov_${uid}" onchange="toggleNovedad('${uid}')"
+                                    style="width:100%;padding:8px;background:#111;border:1px solid #333;color:#ccc;border-radius:6px;font-size:0.82rem;margin-bottom:6px;">
+                                    <option value="">✅ Sin novedad en la entrega</option>
+                                    <option value="novedad">⚠️ Hubo una novedad</option>
+                                </select>
+                                <input id="${uid}" type="text" placeholder="Describe la novedad..."
+                                    style="display:none;width:100%;padding:8px 10px;background:#111;border:1px solid #f77f00;color:#ccc;border-radius:6px;font-size:0.82rem;font-family:inherit;margin-bottom:8px;">
                                 <button onclick="
                                         if(this.disabled) return;
                                         this.disabled=true;
@@ -738,9 +769,18 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 
             const card = document.createElement('div');
             card.className = `boleta-card${isEntg ? ' entregada' : isUrg ? ' urgente' : ''}`;
+            card.style.cssText = totalActivas > 1 ? 'border-radius:0 0 10px 10px;' : '';
+            if (ordenLabel) {
+                const labelDiv = document.createElement('div');
+                labelDiv.innerHTML = ordenLabel;
+                cont.appendChild(labelDiv.firstElementChild);
+            }
             card.innerHTML = `
                 <div class="boleta-header">
-                    <span class="boleta-codigo">${b.id}</span>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <span style="background:#ffb703;color:#000;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:900;flex-shrink:0;">${ordenNum}</span>
+                        <span class="boleta-codigo">${b.id}</span>
+                    </div>
                     ${badge}
                 </div>
                 <div class="boleta-body">
@@ -794,6 +834,25 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 
     function tomarFotoItem(uid) {
         document.getElementById('file_' + uid)?.click();
+    }
+
+    async function reportarProblema(boletaId, envioNum, origen) {
+        const motivo = prompt(`⚠️ Reportar problema en ${origen}\n\nExplica qué pasó:`, '');
+        if (!motivo) return;
+        const hora = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        // Notificar a Discord
+        await notificarDiscord(choferActual.nombre,
+            `⚠️ **Problema reportado en ${origen}**\n🕐 ${hora} | ${choferActual.unidad || ''}\n📋 Boleta: ${boletaId}\n💬 Motivo: ${motivo}`
+        );
+        mostrarToast(`⚠️ Problema reportado — te avisé al jefe`);
+    }
+
+    function toggleNovedad(uid) {
+        const sel = document.getElementById('nov_' + uid);
+        const input = document.getElementById(uid);
+        if (!input) return;
+        input.style.display = sel?.value === 'novedad' ? 'block' : 'none';
+        if (sel?.value !== 'novedad') input.value = '';
     }
 
     let fotoEnProceso = false;
@@ -919,9 +978,16 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 
         const update = { entregas_detalle: JSON.stringify(detalle) };
 
+        // Armar qué llevaba a esta sucursal
+        const envioActual = (b.envios ? JSON.parse(b.envios) : []).find(e => parseInt(e.num) === parseInt(envioNum));
+        const prioSucData = envioActual?.prioSuc || {};
+        const notaSuc = prioSucData[sucursal + '_nota'] || '';
+        const itemsSuc = (envioActual?.items || []).map(i => `• ${i.dpto}${i.detalle ? ': ' + i.detalle : ''}`).join('\n');
+        const queLlevaba = notaSuc || itemsSuc || '';
+
         // Siempre notificar la entrega individual
         await notificarDiscord(choferActual.nombre,
-            `✅ **Entrega confirmada en ${sucursal}**\n🕐 ${hora} | ${choferActual.unidad || ''}\n📋 Boleta: ${boletaId}${observacion ? '\n💬 ' + observacion : ''}`
+            `✅ **Entrega confirmada en ${sucursal}**\n🕐 ${hora} | ${choferActual.unidad || ''}\n📋 Boleta: ${boletaId}${queLlevaba ? '\n📦 ' + queLlevaba : ''}${observacion ? '\n⚠️ Novedad: ' + observacion : '\n✔️ Sin novedad'}`
         );
 
         if (todasEntregadas) {
