@@ -865,13 +865,40 @@
                     style="background:#2a1f00;color:#ffb703;border:1px dashed #554400;width:100%;padding:7px;border-radius:6px;font-size:0.78rem;cursor:pointer;margin-bottom:10px;">
                     + Agregar departamento
                 </button>
-                <textarea id="np-nota" placeholder="Nota (opcional)..." style="width:100%;background:#111;border:1px solid #333;color:#ccc;border-radius:6px;padding:8px;font-size:0.82rem;height:50px;font-family:inherit;margin-bottom:12px;"></textarea>
+                <textarea id="np-nota" placeholder="Nota (opcional)..." style="width:100%;background:#111;border:1px solid #333;color:#ccc;border-radius:6px;padding:8px;font-size:0.82rem;height:50px;font-family:inherit;margin-bottom:10px;"></textarea>
+                <label style="font-size:0.75rem;color:#888;display:block;margin-bottom:6px;">📷 Foto del producto (opcional)</label>
+                <div style="display:flex;gap:6px;margin-bottom:6px;">
+                    <button type="button" onclick="document.getElementById('np-foto-input').click()"
+                        style="flex:1;background:#1a1a2e;color:#7c9ff5;border:1px solid #3a5aad;border-radius:6px;padding:8px;font-size:0.8rem;cursor:pointer;">
+                        📷 Cámara / Galería
+                    </button>
+                </div>
+                <input type="file" id="np-foto-input" accept="image/*" capture="environment" style="display:none;"
+                    onchange="previewNpFoto(this)">
+                <div id="np-foto-preview" style="display:none;margin-bottom:10px;">
+                    <img id="np-foto-img" style="width:100%;border-radius:6px;max-height:120px;object-fit:cover;">
+                    <button type="button" onclick="document.getElementById('np-foto-preview').style.display='none';document.getElementById('np-foto-input').value='';"
+                        style="width:100%;background:#2e0a0a;color:#d90429;border:1px solid #d90429;border-radius:6px;padding:4px;font-size:0.75rem;cursor:pointer;margin-top:4px;">
+                        ✕ Quitar foto
+                    </button>
+                </div>
                 <div style="display:flex;gap:8px;">
                     <button onclick="document.getElementById('modal-nueva-parada').remove()" style="flex:1;background:#2a2a2a;color:#888;border:1px solid #444;border-radius:6px;padding:10px;cursor:pointer;font-size:0.85rem;">Cancelar</button>
                     <button onclick="confirmarNuevaParada('${boletaId}', '${chofer}')" style="flex:2;background:#ffb703;color:#000;border:none;border-radius:6px;padding:10px;cursor:pointer;font-size:0.85rem;font-weight:700;">✅ Agregar parada</button>
                 </div>
             </div>`;
         document.body.appendChild(modal);
+    }
+
+    function previewNpFoto(input) {
+        const file = input.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = e => {
+            document.getElementById('np-foto-img').src = e.target.result;
+            document.getElementById('np-foto-preview').style.display = 'block';
+        };
+        reader.readAsDataURL(file);
     }
 
     function agregarItemNuevaParada() {
@@ -945,6 +972,30 @@
                 })
             });
         } catch(e) {}
+
+        // Subir foto si hay
+        const fotoInput = document.getElementById('np-foto-input');
+        if (fotoInput && fotoInput.files[0]) {
+            try {
+                const blob = fotoInput.files[0];
+                const nombreFoto = `productos/${boletaId}_${nuevoNum}_${Date.now()}.jpg`;
+                const uploadRes = await fetch(`${SB_URL}/storage/v1/object/fotos-flota/${nombreFoto}`, {
+                    method: 'POST',
+                    headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'image/jpeg' },
+                    body: blob
+                });
+                if (uploadRes.ok) {
+                    const fotoUrl = `${SB_URL}/storage/v1/object/public/fotos-flota/${nombreFoto}`;
+                    // Guardar URL en prioSuc de la sucursal de entrega
+                    prioSuc[entrega + '_foto_producto'] = fotoUrl;
+                    // Actualizar envios con la foto
+                    envios[envios.length - 1].prioSuc = prioSuc;
+                    await sbFetch('PATCH', `/rest/v1/boletas?id=eq.${boletaId}`, {
+                        envios: JSON.stringify(envios)
+                    });
+                }
+            } catch(e) { console.log('Error subiendo foto producto:', e); }
+        }
 
         // Cerrar modal y refrescar
         document.getElementById('modal-nueva-parada')?.remove();
