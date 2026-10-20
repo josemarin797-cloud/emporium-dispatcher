@@ -720,8 +720,12 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
                                     <option value="">✅ Sin novedad en la entrega</option>
                                     <option value="novedad">⚠️ Hubo una novedad</option>
                                 </select>
-                                <input id="${uid}" type="text" placeholder="Describe la novedad..."
-                                    style="display:none;width:100%;padding:8px 10px;background:#111;border:1px solid #f77f00;color:#ccc;border-radius:6px;font-size:0.82rem;font-family:inherit;margin-bottom:8px;">
+                                <div style="display:none;position:relative;margin-bottom:8px;" id="nov-cont-${uid}">
+                                    <input id="${uid}" type="text" placeholder="Describe la novedad..."
+                                        style="width:100%;padding:8px 38px 8px 10px;background:#111;border:1px solid #f77f00;color:#ccc;border-radius:6px;font-size:0.82rem;font-family:inherit;">
+                                    <button type="button" onclick="usarMicrofono('${uid}')"
+                                        style="position:absolute;right:6px;top:50%;transform:translateY(-50%);background:transparent;border:none;font-size:1.1rem;cursor:pointer;" title="Dictar con micrófono">🎤</button>
+                                </div>
                                 <button onclick="
                                         if(this.disabled) return;
                                         this.disabled=true;
@@ -861,9 +865,10 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 
                 <label style="font-size:0.75rem;color:#888;display:block;margin-bottom:6px;">📷 FOTOS DEL DOCUMENTO</label>
                 <div id="cde-fotos-cont"></div>
-                <button type="button" onclick="agregarFotoCDE()"
-                    style="width:100%;background:#1a2e1a;color:#06d6a0;border:1px dashed #06d6a0;border-radius:6px;padding:8px;font-size:0.8rem;cursor:pointer;margin-bottom:14px;">
-                    📷 Agregar foto
+                <input type="file" id="cde-multi-foto" accept="image/*" multiple style="display:none;" onchange="previewCDEFotos(this)">
+                <button type="button" onclick="document.getElementById('cde-multi-foto').click()"
+                    style="width:100%;background:#1a2e1a;color:#06d6a0;border:1px solid #06d6a0;border-radius:6px;padding:10px;font-size:0.85rem;cursor:pointer;margin-bottom:14px;font-weight:700;">
+                    📷 Foto del documento
                 </button>
 
                 <div style="display:flex;gap:8px;margin-top:4px;">
@@ -873,7 +878,6 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
             </div>`;
         document.body.appendChild(modal);
         agregarDestinoCDE();
-        agregarFotoCDE();
     }
 
     function agregarDestinoCDE() {
@@ -900,13 +904,31 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
             </div>
             <button type="button" onclick="document.getElementById('file_${uid}').click()"
                 style="width:100%;background:#1a2e1a;color:#06d6a0;border:1px solid #06d6a0;border-radius:6px;padding:7px;font-size:0.8rem;cursor:pointer;">
-                📷 Tomar foto
+                📷 Foto del documento
             </button>
             <input type="file" id="file_${uid}" accept="image/*" capture="environment" style="display:none;" onchange="previewCDEFoto('${uid}', this)">
             <div id="prev_${uid}" style="display:none;margin-top:6px;">
                 <img id="img_${uid}" style="width:100%;border-radius:6px;max-height:120px;object-fit:cover;">
             </div>`;
         cont.appendChild(div);
+    }
+
+    function previewCDEFotos(input) {
+        const cont = document.getElementById('cde-fotos-cont');
+        cont.innerHTML = '';
+        fotoEnProceso = true;
+        Array.from(input.files).forEach((file, i) => {
+            const reader = new FileReader();
+            reader.onload = e => {
+                const div = document.createElement('div');
+                div.style.cssText = 'margin-bottom:6px;position:relative;';
+                div.innerHTML = `
+                    <div style="font-size:0.72rem;color:#888;margin-bottom:3px;">Foto ${i+1}</div>
+                    <img src="${e.target.result}" style="width:100%;border-radius:6px;max-height:100px;object-fit:cover;border:1px solid #06d6a0;">`;
+                cont.appendChild(div);
+            };
+            reader.readAsDataURL(file);
+        });
     }
 
     function previewCDEFoto(uid, input) {
@@ -928,25 +950,22 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
         if (destinos.length === 0) { mostrarToast('⚠️ Agrega al menos una sucursal de entrega'); return; }
 
         // Validar que haya al menos una foto
-        const fileInputs = document.querySelectorAll('#cde-fotos-cont input[type=file]');
-        const hayFoto = Array.from(fileInputs).some(inp => inp.files[0]);
-        if (!hayFoto) { mostrarToast('⚠️ Debes agregar al menos una foto del documento'); return; }
+        const multiInput = document.getElementById('cde-multi-foto');
+        if (!multiInput || !multiInput.files.length) { mostrarToast('⚠️ Debes tomar al menos una foto del documento'); return; }
 
         // Subir fotos
         const fotosUrls = [];
-        for (const inp of fileInputs) {
-            if (inp.files[0]) {
-                fotoEnProceso = true;
-                try {
-                    const nombre = `cde/${choferActual.nombre.replace(/\s/g,'_')}_${Date.now()}.jpg`;
-                    const res = await fetch(`${SB_URL}/storage/v1/object/fotos-flota/${nombre}`, {
-                        method: 'POST',
-                        headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'image/jpeg' },
-                        body: inp.files[0]
-                    });
-                    if (res.ok) fotosUrls.push(`${SB_URL}/storage/v1/object/public/fotos-flota/${nombre}`);
-                } catch(e) {}
-            }
+        for (const file of multiInput.files) {
+            fotoEnProceso = true;
+            try {
+                const nombre = `cde/${choferActual.nombre.replace(/\s/g,'_')}_${Date.now()}_${Math.random().toString(36).slice(2,6)}.jpg`;
+                const res = await fetch(`${SB_URL}/storage/v1/object/fotos-flota/${nombre}`, {
+                    method: 'POST',
+                    headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'image/jpeg' },
+                    body: file
+                });
+                if (res.ok) fotosUrls.push(`${SB_URL}/storage/v1/object/public/fotos-flota/${nombre}`);
+            } catch(e) {}
         }
         fotoEnProceso = false;
 
@@ -1005,10 +1024,33 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 
     function toggleNovedad(uid) {
         const sel = document.getElementById('nov_' + uid);
+        const cont = document.getElementById('nov-cont-' + uid);
         const input = document.getElementById(uid);
         if (!input) return;
-        input.style.display = sel?.value === 'novedad' ? 'block' : 'none';
-        if (sel?.value !== 'novedad') input.value = '';
+        const mostrar = sel?.value === 'novedad';
+        if (cont) cont.style.display = mostrar ? 'block' : 'none';
+        if (!mostrar) input.value = '';
+    }
+
+    function usarMicrofono(uid) {
+        const input = document.getElementById(uid);
+        if (!input) return;
+        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+            mostrarToast('⚠️ Tu navegador no soporta dictado por voz');
+            return;
+        }
+        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const rec = new SR();
+        rec.lang = 'es-VE';
+        rec.interimResults = false;
+        rec.maxAlternatives = 1;
+        mostrarToast('🎤 Escuchando... habla ahora');
+        rec.start();
+        rec.onresult = e => {
+            input.value = e.results[0][0].transcript;
+            mostrarToast('✅ Texto capturado');
+        };
+        rec.onerror = () => mostrarToast('⚠️ No se pudo capturar el audio');
     }
 
     let fotoEnProceso = false;
