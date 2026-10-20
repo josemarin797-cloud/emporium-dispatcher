@@ -884,8 +884,7 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 
                 <label style="font-size:0.75rem;color:#888;display:block;margin-bottom:6px;">📷 FOTOS DEL DOCUMENTO</label>
                 <div id="cde-fotos-cont"></div>
-                <input type="file" id="cde-multi-foto" accept="image/*" multiple style="display:none;" onchange="previewCDEFotos(this)">
-                <button type="button" onclick="document.getElementById('cde-multi-foto').click()"
+                <button type="button" onclick="agregarFotoCDEIndividual()"
                     style="width:100%;background:#1a2e1a;color:#06d6a0;border:1px solid #06d6a0;border-radius:6px;padding:10px;font-size:0.85rem;cursor:pointer;margin-bottom:14px;font-weight:700;">
                     📷 Foto del documento
                 </button>
@@ -939,6 +938,43 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
         cont.appendChild(div);
     }
 
+    let cdeFotoCount = 0;
+    function agregarFotoCDEIndividual() {
+        cdeFotoCount++;
+        const uid = `cdephoto_${cdeFotoCount}`;
+        const cont = document.getElementById('cde-fotos-cont');
+        const div = document.createElement('div');
+        div.id = `cde-foto-div-${uid}`;
+        div.style.cssText = 'margin-bottom:8px;background:#111;border:1px solid #333;border-radius:6px;padding:8px;';
+        div.innerHTML = `
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                <span style="font-size:0.75rem;color:#888;">Foto ${cdeFotoCount}</span>
+                <button type="button" onclick="document.getElementById('cde-foto-div-${uid}').remove()" 
+                    style="background:transparent;border:none;color:#555;cursor:pointer;font-size:0.85rem;">✕</button>
+            </div>
+            <input type="file" id="${uid}" accept="image/*" capture="environment" style="display:none;" onchange="previewCDEFotoSingle('${uid}', this)">
+            <button type="button" onclick="document.getElementById('${uid}').click()"
+                style="width:100%;background:#1a2e1a;color:#06d6a0;border:1px solid #06d6a0;border-radius:6px;padding:7px;font-size:0.8rem;cursor:pointer;">
+                📷 Tomar foto
+            </button>
+            <img id="img_${uid}" style="display:none;width:100%;border-radius:6px;max-height:100px;object-fit:cover;margin-top:6px;border:1px solid #06d6a0;">`;
+        cont.appendChild(div);
+        // Abrir cámara automáticamente
+        setTimeout(() => document.getElementById(uid)?.click(), 100);
+    }
+
+    function previewCDEFotoSingle(uid, input) {
+        const file = input.files[0];
+        if (!file) return;
+        fotoEnProceso = true;
+        const img = document.getElementById('img_' + uid);
+        const reader = new FileReader();
+        reader.onload = e => {
+            if (img) { img.src = e.target.result; img.style.display = 'block'; }
+        };
+        reader.readAsDataURL(file);
+    }
+
     function previewCDEFotos(input) {
         const cont = document.getElementById('cde-fotos-cont');
         cont.innerHTML = '';
@@ -976,17 +1012,20 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
         if (destinos.length === 0) { mostrarToast('⚠️ Agrega al menos una sucursal de entrega'); return; }
 
         // Validar que haya al menos una foto
-        const multiInput = document.getElementById('cde-multi-foto');
-        if (!multiInput || !multiInput.files.length) { mostrarToast('⚠️ Debes tomar al menos una foto del documento'); return; }
+        const fotoInputs = document.querySelectorAll('#cde-fotos-cont input[type=file]');
+        const hayFotosCDE = Array.from(fotoInputs).some(inp => inp.files[0]);
+        if (!hayFotosCDE) { mostrarToast('⚠️ Debes tomar al menos una foto del documento'); return; }
 
         // Subir fotos
         const fotosUrls = [];
-        for (const file of multiInput.files) {
+        for (const inp of fotoInputs) {
+            const file = inp.files[0];
+            if (!file) continue;
             fotoEnProceso = true;
             try {
                 const ext = file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : 'jpg';
                 const nombreBase = choferActual.nombre.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-zA-Z0-9]/g,'_');
-                const nombre = `cde/${nombreBase}_${Date.now()}.${ext}`;
+                const nombre = `cde/${nombreBase}_${Date.now()}_${Math.random().toString(36).slice(2,5)}.${ext}`;
                 const res = await fetch(`${SB_URL}/storage/v1/object/fotos-flota/${nombre}`, {
                     method: 'POST',
                     headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': file.type || 'image/jpeg' },
