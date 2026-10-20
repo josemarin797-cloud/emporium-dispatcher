@@ -306,6 +306,10 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
     <div class="content">
         <div class="dia-label" id="dia-label">—</div>
 
+        <button onclick="abrirFormCDE()" style="width:100%;background:#1a1a2e;color:#7c9ff5;border:1px solid #3a5aad;border-radius:8px;padding:10px;font-size:0.85rem;font-weight:700;cursor:pointer;margin-bottom:10px;">
+            📋 Registrar carga CDE
+        </button>
+
         <div class="stats-row">
             <div class="stat-card">
                 <div class="stat-n n-pend" id="s-pend">—</div>
@@ -836,6 +840,151 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 
     function tomarFotoItem(uid) {
         document.getElementById('file_' + uid)?.click();
+    }
+
+    const SUCURSALES_CDE = ['Casarapa','Palma Real','Miranda','La Parada','Castillejo','Lider CCS'];
+
+    function abrirFormCDE() {
+        const modal = document.createElement('div');
+        modal.id = 'modal-cde';
+        modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:9999;display:flex;align-items:flex-start;justify-content:center;padding:16px;overflow-y:auto;';
+        modal.innerHTML = `
+            <div style="background:#1c1c1c;border:1px solid #3a5aad;border-radius:12px;padding:20px;width:100%;max-width:420px;margin-top:10px;">
+                <div style="color:#7c9ff5;font-size:0.95rem;font-weight:700;margin-bottom:14px;">📋 Registrar carga CDE</div>
+
+                <label style="font-size:0.75rem;color:#888;display:block;margin-bottom:6px;">ENTREGA EN</label>
+                <div id="cde-destinos-cont"></div>
+                <button type="button" onclick="agregarDestinoCDE()"
+                    style="width:100%;background:#1a1a2e;color:#7c9ff5;border:1px dashed #3a5aad;border-radius:6px;padding:8px;font-size:0.8rem;cursor:pointer;margin-bottom:14px;">
+                    + Agregar sucursal
+                </button>
+
+                <label style="font-size:0.75rem;color:#888;display:block;margin-bottom:6px;">📷 FOTOS DEL DOCUMENTO</label>
+                <div id="cde-fotos-cont"></div>
+                <button type="button" onclick="agregarFotoCDE()"
+                    style="width:100%;background:#1a2e1a;color:#06d6a0;border:1px dashed #06d6a0;border-radius:6px;padding:8px;font-size:0.8rem;cursor:pointer;margin-bottom:14px;">
+                    📷 Agregar foto
+                </button>
+
+                <div style="display:flex;gap:8px;margin-top:4px;">
+                    <button onclick="document.getElementById('modal-cde').remove()" style="flex:1;background:#2a2a2a;color:#888;border:1px solid #444;border-radius:6px;padding:10px;cursor:pointer;">Cancelar</button>
+                    <button onclick="registrarCDE()" style="flex:2;background:#7c9ff5;color:#000;border:none;border-radius:6px;padding:10px;cursor:pointer;font-weight:700;">✅ Registrar</button>
+                </div>
+            </div>`;
+        document.body.appendChild(modal);
+        agregarDestinoCDE();
+    }
+
+    function agregarDestinoCDE() {
+        const cont = document.getElementById('cde-destinos-cont');
+        const opts = SUCURSALES_CDE.map(s => `<option value="${s}">${s}</option>`).join('');
+        const div = document.createElement('div');
+        div.style.cssText = 'display:flex;gap:6px;margin-bottom:6px;align-items:center;';
+        div.innerHTML = `
+            <select class="cde-dest-sel" style="flex:1;background:#111;border:1px solid #3a5aad;color:#7c9ff5;border-radius:6px;padding:8px;font-size:0.82rem;">${opts}</select>
+            <button type="button" onclick="this.parentElement.remove()" style="background:transparent;border:none;color:#555;cursor:pointer;font-size:0.9rem;">✕</button>`;
+        cont.appendChild(div);
+    }
+
+    let cdeContadorFoto = 0;
+    function agregarFotoCDE() {
+        const cont = document.getElementById('cde-fotos-cont');
+        const uid = `cde_foto_${cdeContadorFoto++}`;
+        const div = document.createElement('div');
+        div.style.cssText = 'background:#111;border:1px solid #333;border-radius:6px;padding:8px;margin-bottom:6px;';
+        div.innerHTML = `
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                <span style="font-size:0.75rem;color:#888;">Foto ${cdeContadorFoto}</span>
+                <button type="button" onclick="this.closest('div').parentElement.remove()" style="background:transparent;border:none;color:#555;cursor:pointer;font-size:0.8rem;">✕</button>
+            </div>
+            <button type="button" onclick="document.getElementById('file_${uid}').click()"
+                style="width:100%;background:#1a2e1a;color:#06d6a0;border:1px solid #06d6a0;border-radius:6px;padding:7px;font-size:0.8rem;cursor:pointer;">
+                📷 Tomar foto
+            </button>
+            <input type="file" id="file_${uid}" accept="image/*" capture="environment" style="display:none;" onchange="previewCDEFoto('${uid}', this)">
+            <div id="prev_${uid}" style="display:none;margin-top:6px;">
+                <img id="img_${uid}" style="width:100%;border-radius:6px;max-height:120px;object-fit:cover;">
+            </div>`;
+        cont.appendChild(div);
+    }
+
+    function previewCDEFoto(uid, input) {
+        const file = input.files[0];
+        if (!file) return;
+        fotoEnProceso = true;
+        const reader = new FileReader();
+        reader.onload = e => {
+            document.getElementById('img_' + uid).src = e.target.result;
+            document.getElementById('prev_' + uid).style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+    }
+
+    async function registrarCDE() {
+        // Validar destinos
+        const destSels = document.querySelectorAll('.cde-dest-sel');
+        const destinos = Array.from(destSels).map(s => s.value).filter(Boolean);
+        if (destinos.length === 0) { mostrarToast('⚠️ Agrega al menos una sucursal de entrega'); return; }
+
+        // Subir fotos
+        const fotosUrls = [];
+        const fileInputs = document.querySelectorAll('#cde-fotos-cont input[type=file]');
+        for (const inp of fileInputs) {
+            if (inp.files[0]) {
+                fotoEnProceso = true;
+                try {
+                    const nombre = `cde/${choferActual.nombre.replace(/\s/g,'_')}_${Date.now()}.jpg`;
+                    const res = await fetch(`${SB_URL}/storage/v1/object/fotos-flota/${nombre}`, {
+                        method: 'POST',
+                        headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'image/jpeg' },
+                        body: inp.files[0]
+                    });
+                    if (res.ok) fotosUrls.push(`${SB_URL}/storage/v1/object/public/fotos-flota/${nombre}`);
+                } catch(e) {}
+            }
+        }
+        fotoEnProceso = false;
+
+        // Generar código de boleta
+        const ahora = new Date();
+        const fechaLocal = `${ahora.getFullYear()}-${String(ahora.getMonth()+1).padStart(2,'0')}-${String(ahora.getDate()).padStart(2,'0')}`;
+        const hora = ahora.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+        const codigo = `CDE-${String(ahora.getDate()).padStart(2,'0')}${String(ahora.getMonth()+1).padStart(2,'0')}-${String(ahora.getHours()).padStart(2,'0')}${String(ahora.getMinutes()).padStart(2,'0')}-${choferActual.nombre.split(' ')[0].toUpperCase()}`;
+
+        const envio = {
+            num: 1,
+            recoge: 'CDE',
+            destinos,
+            items: [],
+            prioSuc: {}
+        };
+
+        const boleta = {
+            id: codigo,
+            chofer: choferActual.nombre,
+            vehiculo: choferActual.unidad || '',
+            hora_salida: hora,
+            hora_emision: hora,
+            destinos: destinos.join(', '),
+            prioridad: 'Normal',
+            estado: 'pendiente',
+            fecha: fechaLocal,
+            envios: JSON.stringify([envio]),
+            entregas_detalle: JSON.stringify({ [`${codigo}_1_recogida`]: `${hora}|fotos:${fotosUrls.join(',')}` })
+        };
+
+        await sbFetch('POST', '/rest/v1/boletas', boleta);
+
+        // Notificar Discord
+        const msg = `📦 **Carga CDE registrada — ${codigo}**\n🕐 ${hora} | ${choferActual.unidad || ''}\n👤 ${choferActual.nombre.split(' ')[0]}\n📍 Destinos: ${destinos.join(', ')}`;
+        await notificarDiscord(choferActual.nombre, msg, fotosUrls[0] || null);
+        for (let i = 1; i < fotosUrls.length; i++) {
+            await notificarDiscord(choferActual.nombre, `📷 Foto ${i+1} de ${fotosUrls.length}`, fotosUrls[i]);
+        }
+
+        document.getElementById('modal-cde').remove();
+        mostrarToast(`✅ Carga CDE registrada — ${codigo}`);
+        cargarBoletas();
     }
 
     async function reportarProblema(boletaId, envioNum, origen) {
