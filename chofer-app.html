@@ -873,6 +873,7 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
             </div>`;
         document.body.appendChild(modal);
         agregarDestinoCDE();
+        agregarFotoCDE();
     }
 
     function agregarDestinoCDE() {
@@ -925,6 +926,11 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
         const destSels = document.querySelectorAll('.cde-dest-sel');
         const destinos = Array.from(destSels).map(s => s.value).filter(Boolean);
         if (destinos.length === 0) { mostrarToast('⚠️ Agrega al menos una sucursal de entrega'); return; }
+
+        // Validar que haya al menos una foto
+        const fileInputs = document.querySelectorAll('#cde-fotos-cont input[type=file]');
+        const hayFoto = Array.from(fileInputs).some(inp => inp.files[0]);
+        if (!hayFoto) { mostrarToast('⚠️ Debes agregar al menos una foto del documento'); return; }
 
         // Subir fotos
         const fotosUrls = [];
