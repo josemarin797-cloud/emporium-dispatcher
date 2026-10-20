@@ -874,6 +874,13 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
                     📷 Foto del documento
                 </button>
 
+                <label style="font-size:0.75rem;color:#888;display:block;margin-bottom:6px;">📝 NOTA (opcional)</label>
+                <div style="position:relative;margin-bottom:14px;">
+                    <textarea id="cde-nota" placeholder="Ej: Saliendo para Palma Real..." rows="2"
+                        style="width:100%;padding:8px 40px 8px 10px;background:#111;border:1px solid #333;color:#e0e0e0;border-radius:6px;font-size:0.82rem;font-family:inherit;resize:none;"></textarea>
+                    <button type="button" onclick="usarMicrofonoCDE()"
+                        style="position:absolute;right:8px;top:8px;background:transparent;border:none;font-size:1.3rem;cursor:pointer;" title="Dictar con micrófono">🎤</button>
+                </div>
                 <div style="display:flex;gap:8px;margin-top:4px;">
                     <button onclick="document.getElementById('modal-cde').remove()" style="flex:1;background:#2a2a2a;color:#888;border:1px solid #444;border-radius:6px;padding:10px;cursor:pointer;">Cancelar</button>
                     <button onclick="registrarCDE()" style="flex:2;background:#7c9ff5;color:#000;border:none;border-radius:6px;padding:10px;cursor:pointer;font-weight:700;">✅ Registrar</button>
@@ -1003,7 +1010,8 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
         await sbFetch('POST', '/rest/v1/boletas', boleta);
 
         // Notificar Discord
-        const msg = `📦 **Carga CDE registrada — ${codigo}**\n🕐 ${hora} | ${choferActual.unidad || ''}\n👤 ${choferActual.nombre.split(' ')[0]}\n📍 Destinos: ${destinos.join(', ')}`;
+        const notaCDE = document.getElementById('cde-nota')?.value?.trim() || '';
+        const msg = `📦 **Carga CDE registrada — ${codigo}**\n🕐 ${hora} | ${choferActual.unidad || ''}\n👤 ${choferActual.nombre.split(' ')[0]}\n📍 Destinos: ${destinos.join(', ')}${notaCDE ? '\n💬 ' + notaCDE : ''}`;
         await notificarDiscord(choferActual.nombre, msg, fotosUrls[0] || null);
         for (let i = 1; i < fotosUrls.length; i++) {
             await notificarDiscord(choferActual.nombre, `📷 Foto ${i+1} de ${fotosUrls.length}`, fotosUrls[i]);
@@ -1033,6 +1041,24 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
         const mostrar = sel?.value === 'novedad';
         if (cont) cont.style.display = mostrar ? 'block' : 'none';
         if (!mostrar) input.value = '';
+    }
+
+    function usarMicrofonoCDE() {
+        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+            mostrarToast('⚠️ Tu navegador no soporta dictado por voz');
+            return;
+        }
+        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const rec = new SR();
+        rec.lang = 'es-VE';
+        rec.interimResults = false;
+        mostrarToast('🎤 Escuchando... habla ahora');
+        rec.start();
+        rec.onresult = e => {
+            document.getElementById('cde-nota').value = e.results[0][0].transcript;
+            mostrarToast('✅ Texto capturado');
+        };
+        rec.onerror = () => mostrarToast('⚠️ No se pudo capturar el audio');
     }
 
     function abrirNota(boletaId) {
