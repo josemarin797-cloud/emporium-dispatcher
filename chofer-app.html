@@ -868,7 +868,7 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 
                 <label style="font-size:0.75rem;color:#888;display:block;margin-bottom:6px;">📷 FOTOS DEL DOCUMENTO</label>
                 <div id="cde-fotos-cont"></div>
-                <input type="file" id="cde-multi-foto" accept="image/*" multiple style="display:none;" onchange="previewCDEFotos(this)">
+                <input type="file" id="cde-multi-foto" accept="image/*" multiple capture="environment" style="display:none;" onchange="previewCDEFotos(this)">
                 <button type="button" onclick="document.getElementById('cde-multi-foto').click()"
                     style="width:100%;background:#1a2e1a;color:#06d6a0;border:1px solid #06d6a0;border-radius:6px;padding:10px;font-size:0.85rem;cursor:pointer;margin-bottom:14px;font-weight:700;">
                     📷 Foto del documento
@@ -968,10 +968,11 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
         for (const file of multiInput.files) {
             fotoEnProceso = true;
             try {
-                const nombre = `cde/${choferActual.nombre.replace(/\s/g,'_')}_${Date.now()}_${Math.random().toString(36).slice(2,6)}.jpg`;
+                const ext = file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : 'jpg';
+                const nombre = `cde/${choferActual.nombre.replace(/\s/g,'_')}_${Date.now()}_${Math.random().toString(36).slice(2,6)}.${ext}`;
                 const res = await fetch(`${SB_URL}/storage/v1/object/fotos-flota/${nombre}`, {
                     method: 'POST',
-                    headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'image/jpeg' },
+                    headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': file.type || 'image/jpeg' },
                     body: file
                 });
                 if (res.ok) fotosUrls.push(`${SB_URL}/storage/v1/object/public/fotos-flota/${nombre}`);
@@ -1274,8 +1275,14 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
             let duracion = '';
             try {
                 const parsarHora = h => {
-                    const clean = h.replace(/\s*(a\.m\.|p\.m\.)\s*/gi, m => m.toLowerCase().includes('p') ? ' PM' : ' AM');
-                    return new Date('1970/01/01 ' + clean);
+                    if (!h) return new Date('Invalid');
+                    // Si tiene a.m./p.m.
+                    if (/a\.m\.|p\.m\./i.test(h)) {
+                        const clean = h.replace(/\s*(a\.m\.)\s*/gi, ' AM').replace(/\s*(p\.m\.)\s*/gi, ' PM');
+                        return new Date('1970/01/01 ' + clean);
+                    }
+                    // Formato HH:MM directo
+                    return new Date('1970/01/01 ' + h);
                 };
                 const sal = parsarHora(b.hora_salida || '');
                 const ent = parsarHora(hora);
