@@ -861,11 +861,7 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 
                 <label style="font-size:0.75rem;color:#888;display:block;margin-bottom:6px;">VEHÍCULO</label>
                 <select id="cde-vehiculo" style="width:100%;background:#111;border:1px solid #3a5aad;color:#7c9ff5;border-radius:6px;padding:8px;font-size:0.85rem;margin-bottom:12px;">
-                    <option value="NPR 01">NPR 01</option>
-                    <option value="NPR 02">NPR 02</option>
-                    <option value="NPR 04">NPR 04</option>
-                    <option value="Fuso 03">Fuso 03</option>
-                    <option value="L300 05">L300 05</option>
+                    ${['NPR 01','NPR 02','NPR 04','Fuso 03','L300 05'].map(v => `<option value="${v}"${choferActual?.unidad === v ? ' selected' : ''}>${v}</option>`).join('')}
                 </select>
                 <label style="font-size:0.75rem;color:#888;display:block;margin-bottom:6px;">ENTREGA EN</label>
                 <div id="cde-destinos-cont"></div>
