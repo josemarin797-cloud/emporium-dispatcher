@@ -1254,9 +1254,10 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 
     async function confirmarRecogida(boletaId, envioNum, origen, uidRec, numItems) {
         const hora = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        const boleta = await sbFetch('GET', `/rest/v1/boletas?id=eq.${boletaId}&select=entregas_detalle`);
+        const boleta = await sbFetch('GET', `/rest/v1/boletas?id=eq.${boletaId}&select=entregas_detalle,vehiculo`);
         if (!boleta || !boleta[0]) return;
         const detalle = JSON.parse(boleta[0].entregas_detalle || '{}');
+        const vehiculoBoleta = boleta[0].vehiculo || choferActual.unidad || '';
         const key = `${boletaId}_${envioNum}_recogida`;
 
         let valorFinal = hora;
@@ -1306,12 +1307,13 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
         // Notificar Discord — primera foto con el mensaje principal
         await notificarDiscord(
             choferActual.nombre,
-            `📦 **Recogida confirmada en ${origen}**\n🕐 ${hora} | ${choferActual.unidad || ''}\n📋 Boleta: ${boletaId}${detalleItems}`,
-            fotosUrls.length > 0 ? fotosUrls[0] : null
+            `📦 **Recogida confirmada en ${origen}**\n🕐 ${hora} | ${vehiculoBoleta}\n📋 Boleta: ${boletaId}${detalleItems}`,
+            fotosUrls.length > 0 ? fotosUrls[0] : null,
+            vehiculoBoleta
         );
         // Fotos adicionales como mensajes separados
         for (let fi = 1; fi < fotosUrls.length; fi++) {
-            await notificarDiscord(choferActual.nombre, `📷 Foto ${fi + 1} de ${fotosUrls.length}`, fotosUrls[fi]);
+            await notificarDiscord(choferActual.nombre, `📷 Foto ${fi + 1} de ${fotosUrls.length}`, fotosUrls[fi], vehiculoBoleta);
         }
 
         await cargarBoletas();
@@ -1338,6 +1340,7 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
         const lista = await sbFetch('GET', `/rest/v1/boletas?id=eq.${boletaId}&select=*`) || [];
         if (!lista.length) return;
         const b = lista[0];
+        const vehiculoBoleta = b.vehiculo || choferActual.unidad || '';
         const detalle = b.entregas_detalle ? JSON.parse(b.entregas_detalle) : {};
         detalle[entKey] = observacion ? `${hora} — ${observacion}` : hora;
 
@@ -1361,7 +1364,8 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 
         // Siempre notificar la entrega individual
         await notificarDiscord(choferActual.nombre,
-            `✅ **Entrega confirmada en ${sucursal}**\n🕐 ${hora} | ${choferActual.unidad || ''}\n📋 Boleta: ${boletaId}${queLlevaba ? '\n📦 ' + queLlevaba : ''}${observacion ? '\n⚠️ Novedad: ' + observacion : '\n✔️ Sin novedad'}`
+            `✅ **Entrega confirmada en ${sucursal}**\n🕐 ${hora} | ${vehiculoBoleta}\n📋 Boleta: ${boletaId}${queLlevaba ? '\n📦 ' + queLlevaba : ''}${observacion ? '\n⚠️ Novedad: ' + observacion : '\n✔️ Sin novedad'}`,
+            null, vehiculoBoleta
         );
 
         if (todasEntregadas) {
@@ -1399,7 +1403,8 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
                 });
             });
             await notificarDiscord(choferActual.nombre,
-                `🏁 **Boleta completada — ${boletaId}**\n👤 ${choferActual.nombre.split(' ')[0]} | 🚛 ${choferActual.unidad || ''}\n🕐 Salida: ${b.hora_salida} → Última entrega: ${hora}${duracion ? '\n⏱️ Duración total: ' + duracion : ''}${resumen}`
+                `🏁 **Boleta completada — ${boletaId}**\n👤 ${choferActual.nombre.split(' ')[0]} | 🚛 ${vehiculoBoleta}\n🕐 Salida: ${b.hora_salida} → Última entrega: ${hora}${duracion ? '\n⏱️ Duración total: ' + duracion : ''}${resumen}`,
+                null, vehiculoBoleta
             );
         }
 
