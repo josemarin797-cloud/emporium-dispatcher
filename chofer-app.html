@@ -737,9 +737,8 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
                                         this.disabled=true;
                                         const c = document.getElementById('${contId}');
                                         if(c) c.style.display='none';
-                                        const notaRapida = document.getElementById('nota_${uid}')?.value?.trim() || '';
-                                        if (notaRapida) notificarDiscord(choferActual.nombre, '📝 **Nota — ${b.id}**\n🕐 ' + new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) + ' | ' + (choferActual.unidad||'') + '\n💬 ' + notaRapida);
-                                        confirmarSucursal('${b.id}', ${e.num}, '${suc}', document.getElementById('${uid}').value);"
+                                        const notaRapida = (document.getElementById('nota_${uid}')?.value||'').trim();
+                                        confirmarSucursalConNota('${b.id}', ${e.num}, '${suc}', document.getElementById('${uid}')?.value||'', notaRapida);"
                                     style="width:100%;background:#06d6a0;color:#000;border:none;border-radius:6px;padding:10px;font-size:0.85rem;font-weight:700;cursor:pointer;">
                                     ✅ Confirmar entrega
                                 </button>
@@ -1262,6 +1261,16 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
         }
 
         await cargarBoletas();
+    }
+
+    async function confirmarSucursalConNota(boletaId, envioNum, sucursal, observacion, notaRapida) {
+        if (notaRapida) {
+            const hora = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            await notificarDiscord(choferActual.nombre,
+                `📝 **Nota — ${boletaId}**\n🕐 ${hora} | ${choferActual.unidad || ''}\n👤 ${choferActual.nombre.split(' ')[0]}\n💬 ${notaRapida}`
+            );
+        }
+        await confirmarSucursal(boletaId, envioNum, sucursal, observacion);
     }
 
     async function confirmarSucursal(boletaId, envioNum, sucursal, observacion = '') {
