@@ -442,7 +442,7 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 
     function entrar(chofer) {
         // Siempre preguntar vehículo a choferes sin unidad fija
-        const choferesSinUnidad = ['Jesús Lara', 'Néstor Daniel', 'Jackson Hernandez'];
+        const choferesSinUnidad = ['Jesús Lara', 'Néstor Daniel'];
         if (!chofer.unidad || choferesSinUnidad.includes(chofer.nombre)) {
             const vehiculos = ['NPR 01', 'NPR 02', 'NPR 04', 'Fuso 03', 'L300 05'];
             const sel = prompt(`${chofer.nombre.split(' ')[0]}, ¿qué vehículo usas hoy?\n\n${vehiculos.map((v, i) => `${i+1}. ${v}`).join('\n')}\n\nEscribe el número:`);
@@ -1397,7 +1397,13 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
         const guardado = localStorage.getItem('emp_chofer');
         if (guardado) {
             try {
-                const chofer = JSON.parse(guardado);
+                let chofer = JSON.parse(guardado);
+                // Para choferes sin unidad fija, limpiar unidad para que pregunten al entrar
+                const sinUnidadFija = ['Jesús Lara', 'Néstor Daniel'];
+                if (sinUnidadFija.includes(chofer.nombre)) {
+                    chofer = { ...chofer, unidad: '' };
+                    localStorage.removeItem('emp_chofer');
+                }
                 // Entrar automáticamente sin pedir huella de nuevo
                 choferActual = chofer;
                 document.getElementById('pantalla-login').style.display = 'none';
