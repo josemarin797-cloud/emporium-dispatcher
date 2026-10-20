@@ -1405,8 +1405,13 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
                 // Para choferes sin unidad fija, limpiar unidad para que pregunten al entrar
                 const sinUnidadFija = ['Jesús Lara', 'Néstor Daniel'];
                 if (sinUnidadFija.includes(chofer.nombre)) {
-                    chofer = { ...chofer, unidad: '' };
-                    localStorage.removeItem('emp_chofer');
+                    // Preguntar vehículo siempre
+                    const vehiculos = ['NPR 01', 'NPR 02', 'NPR 04', 'Fuso 03', 'L300 05'];
+                    const sel = prompt(`${chofer.nombre.split(' ')[0]}, ¿qué vehículo usas hoy?\n\n${vehiculos.map((v, i) => `${i+1}. ${v}`).join('\n')}\n\nEscribe el número:`);
+                    const idx = parseInt(sel) - 1;
+                    if (idx >= 0 && idx < vehiculos.length) {
+                        chofer = { ...chofer, unidad: vehiculos[idx] };
+                    }
                 }
                 // Entrar automáticamente sin pedir huella de nuevo
                 choferActual = chofer;
