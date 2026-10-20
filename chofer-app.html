@@ -872,7 +872,7 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
                 <div style="color:#7c9ff5;font-size:0.95rem;font-weight:700;margin-bottom:14px;">📋 Registrar carga CDE</div>
 
                 <label style="font-size:0.75rem;color:#888;display:block;margin-bottom:6px;">VEHÍCULO</label>
-                <select id="cde-vehiculo" style="width:100%;background:#111;border:1px solid #3a5aad;color:#7c9ff5;border-radius:6px;padding:8px;font-size:0.85rem;margin-bottom:12px;">
+                <select id="cde-vehiculo" onchange="choferActual.unidad=this.value;document.getElementById('topbar-unit').textContent=this.value;" style="width:100%;background:#111;border:1px solid #3a5aad;color:#7c9ff5;border-radius:6px;padding:8px;font-size:0.85rem;margin-bottom:12px;">
                     ${['NPR 01','NPR 02','NPR 04','Fuso 03','L300 05'].map(v => `<option value="${v}"${choferActual?.unidad === v ? ' selected' : ''}>${v}</option>`).join('')}
                 </select>
                 <label style="font-size:0.75rem;color:#888;display:block;margin-bottom:6px;">ENTREGA EN</label>
@@ -1069,7 +1069,7 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 
         // Notificar Discord
         const notaCDE = document.getElementById('cde-nota')?.value?.trim() || '';
-        const msg = `📦 **Carga CDE registrada — ${codigo}**\n🕐 ${hora} | ${choferActual.unidad || ''}\n👤 ${choferActual.nombre.split(' ')[0]}\n📍 Destinos: ${destinos.join(', ')}${notaCDE ? '\n💬 ' + notaCDE : ''}`;
+        const msg = `📦 **Carga CDE registrada — ${codigo}**\n🕐 ${hora} | ${vehiculoCDE}\n👤 ${choferActual.nombre.split(' ')[0]}\n📍 Destinos: ${destinos.join(', ')}${notaCDE ? '\n💬 ' + notaCDE : ''}`;
         await notificarDiscord(choferActual.nombre, msg, fotosUrls[0] || null);
         for (let i = 1; i < fotosUrls.length; i++) {
             await notificarDiscord(choferActual.nombre, `📷 Foto ${i+1} de ${fotosUrls.length}`, fotosUrls[i]);
