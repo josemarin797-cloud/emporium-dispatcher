@@ -335,7 +335,7 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
     const SB_URL = 'https://sieadibkcqnvbwlwlmds.supabase.co';
     const SB_KEY = 'sb_publishable_10TgLdGmmcHccAqJu2JLiw_zyYgKT_M';
 
-    const DISCORD_WEBHOOKS = {
+    const DISCORD_WEBHOOKS_CHOFER = {
         'Darwin Serrano':    'https://discord.com/api/webhooks/1502385562844139627/ZXLNCWCxD_CChv_s1P9Bj0D4RlcaLhyOQeCnjwstB7LrLxvzjOL9N1nZh0mKvNLo4zkb',
         'Daniel Subero':     'https://discord.com/api/webhooks/1502381757486338068/LZM4F-lSvlcTL-UiDpsu-8Cj3pn4x51YdQk6bTvpfsqZvVJsybjygo9AjZD2g-eY9pRu',
         'Richard Hernandez': 'https://discord.com/api/webhooks/1502384852001886358/mNtpqadkHNu3qMYhLNGV_RFQ1Ju_PSFLt7GJNzRJ3cS7of5NGH0da_xLNj1tGfNlSIDz',
@@ -345,8 +345,18 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
         'Néstor Daniel':     'https://discord.com/api/webhooks/1502385365305000058/syirI93eXxrKposvFYj21DbWChBoy0KtEXkz10ZtKTHzYCVuRu50Tw7DWUj08LEEBDt2'
     };
 
-    async function notificarDiscord(chofer, mensaje, fotoUrl) {
-        const webhook = DISCORD_WEBHOOKS[chofer];
+    const DISCORD_WEBHOOKS_VEHICULO = {
+        'NPR 01':  'https://discord.com/api/webhooks/1502381757486338068/LZM4F-lSvlcTL-UiDpsu-8Cj3pn4x51YdQk6bTvpfsqZvVJsybjygo9AjZD2g-eY9pRu',
+        'NPR 02':  'https://discord.com/api/webhooks/1502384852001886358/mNtpqadkHNu3qMYhLNGV_RFQ1Ju_PSFLt7GJNzRJ3cS7of5NGH0da_xLNj1tGfNlSIDz',
+        'NPR 04':  'https://discord.com/api/webhooks/1502385562844139627/ZXLNCWCxD_CChv_s1P9Bj0D4RlcaLhyOQeCnjwstB7LrLxvzjOL9N1nZh0mKvNLo4zkb',
+        'Fuso 03': 'https://discord.com/api/webhooks/1502385224175063082/oUu-T5-mVatGrCJa_vlFtG6e1mZtZN9BwIf_JVXCjq4NRGWs_zyHPVwdg6LXccMq1LpU',
+        'L300 05': 'https://discord.com/api/webhooks/1502385365305000058/syirI93eXxrKposvFYj21DbWChBoy0KtEXkz10ZtKTHzYCVuRu50Tw7DWUj08LEEBDt2'
+    };
+
+    async function notificarDiscord(chofer, mensaje, fotoUrl, vehiculo = null) {
+        // Usar webhook por vehículo siempre — si no hay vehículo, usar el del chofer
+        const veh = vehiculo || choferActual?.unidad || '';
+        const webhook = DISCORD_WEBHOOKS_VEHICULO[veh] || DISCORD_WEBHOOKS_CHOFER[chofer];
         if (!webhook) return;
         try {
             const body = {
@@ -1070,9 +1080,9 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
         // Notificar Discord
         const notaCDE = document.getElementById('cde-nota')?.value?.trim() || '';
         const msg = `📦 **Carga CDE registrada — ${codigo}**\n🕐 ${hora} | ${vehiculoCDE}\n👤 ${choferActual.nombre.split(' ')[0]}\n📍 Destinos: ${destinos.join(', ')}${notaCDE ? '\n💬 ' + notaCDE : ''}`;
-        await notificarDiscord(choferActual.nombre, msg, fotosUrls[0] || null);
+        await notificarDiscord(choferActual.nombre, msg, fotosUrls[0] || null, vehiculoCDE);
         for (let i = 1; i < fotosUrls.length; i++) {
-            await notificarDiscord(choferActual.nombre, `📷 Foto ${i+1} de ${fotosUrls.length}`, fotosUrls[i]);
+            await notificarDiscord(choferActual.nombre, `📷 Foto ${i+1} de ${fotosUrls.length}`, fotosUrls[i], vehiculoCDE);
         }
 
         document.getElementById('modal-cde').remove();
