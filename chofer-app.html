@@ -715,6 +715,12 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
                                 ${notaSuc ? `<div style="background:#111;border:1px solid #333;border-radius:6px;padding:6px 10px;margin-bottom:6px;font-size:0.8rem;color:#aaa;">📝 ${notaSuc}</div>` : ''}
                                 ${fotoProducto ? `<div style="margin-bottom:8px;"><div style="font-size:0.72rem;color:#888;margin-bottom:4px;">📷 Foto del producto:</div><img src="${fotoProducto}" style="width:100%;border-radius:6px;max-height:150px;object-fit:cover;border:1px solid #333;"></div>` : ''}
                                 ${mapsSuc ? `<a href="${mapsSuc}" target="_blank" style="display:block;background:#0a2e1a;border:1px solid #06d6a0;border-radius:6px;padding:7px;text-align:center;color:#06d6a0;font-size:0.82rem;font-weight:700;text-decoration:none;margin-bottom:8px;">🗺️ Abrir en Google Maps</a>` : ''}
+                                <div style="position:relative;margin-bottom:8px;">
+                                    <input id="nota_${uid}" type="text" placeholder="📝 Nota rápida... (ej: llegando a ${suc})"
+                                        style="width:100%;padding:8px 38px 8px 10px;background:#111;border:1px solid #333;color:#ccc;border-radius:6px;font-size:0.82rem;font-family:inherit;">
+                                    <button type="button" onclick="usarMicrofonoNota2('nota_${uid}')"
+                                        style="position:absolute;right:6px;top:50%;transform:translateY(-50%);background:transparent;border:none;font-size:1.1rem;cursor:pointer;" title="Dictar con micrófono">🎤</button>
+                                </div>
                                 <select id="nov_${uid}" onchange="toggleNovedad('${uid}')"
                                     style="width:100%;padding:8px;background:#111;border:1px solid #333;color:#ccc;border-radius:6px;font-size:0.82rem;margin-bottom:6px;">
                                     <option value="">✅ Sin novedad en la entrega</option>
@@ -731,6 +737,8 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
                                         this.disabled=true;
                                         const c = document.getElementById('${contId}');
                                         if(c) c.style.display='none';
+                                        const notaRapida = document.getElementById('nota_${uid}')?.value?.trim() || '';
+                                        if (notaRapida) notificarDiscord(choferActual.nombre, '📝 **Nota — ${b.id}**\n🕐 ' + new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) + ' | ' + (choferActual.unidad||'') + '\n💬 ' + notaRapida);
                                         confirmarSucursal('${b.id}', ${e.num}, '${suc}', document.getElementById('${uid}').value);"
                                     style="width:100%;background:#06d6a0;color:#000;border:none;border-radius:6px;padding:10px;font-size:0.85rem;font-weight:700;cursor:pointer;">
                                     ✅ Confirmar entrega
@@ -1048,6 +1056,25 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
         const mostrar = sel?.value === 'novedad';
         if (cont) cont.style.display = mostrar ? 'block' : 'none';
         if (!mostrar) input.value = '';
+    }
+
+    function usarMicrofonoNota2(inputId) {
+        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+            mostrarToast('⚠️ Tu navegador no soporta dictado por voz');
+            return;
+        }
+        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const rec = new SR();
+        rec.lang = 'es-VE';
+        rec.interimResults = false;
+        mostrarToast('🎤 Escuchando...');
+        rec.start();
+        rec.onresult = e => {
+            const input = document.getElementById(inputId);
+            if (input) input.value = e.results[0][0].transcript;
+            mostrarToast('✅ Texto capturado');
+        };
+        rec.onerror = () => mostrarToast('⚠️ No se pudo capturar');
     }
 
     function usarMicrofonoCDE() {
