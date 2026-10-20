@@ -451,7 +451,11 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
                 chofer = { ...chofer, unidad: vehiculos[idx] };
             }
         }
-        localStorage.setItem('emp_chofer', JSON.stringify(chofer));
+        // Limpiar unidad del localStorage para que siempre pregunte a estos choferes
+        const choferParaGuardar = choferesSinUnidad.includes(chofer.nombre) 
+            ? { ...chofer, unidad: '' } 
+            : chofer;
+        localStorage.setItem('emp_chofer', JSON.stringify(choferParaGuardar));
         choferActual = chofer;
 
         // Actualizar topbar
@@ -939,16 +943,16 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
         const cont = document.getElementById('cde-fotos-cont');
         cont.innerHTML = '';
         fotoEnProceso = true;
-        Array.from(input.files).forEach((file, i) => {
+        const files = Array.from(input.files);
+        files.forEach((file, i) => {
+            const div = document.createElement('div');
+            div.style.cssText = 'margin-bottom:6px;';
+            div.innerHTML = `<div style="font-size:0.72rem;color:#888;margin-bottom:3px;">Foto ${i+1} de ${files.length}</div>
+                <img style="width:100%;border-radius:6px;max-height:100px;object-fit:cover;border:1px solid #06d6a0;">`;
+            cont.appendChild(div);
+            const img = div.querySelector('img');
             const reader = new FileReader();
-            reader.onload = e => {
-                const div = document.createElement('div');
-                div.style.cssText = 'margin-bottom:6px;position:relative;';
-                div.innerHTML = `
-                    <div style="font-size:0.72rem;color:#888;margin-bottom:3px;">Foto ${i+1}</div>
-                    <img src="${e.target.result}" style="width:100%;border-radius:6px;max-height:100px;object-fit:cover;border:1px solid #06d6a0;">`;
-                cont.appendChild(div);
-            };
+            reader.onload = e => { img.src = e.target.result; };
             reader.readAsDataURL(file);
         });
     }
