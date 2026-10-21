@@ -306,8 +306,11 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
     <div class="content">
         <div class="dia-label" id="dia-label">—</div>
 
-        <button onclick="abrirFormCDE()" style="width:100%;background:#1a1a2e;color:#7c9ff5;border:1px solid #3a5aad;border-radius:8px;padding:10px;font-size:0.85rem;font-weight:700;cursor:pointer;margin-bottom:10px;">
+        <button onclick="abrirFormCDE()" style="width:100%;background:#1a1a2e;color:#7c9ff5;border:1px solid #3a5aad;border-radius:8px;padding:10px;font-size:0.85rem;font-weight:700;cursor:pointer;margin-bottom:6px;">
             📋 Registrar carga CDE
+        </button>
+        <button onclick="abrirFormRecogida()" style="width:100%;background:#1a2e1a;color:#06d6a0;border:1px solid #06d6a0;border-radius:8px;padding:10px;font-size:0.85rem;font-weight:700;cursor:pointer;margin-bottom:10px;">
+            📦 Registrar recogida
         </button>
 
         <div class="stats-row">
@@ -872,6 +875,181 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
     }
 
     const SUCURSALES_CDE = ['Casarapa','Palma Real','Miranda','La Parada','Castillejo','Lider CCS'];
+
+    function abrirFormRecogida() {
+        const sucursales = ['Casarapa','Palma Real','Miranda','La Parada','Castillejo','Lider CCS','Caracas','Araira','Otra dirección'];
+        const modal = document.createElement('div');
+        modal.id = 'modal-recogida';
+        modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:9999;display:flex;align-items:flex-start;justify-content:center;padding:16px;overflow-y:auto;';
+        modal.innerHTML = `
+            <div style="background:#1c1c1c;border:1px solid #06d6a0;border-radius:12px;padding:20px;width:100%;max-width:420px;margin-top:10px;">
+                <div style="color:#06d6a0;font-size:0.95rem;font-weight:700;margin-bottom:14px;">📦 Registrar recogida</div>
+
+                <label style="font-size:0.75rem;color:#888;display:block;margin-bottom:6px;">VEHÍCULO</label>
+                <select id="rec-vehiculo" onchange="choferActual.unidad=this.value;" style="width:100%;background:#111;border:1px solid #06d6a0;color:#06d6a0;border-radius:6px;padding:8px;font-size:0.85rem;margin-bottom:12px;">
+                    ${['NPR 01','NPR 02','NPR 04','Fuso 03','L300 05'].map(v => `<option value="${v}"${choferActual?.unidad === v ? ' selected' : ''}>${v}</option>`).join('')}
+                </select>
+
+                <label style="font-size:0.75rem;color:#888;display:block;margin-bottom:6px;">RECOGE EN</label>
+                <select id="rec-origen" style="width:100%;background:#111;border:1px solid #333;color:#e0e0e0;border-radius:6px;padding:8px;font-size:0.85rem;margin-bottom:6px;" onchange="toggleOrigenLibre()">
+                    ${sucursales.map(s => `<option value="${s}">${s}</option>`).join('')}
+                </select>
+                <input type="text" id="rec-origen-libre" placeholder="Dirección o lugar..." style="display:none;width:100%;background:#111;border:1px solid #333;color:#e0e0e0;border-radius:6px;padding:8px;font-size:0.85rem;margin-bottom:12px;">
+
+                <label style="font-size:0.75rem;color:#888;display:block;margin-bottom:6px;">ENTREGA EN</label>
+                <div id="rec-destinos-cont"></div>
+                <button type="button" onclick="agregarDestinoRec()"
+                    style="width:100%;background:#1a2e1a;color:#06d6a0;border:1px dashed #06d6a0;border-radius:6px;padding:8px;font-size:0.8rem;cursor:pointer;margin-bottom:14px;">
+                    + Agregar sucursal
+                </button>
+
+                <label style="font-size:0.75rem;color:#888;display:block;margin-bottom:6px;">📷 FOTOS DEL DOCUMENTO</label>
+                <div id="rec-fotos-cont"></div>
+                <button type="button" onclick="agregarFotoRec()"
+                    style="width:100%;background:#1a2e1a;color:#06d6a0;border:1px solid #06d6a0;border-radius:6px;padding:10px;font-size:0.85rem;cursor:pointer;margin-bottom:14px;font-weight:700;">
+                    📷 Foto del documento
+                </button>
+
+                <label style="font-size:0.75rem;color:#888;display:block;margin-bottom:6px;">📝 NOTA (opcional)</label>
+                <div style="position:relative;margin-bottom:14px;">
+                    <textarea id="rec-nota" placeholder="Ej: Saliendo para Miranda..." rows="2"
+                        style="width:100%;padding:8px 40px 8px 10px;background:#111;border:1px solid #333;color:#e0e0e0;border-radius:6px;font-size:0.82rem;font-family:inherit;resize:none;"></textarea>
+                    <button type="button" onclick="usarMicrofonoRec()"
+                        style="position:absolute;right:8px;top:8px;background:transparent;border:none;font-size:1.3rem;cursor:pointer;">🎤</button>
+                </div>
+
+                <div style="display:flex;gap:8px;">
+                    <button onclick="document.getElementById('modal-recogida').remove()" style="flex:1;background:#2a2a2a;color:#888;border:1px solid #444;border-radius:6px;padding:10px;cursor:pointer;">Cancelar</button>
+                    <button onclick="registrarRecogida()" style="flex:2;background:#06d6a0;color:#000;border:none;border-radius:6px;padding:10px;cursor:pointer;font-weight:700;">✅ Registrar</button>
+                </div>
+            </div>`;
+        document.body.appendChild(modal);
+        agregarDestinoRec();
+    }
+
+    function toggleOrigenLibre() {
+        const sel = document.getElementById('rec-origen');
+        const libre = document.getElementById('rec-origen-libre');
+        libre.style.display = sel.value === 'Otra dirección' ? 'block' : 'none';
+    }
+
+    function agregarDestinoRec() {
+        const cont = document.getElementById('rec-destinos-cont');
+        const opts = ['Casarapa','Palma Real','Miranda','La Parada','Castillejo','Lider CCS','Caracas','Araira'].map(s => `<option value="${s}">${s}</option>`).join('');
+        const div = document.createElement('div');
+        div.style.cssText = 'display:flex;gap:6px;margin-bottom:6px;align-items:center;';
+        div.innerHTML = `
+            <select class="rec-dest-sel" style="flex:1;background:#111;border:1px solid #06d6a0;color:#06d6a0;border-radius:6px;padding:8px;font-size:0.82rem;">${opts}</select>
+            <button type="button" onclick="this.parentElement.remove()" style="background:transparent;border:none;color:#555;cursor:pointer;font-size:0.9rem;">✕</button>`;
+        cont.appendChild(div);
+    }
+
+    let recFotoCount = 0;
+    function agregarFotoRec() {
+        recFotoCount++;
+        const uid = `recphoto_${recFotoCount}`;
+        const cont = document.getElementById('rec-fotos-cont');
+        const div = document.createElement('div');
+        div.id = `rec-foto-div-${uid}`;
+        div.style.cssText = 'margin-bottom:8px;background:#111;border:1px solid #333;border-radius:6px;padding:8px;';
+        div.innerHTML = `
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                <span style="font-size:0.75rem;color:#888;">Foto ${recFotoCount}</span>
+                <button type="button" onclick="document.getElementById('rec-foto-div-${uid}').remove()"
+                    style="background:transparent;border:none;color:#555;cursor:pointer;font-size:0.85rem;">✕</button>
+            </div>
+            <input type="file" id="${uid}" accept="image/*" capture="environment" style="display:none;" onchange="previewRecFoto('${uid}', this)">
+            <button type="button" onclick="document.getElementById('${uid}').click()"
+                style="width:100%;background:#1a2e1a;color:#06d6a0;border:1px solid #06d6a0;border-radius:6px;padding:7px;font-size:0.8rem;cursor:pointer;">
+                📷 Tomar foto
+            </button>
+            <img id="img_${uid}" style="display:none;width:100%;border-radius:6px;max-height:100px;object-fit:cover;margin-top:6px;border:1px solid #06d6a0;">`;
+        cont.appendChild(div);
+        setTimeout(() => document.getElementById(uid)?.click(), 100);
+    }
+
+    function previewRecFoto(uid, input) {
+        const file = input.files[0];
+        if (!file) return;
+        fotoEnProceso = true;
+        const img = document.getElementById('img_' + uid);
+        const reader = new FileReader();
+        reader.onload = e => { if (img) { img.src = e.target.result; img.style.display = 'block'; } };
+        reader.readAsDataURL(file);
+    }
+
+    function usarMicrofonoRec() {
+        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+            mostrarToast('⚠️ Tu navegador no soporta dictado por voz'); return;
+        }
+        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const rec = new SR();
+        rec.lang = 'es-VE'; rec.interimResults = false;
+        mostrarToast('🎤 Escuchando...');
+        rec.start();
+        rec.onresult = e => { document.getElementById('rec-nota').value = e.results[0][0].transcript; mostrarToast('✅ Texto capturado'); };
+        rec.onerror = () => mostrarToast('⚠️ No se pudo capturar');
+    }
+
+    async function registrarRecogida() {
+        const origenSel = document.getElementById('rec-origen')?.value;
+        const origenLibre = document.getElementById('rec-origen-libre')?.value?.trim();
+        const origen = origenSel === 'Otra dirección' ? (origenLibre || 'Otra dirección') : origenSel;
+
+        const destSels = document.querySelectorAll('.rec-dest-sel');
+        const destinos = Array.from(destSels).map(s => s.value).filter(Boolean);
+        if (destinos.length === 0) { mostrarToast('⚠️ Agrega al menos una sucursal de entrega'); return; }
+
+        const vehiculoRec = document.getElementById('rec-vehiculo')?.value || choferActual.unidad || '';
+
+        // Subir fotos
+        const fotosUrls = [];
+        const fotoInputs = document.querySelectorAll('#rec-fotos-cont input[type=file]');
+        for (const inp of fotoInputs) {
+            const file = inp.files[0];
+            if (!file) continue;
+            fotoEnProceso = true;
+            try {
+                const ext = file.type === 'image/png' ? 'png' : 'jpg';
+                const nombreBase = choferActual.nombre.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-zA-Z0-9]/g,'_');
+                const nombre = `recogidas/${nombreBase}_${Date.now()}_${Math.random().toString(36).slice(2,5)}.${ext}`;
+                const res = await fetch(`${SB_URL}/storage/v1/object/fotos-flota/${nombre}`, {
+                    method: 'POST',
+                    headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': file.type || 'image/jpeg' },
+                    body: file
+                });
+                if (res.ok) fotosUrls.push(`${SB_URL}/storage/v1/object/public/fotos-flota/${nombre}`);
+            } catch(e) {}
+        }
+        fotoEnProceso = false;
+
+        const ahora = new Date();
+        const fechaLocal = `${ahora.getFullYear()}-${String(ahora.getMonth()+1).padStart(2,'0')}-${String(ahora.getDate()).padStart(2,'0')}`;
+        const hora = ahora.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+        const codigo = `REC-${String(ahora.getDate()).padStart(2,'0')}${String(ahora.getMonth()+1).padStart(2,'0')}-${String(ahora.getHours()).padStart(2,'0')}${String(ahora.getMinutes()).padStart(2,'0')}-${choferActual.nombre.split(' ')[0].toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')}`;
+
+        const envio = { num: 1, recoge: origen, destinos, items: [], prioSuc: {} };
+        const boleta = {
+            id: codigo, chofer: choferActual.nombre, vehiculo: vehiculoRec,
+            hora_salida: hora, hora_emision: hora,
+            destinos: destinos.join(', '), prioridad: 'Normal', estado: 'pendiente',
+            fecha: fechaLocal, envios: JSON.stringify([envio]),
+            entregas_detalle: JSON.stringify({ [`${codigo}_1_recogida`]: `${hora}|fotos:${fotosUrls.join(',')}` })
+        };
+
+        await sbFetch('POST', '/rest/v1/boletas', boleta);
+
+        const notaRec = document.getElementById('rec-nota')?.value?.trim() || '';
+        const msg = `📦 **Recogida registrada — ${codigo}**\n🕐 ${hora} | ${vehiculoRec}\n👤 ${choferActual.nombre.split(' ')[0]}\n📍 Recoge en: ${origen}\n🚚 Destinos: ${destinos.join(', ')}${notaRec ? '\n💬 ' + notaRec : ''}`;
+        await notificarDiscord(choferActual.nombre, msg, fotosUrls[0] || null, vehiculoRec);
+        for (let i = 1; i < fotosUrls.length; i++) {
+            await notificarDiscord(choferActual.nombre, `📷 Foto ${i+1} de ${fotosUrls.length}`, fotosUrls[i], vehiculoRec);
+        }
+
+        document.getElementById('modal-recogida').remove();
+        mostrarToast(`✅ Recogida registrada — ${codigo}`);
+        cargarBoletas();
+    }
 
     function abrirFormCDE() {
         const modal = document.createElement('div');
