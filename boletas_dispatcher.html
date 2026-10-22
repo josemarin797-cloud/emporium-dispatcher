@@ -651,9 +651,16 @@
                     } else if (hora) {
                         return `<div style="display:inline-flex;align-items:center;gap:4px;background:#0a2e1a;border:1px solid #06d6a0;border-radius:4px;padding:3px 9px;margin:2px;font-size:0.72rem;color:#06d6a0;">✅ ${suc} · ${hora.split(' — ')[0]}</div>`;
                     } else {
-                        const itemsSuc = (ep.items || []).map(i => 
-                            `<div style="font-size:0.7rem;color:#aaa;padding:2px 0;">• ${i.dpto}${i.detalle ? ': '+i.detalle : ''}</div>`
-                        ).join('');
+                        const itemsSuc = (ep.items || []).map((i, ii) => {
+                            if (i.cancelado) {
+                                return `<div style="font-size:0.7rem;color:#555;padding:2px 0;text-decoration:line-through;">🚫 ${i.dpto}${i.detalle ? ': '+i.detalle : ''} — ${i.cancelado.split(' — ')[1] || ''}</div>`;
+                            }
+                            return `<div style="display:flex;align-items:center;justify-content:space-between;padding:2px 0;">
+                                <span style="font-size:0.7rem;color:#aaa;">• ${i.dpto}${i.detalle ? ': '+i.detalle : ''}</span>
+                                <button onclick="cancelarItemDispatcher('${b.id}', ${num}, ${ii})" title="Cancelar este departamento"
+                                    style="background:transparent;border:none;color:#d90429;cursor:pointer;font-size:0.68rem;padding:0 2px;">✕</button>
+                            </div>`;
+                        }).join('');
                         const acordeonId = `ac_${b.id}_${num}_${suc}`.replace(/[^a-zA-Z0-9_]/g,'_');
                         return `<div style="display:inline-flex;flex-direction:column;background:#2e1a00;border:1px solid #f77f00;border-radius:4px;padding:3px 9px;margin:2px;font-size:0.72rem;color:#f77f00;max-width:100%;">
                             <div style="display:flex;align-items:center;gap:4px;">
@@ -902,6 +909,34 @@
         });
 
         mostrarToast(`✅ Boleta ${boletaId} cancelada`);
+        await dpRenderPanel();
+    }
+
+    async function cancelarItemDispatcher(boletaId, envioNum, itemIdx) {
+        const motivo = prompt(`🗑️ Cancelar departamento\n\nMotivo (requerido):`, '');
+        if (!motivo) return;
+        const hora = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        const lista = await sbFetch('GET', `/rest/v1/boletas?id=eq.${boletaId}&select=envios,observaciones`);
+        if (!lista || !lista[0]) return;
+        const envios = JSON.parse(lista[0].envios || '[]');
+
+        const envio = envios.find(e => parseInt(e.num) === parseInt(envioNum));
+        if (!envio || !envio.items[itemIdx]) return;
+
+        const item = envio.items[itemIdx];
+        item.cancelado = `${hora} — ${motivo}`;
+
+        const obs = lista[0].observaciones
+            ? lista[0].observaciones + `\n[${hora}] Cancelado ${item.dpto}: ${motivo}`
+            : `[${hora}] Cancelado ${item.dpto}: ${motivo}`;
+
+        await sbFetch('PATCH', `/rest/v1/boletas?id=eq.${boletaId}`, {
+            envios: JSON.stringify(envios),
+            observaciones: obs
+        });
+
+        mostrarToast(`✅ ${item.dpto} cancelado`);
         await dpRenderPanel();
     }
 
