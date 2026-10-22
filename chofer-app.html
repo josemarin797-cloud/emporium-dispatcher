@@ -255,7 +255,7 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
     <p class="select-label">Primera vez: selecciona tu nombre</p>
 
     <div class="chofer-grid">
-        <div class="chofer-btn" onclick="seleccionarChofer(this, 'Darwin Serrano', '')">
+        <div class="chofer-btn" onclick="seleccionarChofer(this, 'Darwin Serrano', 'Jack 07')">
             <div class="chofer-avatar">🚛</div>
             <div class="chofer-name">Darwin</div>
         </div>
@@ -263,7 +263,7 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
             <div class="chofer-avatar">🚛</div>
             <div class="chofer-name">Daniel</div>
         </div>
-        <div class="chofer-btn" onclick="seleccionarChofer(this, 'Jackson Hernandez', '')">
+        <div class="chofer-btn" onclick="seleccionarChofer(this, 'Jackson Hernandez', 'Jack 06')">
             <div class="chofer-avatar">🚗</div>
             <div class="chofer-name">Jackson</div>
         </div>
@@ -353,7 +353,9 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
         'NPR 02':  'https://discord.com/api/webhooks/1502384852001886358/mNtpqadkHNu3qMYhLNGV_RFQ1Ju_PSFLt7GJNzRJ3cS7of5NGH0da_xLNj1tGfNlSIDz',
         'NPR 04':  'https://discord.com/api/webhooks/1502385562844139627/ZXLNCWCxD_CChv_s1P9Bj0D4RlcaLhyOQeCnjwstB7LrLxvzjOL9N1nZh0mKvNLo4zkb',
         'Fuso 03': 'https://discord.com/api/webhooks/1502385224175063082/oUu-T5-mVatGrCJa_vlFtG6e1mZtZN9BwIf_JVXCjq4NRGWs_zyHPVwdg6LXccMq1LpU',
-        'L300 05': 'https://discord.com/api/webhooks/1502385365305000058/syirI93eXxrKposvFYj21DbWChBoy0KtEXkz10ZtKTHzYCVuRu50Tw7DWUj08LEEBDt2'
+        'L300 05': 'https://discord.com/api/webhooks/1502385365305000058/syirI93eXxrKposvFYj21DbWChBoy0KtEXkz10ZtKTHzYCVuRu50Tw7DWUj08LEEBDt2',
+        'Jack 06': 'https://discord.com/api/webhooks/1562565834248032278/oUWkGCXE-1hwH2f3R_BRuzFLWNbvyCafaxSEXa6KT6jDt8u8yww51CquFGUcIwCq0iIk',
+        'Jack 07': 'https://discord.com/api/webhooks/1562566225316290640/IYW_INAJYOnz997hFvOFtcqlZOVGrM-4za_uhzqjcaZhS2PcIkmgM9mRboF5yegj3X1A'
     };
 
     async function notificarDiscord(chofer, mensaje, fotoUrl, vehiculo = null) {
@@ -457,7 +459,7 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
         // Siempre preguntar vehículo a choferes sin unidad fija
         const choferesSinUnidad = ['Jesús Lara', 'Néstor Daniel'];
         if (!chofer.unidad || choferesSinUnidad.includes(chofer.nombre)) {
-            const vehiculos = ['NPR 01', 'NPR 02', 'NPR 04', 'Fuso 03', 'L300 05'];
+            const vehiculos = ['NPR 01', 'NPR 02', 'NPR 04', 'Fuso 03', 'L300 05', 'Jack 06', 'Jack 07'];
             const sel = prompt(`${chofer.nombre.split(' ')[0]}, ¿qué vehículo usas hoy?\n\n${vehiculos.map((v, i) => `${i+1}. ${v}`).join('\n')}\n\nEscribe el número:`);
             const idx = parseInt(sel) - 1;
             if (idx >= 0 && idx < vehiculos.length) {
@@ -896,6 +898,13 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
                 </select>
                 <input type="text" id="rec-origen-libre" placeholder="Dirección o lugar..." style="display:none;width:100%;background:#111;border:1px solid #333;color:#e0e0e0;border-radius:6px;padding:8px;font-size:0.85rem;margin-bottom:12px;">
 
+                <label style="font-size:0.75rem;color:#888;display:block;margin-bottom:6px;">¿QUÉ LLEVA?</label>
+                <div id="rec-items-cont"></div>
+                <button type="button" onclick="agregarItemRec()"
+                    style="width:100%;background:#1a2e00;color:#ffb703;border:1px dashed #554400;border-radius:6px;padding:7px;font-size:0.78rem;cursor:pointer;margin-bottom:12px;">
+                    + Agregar departamento
+                </button>
+
                 <label style="font-size:0.75rem;color:#888;display:block;margin-bottom:6px;">ENTREGA EN</label>
                 <div id="rec-destinos-cont"></div>
                 <button type="button" onclick="agregarDestinoRec()"
@@ -931,6 +940,19 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
         const sel = document.getElementById('rec-origen');
         const libre = document.getElementById('rec-origen-libre');
         libre.style.display = sel.value === 'Otra dirección' ? 'block' : 'none';
+    }
+
+    function agregarItemRec() {
+        const cont = document.getElementById('rec-items-cont');
+        const dptos = ['Víveres','Charcutería','Preparados','Manicería','Mercadeo','Suministros','Otros'];
+        const div = document.createElement('div');
+        div.style.cssText = 'background:#1a1000;border:1px solid #554400;border-radius:6px;padding:8px;margin-bottom:6px;display:flex;gap:6px;align-items:center;';
+        div.innerHTML = `
+            <select class="rec-item-dpto" style="flex:1;background:#111;border:1px solid #554400;color:#ffdb6d;border-radius:6px;padding:6px;font-size:0.82rem;">
+                ${dptos.map(d => `<option value="${d}">${d}</option>`).join('')}
+            </select>
+            <button type="button" onclick="this.parentElement.remove()" style="background:transparent;border:none;color:#555;cursor:pointer;font-size:0.9rem;">✕</button>`;
+        cont.appendChild(div);
     }
 
     function agregarDestinoRec() {
@@ -1001,6 +1023,7 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
         if (destinos.length === 0) { mostrarToast('⚠️ Agrega al menos una sucursal de entrega'); return; }
 
         const vehiculoRec = document.getElementById('rec-vehiculo')?.value || choferActual.unidad || '';
+        const itemsRec = Array.from(document.querySelectorAll('.rec-item-dpto')).map(s => ({ dpto: s.value })).filter(i => i.dpto);
 
         // Subir fotos
         const fotosUrls = [];
@@ -1028,7 +1051,7 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
         const hora = ahora.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
         const codigo = `REC-${String(ahora.getDate()).padStart(2,'0')}${String(ahora.getMonth()+1).padStart(2,'0')}-${String(ahora.getHours()).padStart(2,'0')}${String(ahora.getMinutes()).padStart(2,'0')}-${choferActual.nombre.split(' ')[0].toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')}`;
 
-        const envio = { num: 1, recoge: origen, destinos, items: [], prioSuc: {} };
+        const envio = { num: 1, recoge: origen, destinos, items: itemsRec, prioSuc: {} };
         const boleta = {
             id: codigo, chofer: choferActual.nombre, vehiculo: vehiculoRec,
             hora_salida: hora, hora_emision: hora,
@@ -1592,7 +1615,7 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
     }
 
     function cambiarVehiculo() {
-        const vehiculos = ['NPR 01', 'NPR 02', 'NPR 04', 'Fuso 03', 'L300 05'];
+        const vehiculos = ['NPR 01', 'NPR 02', 'NPR 04', 'Fuso 03', 'L300 05', 'Jack 06', 'Jack 07'];
         const actual = choferActual.unidad || 'Sin asignar';
         const sel = prompt(`Vehículo actual: ${actual}\n\n¿Cuál usas hoy?\n\n${vehiculos.map((v, i) => `${i+1}. ${v}`).join('\n')}\n\nEscribe el número:`);
         const idx = parseInt(sel) - 1;
@@ -1638,7 +1661,7 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
                 const sinUnidadFija = ['Jesús Lara', 'Néstor Daniel'];
                 if (sinUnidadFija.includes(chofer.nombre)) {
                     // Preguntar vehículo siempre
-                    const vehiculos = ['NPR 01', 'NPR 02', 'NPR 04', 'Fuso 03', 'L300 05'];
+                    const vehiculos = ['NPR 01', 'NPR 02', 'NPR 04', 'Fuso 03', 'L300 05', 'Jack 06', 'Jack 07'];
                     const sel = prompt(`${chofer.nombre.split(' ')[0]}, ¿qué vehículo usas hoy?\n\n${vehiculos.map((v, i) => `${i+1}. ${v}`).join('\n')}\n\nEscribe el número:`);
                     const idx = parseInt(sel) - 1;
                     if (idx >= 0 && idx < vehiculos.length) {
