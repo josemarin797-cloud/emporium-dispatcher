@@ -653,10 +653,26 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
                             </div>
                             ${items.length > 0 ? items.map((item, ii) => {
                                 const uidItem = `${uidRec}_item${ii}`;
+                                const itemCancelado = item.cancelado;
+                                if (itemCancelado) {
+                                    return `<div style="background:#1a0a0a;border:1px solid #444;border-radius:6px;padding:8px;margin-bottom:6px;opacity:0.6;">
+                                        <div style="display:flex;align-items:center;justify-content:space-between;">
+                                            <span style="color:#555;font-size:0.78rem;text-decoration:line-through;">📋 ${item.dpto}${item.detalle ? ': '+item.detalle : ''}</span>
+                                            <span style="color:#d90429;font-size:0.72rem;">🚫 Cancelado</span>
+                                        </div>
+                                        <div style="color:#555;font-size:0.72rem;margin-top:4px;">💬 ${itemCancelado.split(' — ')[1] || ''}</div>
+                                    </div>`;
+                                }
                                 return `<div style="background:#111;border:1px solid #333;border-radius:6px;padding:8px;margin-bottom:6px;">
                                     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
                                         <span style="color:#ffb703;font-size:0.78rem;font-weight:600;">📋 ${item.dpto}${item.detalle ? ': '+item.detalle : ''}</span>
-                                        <span id="estado_${uidItem}" style="font-size:0.72rem;color:#555;">Sin foto</span>
+                                        <div style="display:flex;gap:4px;align-items:center;">
+                                            <span id="estado_${uidItem}" style="font-size:0.72rem;color:#555;">Sin foto</span>
+                                            <button onclick="cancelarItemChofer('${b.id}', ${e.num}, ${ii})"
+                                                style="background:#2e0a0a;color:#d90429;border:1px solid #d90429;border-radius:4px;padding:2px 6px;font-size:0.68rem;cursor:pointer;">
+                                                ⚠️ No hay
+                                            </button>
+                                        </div>
                                     </div>
                                     <div style="display:flex;gap:6px;">
                                         <button onclick="tomarFotoItem('${uidItem}')"
@@ -1289,6 +1305,33 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
         document.getElementById('modal-cde').remove();
         mostrarToast(`✅ Carga CDE registrada — ${codigo}`);
         cargarBoletas();
+    }
+
+    async function cancelarItemChofer(boletaId, envioNum, itemIdx) {
+        const motivo = prompt('⚠️ ¿Por qué no hay este producto?\n\nEscribe el motivo:', '');
+        if (!motivo) return;
+        const hora = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        const lista = await sbFetch('GET', `/rest/v1/boletas?id=eq.${boletaId}&select=envios,vehiculo`);
+        if (!lista || !lista[0]) return;
+        const envios = JSON.parse(lista[0].envios || '[]');
+        const vehiculoBoleta = lista[0].vehiculo || choferActual.unidad || '';
+
+        const envio = envios.find(e => parseInt(e.num) === parseInt(envioNum));
+        if (!envio || !envio.items[itemIdx]) return;
+
+        const item = envio.items[itemIdx];
+        item.cancelado = `${hora} — ${motivo}`;
+
+        await sbFetch('PATCH', `/rest/v1/boletas?id=eq.${boletaId}`, { envios: JSON.stringify(envios) });
+
+        await notificarDiscord(choferActual.nombre,
+            `⚠️ **Departamento sin mercancía — ${boletaId}**\n🕐 ${hora} | ${vehiculoBoleta}\n👤 ${choferActual.nombre.split(' ')[0]}\n📦 ${item.dpto}${item.detalle ? ': '+item.detalle : ''}\n💬 ${motivo}`,
+            null, vehiculoBoleta
+        );
+
+        mostrarToast(`⚠️ ${item.dpto} reportado sin mercancía`);
+        await cargarBoletas();
     }
 
     async function reportarProblema(boletaId, envioNum, origen) {
