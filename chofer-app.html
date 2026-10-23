@@ -911,7 +911,7 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 
                 <label style="font-size:0.75rem;color:#888;display:block;margin-bottom:6px;">VEHÍCULO</label>
                 <select id="rec-vehiculo" onchange="choferActual.unidad=this.value;" style="width:100%;background:#111;border:1px solid #06d6a0;color:#06d6a0;border-radius:6px;padding:8px;font-size:0.85rem;margin-bottom:12px;">
-                    ${['NPR 01','NPR 02','NPR 04','Fuso 03','L300 05'].map(v => `<option value="${v}"${choferActual?.unidad === v ? ' selected' : ''}>${v}</option>`).join('')}
+                    ${['NPR 01','NPR 02','NPR 04','Fuso 03','L300 05','Jack 06','Jack 07'].map(v => `<option value="${v}"${choferActual?.unidad === v ? ' selected' : ''}>${v}</option>`).join('')}
                 </select>
 
                 <label style="font-size:0.75rem;color:#888;display:block;margin-bottom:6px;">RECOGE EN</label>
