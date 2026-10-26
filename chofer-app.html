@@ -279,9 +279,13 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
             <div class="chofer-avatar">🚗</div>
             <div class="chofer-name">Jesús</div>
         </div>
-        <div class="chofer-btn" onclick="seleccionarChofer(this, 'Néstor Daniel', '')" style="grid-column: span 2;">
+        <div class="chofer-btn" onclick="seleccionarChofer(this, 'Néstor Daniel', '')">
             <div class="chofer-avatar">🚛</div>
             <div class="chofer-name">Néstor</div>
+        </div>
+        <div class="chofer-btn" onclick="seleccionarChofer(this, 'José Marín', '')">
+            <div class="chofer-avatar">👨‍💼</div>
+            <div class="chofer-name">Marín</div>
         </div>
     </div>
 
@@ -457,7 +461,7 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 
     function entrar(chofer) {
         // Siempre preguntar vehículo a choferes sin unidad fija
-        const choferesSinUnidad = ['Jesús Lara', 'Néstor Daniel'];
+        const choferesSinUnidad = ['Jesús Lara', 'Néstor Daniel', 'José Marín'];
         if (!chofer.unidad || choferesSinUnidad.includes(chofer.nombre)) {
             const vehiculos = ['NPR 01', 'NPR 02', 'NPR 04', 'Fuso 03', 'L300 05', 'Jack 06', 'Jack 07'];
             const sel = prompt(`${chofer.nombre.split(' ')[0]}, ¿qué vehículo usas hoy?\n\n${vehiculos.map((v, i) => `${i+1}. ${v}`).join('\n')}\n\nEscribe el número:`);
@@ -1314,7 +1318,7 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
     }
 
     function abrirTrasbordo(boletaId, envioNum, origen) {
-        const choferes = ['Darwin Serrano','Daniel Subero','Richard Hernandez','Willmer Fernández','Jackson Hernandez','Jesús Lara','Néstor Daniel']
+        const choferes = ['Darwin Serrano','Daniel Subero','Richard Hernandez','Willmer Fernández','Jackson Hernandez','Jesús Lara','Néstor Daniel','José Marín']
             .filter(c => c !== choferActual.nombre);
         const vehiculos = {
             'Darwin Serrano': 'Jack 07', 'Daniel Subero': 'NPR 01', 'Richard Hernandez': 'NPR 02',
@@ -1828,7 +1832,7 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
             try {
                 let chofer = JSON.parse(guardado);
                 // Para choferes sin unidad fija, limpiar unidad para que pregunten al entrar
-                const sinUnidadFija = ['Jesús Lara', 'Néstor Daniel'];
+                const sinUnidadFija = ['Jesús Lara', 'Néstor Daniel', 'José Marín'];
                 if (sinUnidadFija.includes(chofer.nombre)) {
                     // Preguntar vehículo siempre
                     const vehiculos = ['NPR 01', 'NPR 02', 'NPR 04', 'Fuso 03', 'L300 05', 'Jack 06', 'Jack 07'];
