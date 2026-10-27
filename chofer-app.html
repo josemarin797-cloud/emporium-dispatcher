@@ -571,7 +571,8 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
             envios.forEach(e => {
                 (e.destinos || []).forEach(suc => {
                     const k = `${b.id}_${parseInt(e.num)}_${suc}`;
-                    if (!detalle[k] && !entregasConfirmadas[k]) todasOk = false;
+                    const val = detalle[k] || entregasConfirmadas[k];
+                    if (!val) todasOk = false;
                 });
             });
             return !todasOk;
@@ -592,7 +593,8 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
             enviosTodo.forEach(e => {
                 (e.destinos || []).forEach(suc => {
                     const k = `${b.id}_${parseInt(e.num)}_${suc}`;
-                    if (detalleTodo[k] || entregasConfirmadas[k]) entg++;
+                    const val = detalleTodo[k] || entregasConfirmadas[k];
+                    if (val) entg++;
                     else pend++;
                 });
             });
@@ -723,8 +725,18 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
                         const key = `${b.id}_${parseInt(e.num)}_${suc}`;
                         const valorDetalle = detalle[key] || entregasConfirmadas[key];
                         const esCancelada = valorDetalle && valorDetalle.toString().startsWith('CANCELADA');
+                        const esTrasbordo = valorDetalle && valorDetalle.toString().startsWith('TRASBORDO');
                         const entregadaEn = esCancelada ? null : valorDetalle;
-                        if (esCancelada) {
+                        if (esTrasbordo) {
+                            const infoTrb = valorDetalle.toString().replace('TRASBORDO ','');
+                            return `<div style="background:#1a1a2e;border:1px solid #3a5aad;border-radius:8px;padding:10px 14px;margin-top:8px;">
+                                <div style="display:flex;align-items:center;justify-content:space-between;">
+                                    <span style="color:#7c9ff5;font-size:0.85rem;font-weight:600;">📍 ${suc}</span>
+                                    <span style="color:#7c9ff5;font-size:0.75rem;font-weight:700;">🔄 Trasbordo</span>
+                                </div>
+                                <div style="color:#888;font-size:0.75rem;margin-top:4px;">💬 ${infoTrb.split(' — ')[1] || ''}</div>
+                            </div>`;
+                        } else if (esCancelada) {
                             const motivoCan = valorDetalle.toString().replace(/^CANCELADA \d+:\d+.*? — /, '');
                             return `<div style="background:#1a0a0a;border:1px solid #444;border-radius:8px;padding:10px 14px;margin-top:8px;">
                                 <div style="display:flex;align-items:center;justify-content:space-between;">
@@ -761,11 +773,29 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
                                 ${notaSuc ? `<div style="background:#111;border:1px solid #333;border-radius:6px;padding:6px 10px;margin-bottom:6px;font-size:0.8rem;color:#aaa;">📝 ${notaSuc}</div>` : ''}
                                 ${fotoProducto ? `<div style="margin-bottom:8px;"><div style="font-size:0.72rem;color:#888;margin-bottom:4px;">📷 Foto del producto:</div><img src="${fotoProducto}" style="width:100%;border-radius:6px;max-height:150px;object-fit:cover;border:1px solid #333;"></div>` : ''}
                                 ${mapsSuc ? `<a href="${mapsSuc}" target="_blank" style="display:block;background:#0a2e1a;border:1px solid #06d6a0;border-radius:6px;padding:7px;text-align:center;color:#06d6a0;font-size:0.82rem;font-weight:700;text-decoration:none;margin-bottom:8px;">🗺️ Abrir en Google Maps</a>` : ''}
-                                <div style="position:relative;margin-bottom:8px;">
-                                    <input id="nota_${uid}" type="text" placeholder="📝 Nota rápida... (ej: llegando a ${suc})"
-                                        style="width:100%;padding:8px 38px 8px 10px;background:#111;border:1px solid #333;color:#ccc;border-radius:6px;font-size:0.82rem;font-family:inherit;">
-                                    <button type="button" onclick="usarMicrofonoNota2('nota_${uid}')"
-                                        style="position:absolute;right:6px;top:50%;transform:translateY(-50%);background:transparent;border:none;font-size:1.1rem;cursor:pointer;" title="Dictar con micrófono">🎤</button>
+                                <div style="display:flex;gap:6px;margin-bottom:8px;">
+                                    <div style="flex:1;position:relative;">
+                                        <input id="sal_${uid}" type="text" placeholder="🚗 Saliendo para ${suc}..."
+                                            style="width:100%;padding:7px 32px 7px 8px;background:#111;border:1px solid #333;color:#ccc;border-radius:6px;font-size:0.78rem;font-family:inherit;">
+                                        <button type="button" onclick="enviarNotaSaliendo('sal_${uid}', '${b.id}', '${suc}')"
+                                            style="position:absolute;right:4px;top:50%;transform:translateY(-50%);background:transparent;border:none;font-size:1rem;cursor:pointer;" title="Enviar nota saliendo">🎤</button>
+                                    </div>
+                                    <button onclick="enviarNotaSalidaDirecta('sal_${uid}', '${b.id}', '${suc}')"
+                                        style="background:#1a1a2e;color:#7c9ff5;border:1px solid #3a5aad;border-radius:6px;padding:6px 10px;font-size:0.75rem;cursor:pointer;white-space:nowrap;">
+                                        ▶ Enviar
+                                    </button>
+                                </div>
+                                <div style="display:flex;gap:6px;margin-bottom:8px;">
+                                    <div style="flex:1;position:relative;">
+                                        <input id="nota_${uid}" type="text" placeholder="📍 Llegando a ${suc}..."
+                                            style="width:100%;padding:7px 32px 7px 8px;background:#111;border:1px solid #333;color:#ccc;border-radius:6px;font-size:0.78rem;font-family:inherit;">
+                                        <button type="button" onclick="usarMicrofonoNota2('nota_${uid}')"
+                                            style="position:absolute;right:4px;top:50%;transform:translateY(-50%);background:transparent;border:none;font-size:1rem;cursor:pointer;" title="Dictar llegando">🎤</button>
+                                    </div>
+                                    <button onclick="enviarNotaLlegandoDirecta('nota_${uid}', '${b.id}', '${suc}')"
+                                        style="background:#1a2e1a;color:#06d6a0;border:1px solid #06d6a0;border-radius:6px;padding:6px 10px;font-size:0.75rem;cursor:pointer;white-space:nowrap;">
+                                        ▶ Enviar
+                                    </button>
                                 </div>
                                 <select id="nov_${uid}" onchange="toggleNovedad('${uid}')"
                                     style="width:100%;padding:8px;background:#111;border:1px solid #333;color:#ccc;border-radius:6px;font-size:0.82rem;margin-bottom:6px;">
@@ -1322,7 +1352,7 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
             .filter(c => c !== choferActual.nombre);
         const vehiculos = {
             'Darwin Serrano': 'Jack 07', 'Daniel Subero': 'NPR 01', 'Richard Hernandez': 'NPR 02',
-            'Willmer Fernández': 'Fuso 03', 'Jackson Hernandez': 'Jack 06', 'Jesús Lara': 'L300 05', 'Néstor Daniel': 'NPR 04'
+            'Willmer Fernández': 'Fuso 03', 'Jackson Hernandez': 'Jack 06', 'Jesús Lara': 'L300 05', 'Néstor Daniel': 'NPR 04', 'José Marín': ''
         };
         const modal = document.createElement('div');
         modal.id = 'modal-trasbordo';
@@ -1366,7 +1396,7 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 
         const vehiculos = {
             'Darwin Serrano': 'Jack 07', 'Daniel Subero': 'NPR 01', 'Richard Hernandez': 'NPR 02',
-            'Willmer Fernández': 'Fuso 03', 'Jackson Hernandez': 'Jack 06', 'Jesús Lara': 'L300 05', 'Néstor Daniel': 'NPR 04'
+            'Willmer Fernández': 'Fuso 03', 'Jackson Hernandez': 'Jack 06', 'Jesús Lara': 'L300 05', 'Néstor Daniel': 'NPR 04', 'José Marín': ''
         };
         const vehiculoReceptor = vehiculos[choferReceptor] || '';
 
@@ -1484,6 +1514,34 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
         const mostrar = sel?.value === 'novedad';
         if (cont) cont.style.display = mostrar ? 'block' : 'none';
         if (!mostrar) input.value = '';
+    }
+
+    async function enviarNotaSalidaDirecta(inputId, boletaId, sucursal) {
+        const input = document.getElementById(inputId);
+        const texto = input?.value?.trim() || `Saliendo para ${sucursal}`;
+        const hora = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const lista = await sbFetch('GET', `/rest/v1/boletas?id=eq.${boletaId}&select=vehiculo`);
+        const veh = lista?.[0]?.vehiculo || choferActual.unidad || '';
+        await notificarDiscord(choferActual.nombre,
+            `🚗 **${texto}**\n🕐 ${hora} | ${veh}\n👤 ${choferActual.nombre.split(' ')[0]}`,
+            null, veh
+        );
+        mostrarToast('✅ Nota enviada');
+        if (input) input.value = '';
+    }
+
+    async function enviarNotaLlegandoDirecta(inputId, boletaId, sucursal) {
+        const input = document.getElementById(inputId);
+        const texto = input?.value?.trim() || `Llegando a ${sucursal}`;
+        const hora = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const lista = await sbFetch('GET', `/rest/v1/boletas?id=eq.${boletaId}&select=vehiculo`);
+        const veh = lista?.[0]?.vehiculo || choferActual.unidad || '';
+        await notificarDiscord(choferActual.nombre,
+            `📍 **${texto}**\n🕐 ${hora} | ${veh}\n👤 ${choferActual.nombre.split(' ')[0]}`,
+            null, veh
+        );
+        mostrarToast('✅ Nota enviada');
+        if (input) input.value = '';
     }
 
     function usarMicrofonoNota2(inputId) {
