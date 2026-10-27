@@ -587,9 +587,8 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
         }
 
         // Calcular contadores por sucursal sobre TODA la lista
-        lista.forEach(b => {
+        lista.filter(b => b.chofer === choferActual.nombre).forEach(b => {
             if (b.estado === 'entregada') {
-                // Boletas ya entregadas — contar todas sus sucursales como completadas
                 const enviosTodo = b.envios ? JSON.parse(b.envios) : [];
                 enviosTodo.forEach(e => {
                     (e.destinos || []).forEach(() => { entg++; });
