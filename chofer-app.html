@@ -804,6 +804,10 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
                                         ▶ Enviar
                                     </button>
                                 </div>
+                                <button onclick="abrirTrasbordoSucursal('${b.id}', ${e.num}, '${suc}', '${recoge}')"
+                                    style="width:100%;background:#1a1a2e;color:#7c9ff5;border:1px solid #3a5aad;border-radius:6px;padding:8px;font-size:0.8rem;cursor:pointer;margin-bottom:8px;font-weight:600;">
+                                    🔄 Trasbordo esta entrega a otro chofer
+                                </button>
                                 <select id="nov_${uid}" onchange="toggleNovedad('${uid}')"
                                     style="width:100%;padding:8px;background:#111;border:1px solid #333;color:#ccc;border-radius:6px;font-size:0.82rem;margin-bottom:6px;">
                                     <option value="">✅ Sin novedad en la entrega</option>
@@ -939,10 +943,10 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
         document.getElementById('file_' + uid)?.click();
     }
 
-    const SUCURSALES_CDE = ['Casarapa','Palma Real','Miranda','La Parada','Castillejo','Lider CCS'];
+    const SUCURSALES_CDE = ['Casarapa','Palma Real','Miranda','La Parada','Castillejo','Lider CCS','Servicio General','Ozanam'];
 
     function abrirFormRecogida() {
-        const sucursales = ['Casarapa','Palma Real','Miranda','La Parada','Castillejo','Lider CCS','Caracas','Araira','Otra dirección'];
+        const sucursales = ['Casarapa','Palma Real','Miranda','La Parada','Castillejo','Lider CCS','Servicio General','Ozanam','Caracas','Araira','Otra dirección'];
         const modal = document.createElement('div');
         modal.id = 'modal-recogida';
         modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:9999;display:flex;align-items:flex-start;justify-content:center;padding:16px;overflow-y:auto;';
@@ -1020,7 +1024,7 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 
     function agregarDestinoRec() {
         const cont = document.getElementById('rec-destinos-cont');
-        const opts = ['Casarapa','Palma Real','Miranda','La Parada','Castillejo','Lider CCS','Caracas','Araira'].map(s => `<option value="${s}">${s}</option>`).join('');
+        const opts = ['Casarapa','Palma Real','Miranda','La Parada','Castillejo','Lider CCS','Servicio General','Ozanam','Caracas','Araira'].map(s => `<option value="${s}">${s}</option>`).join('');
         const div = document.createElement('div');
         div.style.cssText = 'display:flex;gap:6px;margin-bottom:6px;align-items:center;';
         div.innerHTML = `
@@ -1354,6 +1358,118 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
         cargarBoletas();
     }
 
+    function abrirTrasbordoSucursal(boletaId, envioNum, sucursal, origen) {
+        const choferes = ['Darwin Serrano','Daniel Subero','Richard Hernandez','Willmer Fernández','Jackson Hernandez','Jesús Lara','Néstor Daniel','José Marín']
+            .filter(c => c !== choferActual.nombre);
+        const vehiculos = {
+            'Darwin Serrano': 'Jack 07', 'Daniel Subero': 'NPR 01', 'Richard Hernandez': 'NPR 02',
+            'Willmer Fernández': 'Fuso 03', 'Jackson Hernandez': 'Jack 06', 'Jesús Lara': 'L300 05',
+            'Néstor Daniel': 'NPR 04', 'José Marín': ''
+        };
+        const modal = document.createElement('div');
+        modal.id = 'modal-trasbordo-suc';
+        modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;';
+        modal.innerHTML = `
+            <div style="background:#1c1c1c;border:1px solid #7c9ff5;border-radius:12px;padding:20px;width:100%;max-width:380px;">
+                <div style="color:#7c9ff5;font-size:0.95rem;font-weight:700;margin-bottom:6px;">🔄 Trasbordo de entrega</div>
+                <div style="color:#888;font-size:0.78rem;margin-bottom:14px;">📍 ${sucursal} — recogido en ${origen}</div>
+
+                <label style="font-size:0.75rem;color:#888;display:block;margin-bottom:6px;">TRANSBORDA A</label>
+                <select id="trsuc-chofer" style="width:100%;background:#111;border:1px solid #3a5aad;color:#7c9ff5;border-radius:6px;padding:8px;font-size:0.85rem;margin-bottom:12px;">
+                    ${choferes.map(c => `<option value="${c}">${c.split(' ')[0]} — ${vehiculos[c] || '?'}</option>`).join('')}
+                </select>
+
+                <label style="font-size:0.75rem;color:#888;display:block;margin-bottom:6px;">¿QUÉ SE TRANSBORDA?</label>
+                <input type="text" id="trsuc-desc" placeholder="Ej: Charcutería, Víveres..."
+                    style="width:100%;background:#111;border:1px solid #333;color:#e0e0e0;border-radius:6px;padding:8px;font-size:0.85rem;margin-bottom:14px;">
+
+                <div style="display:flex;gap:8px;">
+                    <button onclick="document.getElementById('modal-trasbordo-suc').remove()" 
+                        style="flex:1;background:#2a2a2a;color:#888;border:1px solid #444;border-radius:6px;padding:10px;cursor:pointer;">Cancelar</button>
+                    <button onclick="confirmarTrasbordoSucursal('${boletaId}', ${envioNum}, '${sucursal}', '${origen}')" 
+                        style="flex:2;background:#7c9ff5;color:#000;border:none;border-radius:6px;padding:10px;cursor:pointer;font-weight:700;">✅ Confirmar</button>
+                </div>
+            </div>`;
+        document.body.appendChild(modal);
+    }
+
+    async function confirmarTrasbordoSucursal(boletaId, envioNum, sucursal, origen) {
+        const choferReceptor = document.getElementById('trsuc-chofer')?.value;
+        const descripcion = document.getElementById('trsuc-desc')?.value?.trim() || sucursal;
+        const vehiculos = {
+            'Darwin Serrano': 'Jack 07', 'Daniel Subero': 'NPR 01', 'Richard Hernandez': 'NPR 02',
+            'Willmer Fernández': 'Fuso 03', 'Jackson Hernandez': 'Jack 06', 'Jesús Lara': 'L300 05',
+            'Néstor Daniel': 'NPR 04', 'José Marín': choferActual.unidad || ''
+        };
+        const vehiculoReceptor = vehiculos[choferReceptor] || '';
+        const hora = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const ahora = new Date();
+        const fechaLocal = `${ahora.getFullYear()}-${String(ahora.getMonth()+1).padStart(2,'0')}-${String(ahora.getDate()).padStart(2,'0')}`;
+
+        // 1. Marcar sucursal como trasbordo en la boleta original
+        const listaBoleta = await sbFetch('GET', `/rest/v1/boletas?id=eq.${boletaId}&select=*`);
+        if (!listaBoleta || !listaBoleta[0]) return;
+        const b = listaBoleta[0];
+        const detalle = JSON.parse(b.entregas_detalle || '{}');
+        const vehiculoBoleta = b.vehiculo || choferActual.unidad || '';
+
+        const key = `${boletaId}_${parseInt(envioNum)}_${sucursal}`;
+        detalle[key] = `TRASBORDO ${hora} — A ${choferReceptor.split(' ')[0]} (${vehiculoReceptor}): ${descripcion}`;
+
+        // Verificar si todas las sucursales quedaron procesadas
+        const envios = JSON.parse(b.envios || '[]');
+        let todasProcesadas = true;
+        envios.forEach(e => {
+            (e.destinos || []).forEach(s => {
+                const k = `${boletaId}_${parseInt(e.num)}_${s}`;
+                // Ya marcamos key arriba, así que también lo contamos
+                if (k !== key && !detalle[k]) todasProcesadas = false;
+            });
+        });
+        // Si no hay más sucursales sin procesar, marcar como entregada
+
+
+        // Marcar en localStorage para que desaparezca de inmediato
+        entregasConfirmadas[key] = `TRASBORDO ${hora}`;
+        localStorage.setItem('entregasConfirmadas', JSON.stringify(entregasConfirmadas));
+
+        await sbFetch('PATCH', `/rest/v1/boletas?id=eq.${boletaId}`, {
+            entregas_detalle: JSON.stringify(detalle),
+            estado: todasProcesadas ? 'entregada' : 'pendiente'
+        });
+
+        // 2. Crear boleta TRB para el receptor
+        const codigoTrb = `TRB-${String(ahora.getDate()).padStart(2,'0')}${String(ahora.getMonth()+1).padStart(2,'0')}-${String(ahora.getHours()).padStart(2,'0')}${String(ahora.getMinutes()).padStart(2,'0')}-${choferReceptor.split(' ')[0].toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')}`;
+        const envioTrb = {
+            num: 1,
+            recoge: `Trasbordo de ${choferActual.nombre.split(' ')[0]} (${vehiculoBoleta})`,
+            destinos: [sucursal],
+            items: [{ dpto: descripcion }],
+            prioSuc: {}
+        };
+        await sbFetch('POST', '/rest/v1/boletas', {
+            id: codigoTrb, chofer: choferReceptor, vehiculo: vehiculoReceptor,
+            hora_salida: hora, hora_emision: hora,
+            destinos: sucursal, prioridad: 'Normal', estado: 'pendiente',
+            fecha: fechaLocal, envios: JSON.stringify([envioTrb]),
+            entregas_detalle: JSON.stringify({ [`${codigoTrb}_1_recogida`]: hora })
+        });
+
+        // 3. Notificar Discord
+        await notificarDiscord(choferActual.nombre,
+            `🔄 **Trasbordo — ${boletaId}**\n🕐 ${hora} | ${vehiculoBoleta}\n👤 ${choferActual.nombre.split(' ')[0]} → ${choferReceptor.split(' ')[0]} (${vehiculoReceptor})\n📦 ${descripcion}\n📍 Entrega en: ${sucursal}`,
+            null, vehiculoBoleta
+        );
+        await notificarDiscord(choferReceptor,
+            `🔄 **Trasbordo recibido — ${codigoTrb}**\n🕐 ${hora} | ${vehiculoReceptor}\n👤 De ${choferActual.nombre.split(' ')[0]} (${vehiculoBoleta})\n📦 ${descripcion}\n📍 Entrega en: ${sucursal}`,
+            null, vehiculoReceptor
+        );
+
+        document.getElementById('modal-trasbordo-suc').remove();
+        mostrarToast(`✅ Trasbordo a ${choferReceptor.split(' ')[0]} — ${sucursal} cerrada`);
+        cargarBoletas();
+    }
+
     function abrirTrasbordo(boletaId, envioNum, origen) {
         const choferes = ['Darwin Serrano','Daniel Subero','Richard Hernandez','Willmer Fernández','Jackson Hernandez','Jesús Lara','Néstor Daniel','José Marín']
             .filter(c => c !== choferActual.nombre);
@@ -1379,7 +1495,7 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 
                 <label style="font-size:0.75rem;color:#888;display:block;margin-bottom:6px;">ENTREGA EN</label>
                 <select id="tras-destino" style="width:100%;background:#111;border:1px solid #333;color:#e0e0e0;border-radius:6px;padding:8px;font-size:0.85rem;margin-bottom:14px;">
-                    ${['Casarapa','Palma Real','Miranda','La Parada','Castillejo','Lider CCS','Caracas','Araira'].map(s => `<option value="${s}">${s}</option>`).join('')}
+                    ${['Casarapa','Palma Real','Miranda','La Parada','Castillejo','Lider CCS','Servicio General','Ozanam','Caracas','Araira'].map(s => `<option value="${s}">${s}</option>`).join('')}
                 </select>
 
                 <div style="display:flex;gap:8px;">
@@ -1523,10 +1639,14 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
         if (!mostrar) input.value = '';
     }
 
+    // Registro de llegadas para calcular tiempo en tienda
+    const horasLlegada = {};
+
     async function enviarNotaSalidaDirecta(inputId, boletaId, sucursal) {
         const input = document.getElementById(inputId);
         const texto = input?.value?.trim() || `Saliendo para ${sucursal}`;
-        const hora = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const ahora = new Date();
+        const hora = ahora.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         const lista = await sbFetch('GET', `/rest/v1/boletas?id=eq.${boletaId}&select=vehiculo`);
         const veh = lista?.[0]?.vehiculo || choferActual.unidad || '';
         await notificarDiscord(choferActual.nombre,
@@ -1540,7 +1660,10 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
     async function enviarNotaLlegandoDirecta(inputId, boletaId, sucursal) {
         const input = document.getElementById(inputId);
         const texto = input?.value?.trim() || `Llegando a ${sucursal}`;
-        const hora = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const ahora = new Date();
+        const hora = ahora.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        // Guardar hora de llegada para calcular tiempo en tienda
+        horasLlegada[`${boletaId}_${sucursal}`] = ahora.getTime();
         const lista = await sbFetch('GET', `/rest/v1/boletas?id=eq.${boletaId}&select=vehiculo`);
         const veh = lista?.[0]?.vehiculo || choferActual.unidad || '';
         await notificarDiscord(choferActual.nombre,
@@ -1802,9 +1925,18 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
         const itemsSuc = (envioActual?.items || []).map(i => `• ${i.dpto}${i.detalle ? ': ' + i.detalle : ''}`).join('\n');
         const queLlevaba = notaSuc || itemsSuc || '';
 
+        // Calcular tiempo en tienda si hay hora de llegada registrada
+        const keyLlegada = `${boletaId}_${sucursal}`;
+        let tiempoTienda = '';
+        if (horasLlegada[keyLlegada]) {
+            const diffMin = Math.round((Date.now() - horasLlegada[keyLlegada]) / 60000);
+            if (diffMin > 0) tiempoTienda = `\n⏱️ Tiempo en tienda: ${diffMin} min`;
+            delete horasLlegada[keyLlegada];
+        }
+
         // Siempre notificar la entrega individual
         await notificarDiscord(choferActual.nombre,
-            `✅ **Entrega confirmada en ${sucursal}**\n🕐 ${hora} | ${vehiculoBoleta}\n📋 Boleta: ${boletaId}${queLlevaba ? '\n📦 ' + queLlevaba : ''}${observacion ? '\n⚠️ Novedad: ' + observacion : '\n✔️ Sin novedad'}`,
+            `✅ **Entrega confirmada en ${sucursal}**\n🕐 ${hora} | ${vehiculoBoleta}\n📋 Boleta: ${boletaId}${queLlevaba ? '\n📦 ' + queLlevaba : ''}${observacion ? '\n⚠️ Novedad: ' + observacion : '\n✔️ Sin novedad'}${tiempoTienda}`,
             null, vehiculoBoleta
         );
 
