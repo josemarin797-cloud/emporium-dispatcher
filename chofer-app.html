@@ -994,9 +994,9 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
             cont.appendChild(card);
         });
 
-        // Contar sucursales individuales
+        // Contar sucursales individuales — solo del chofer logueado
         let sucPend = 0, sucEntg = 0;
-        lista.forEach(b => {
+        lista.filter(b => b.chofer === choferActual.nombre).forEach(b => {
             const detalle = b.entregas_detalle ? JSON.parse(b.entregas_detalle) : {};
             const envios  = b.envios ? JSON.parse(b.envios) : [];
             if (envios.length > 0) {
@@ -2150,3 +2150,4 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 </script>
 </body>
 </html>
+
