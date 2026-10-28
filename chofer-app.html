@@ -997,19 +997,23 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
         // Contar sucursales individuales — solo del chofer logueado
         let sucPend = 0, sucEntg = 0;
         lista.filter(b => b.chofer === choferActual.nombre).forEach(b => {
+            if (b.estado === 'entregada') {
+                const envios = b.envios ? JSON.parse(b.envios) : [];
+                envios.forEach(e => { (e.destinos || []).forEach(() => sucEntg++); });
+                return;
+            }
             const detalle = b.entregas_detalle ? JSON.parse(b.entregas_detalle) : {};
             const envios  = b.envios ? JSON.parse(b.envios) : [];
             if (envios.length > 0) {
                 envios.forEach(e => {
                     (e.destinos || []).forEach(suc => {
                         const key = `${b.id}_${parseInt(e.num)}_${suc}`;
-                        if (detalle[key]) sucEntg++; else sucPend++;
+                        const val = detalle[key] || entregasConfirmadas[key];
+                        if (val) sucEntg++; else sucPend++;
                     });
                 });
             } else {
-                (b.destinos || '').split(',').filter(d => d.trim()).forEach(() => {
-                    sucPend++;
-                });
+                (b.destinos || '').split(',').filter(d => d.trim()).forEach(() => sucPend++);
             }
         });
         document.getElementById('s-pend').textContent = sucPend;
@@ -2150,4 +2154,3 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 </script>
 </body>
 </html>
-
