@@ -1563,7 +1563,8 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 
         document.getElementById('modal-trasbordo-suc').remove();
         mostrarToast(`✅ Trasbordo a ${choferReceptor.split(' ')[0]} — ${sucursal} cerrada`);
-        cargarBoletas();
+        await cargarBoletas();
+        setTimeout(() => cargarBoletas(), 1500);
     }
 
     function abrirTrasbordo(boletaId, envioNum, origen) {
