@@ -1088,24 +1088,17 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
                 <div style="color:#ffb703;font-size:0.95rem;font-weight:700;margin-bottom:14px;">🚗 Registrar movimiento</div>
 
                 <label style="font-size:0.75rem;color:#888;display:block;margin-bottom:6px;">VEHÍCULO</label>
-                <select id="mov-vehiculo" style="width:100%;background:#111;border:1px solid #ffb703;color:#ffb703;border-radius:6px;padding:8px;font-size:0.85rem;margin-bottom:12px;">
+                <select id="mov-vehiculo" onchange="choferActual.unidad=this.value;" style="width:100%;background:#111;border:1px solid #ffb703;color:#ffb703;border-radius:6px;padding:8px;font-size:0.85rem;margin-bottom:14px;">
                     ${['NPR 01','NPR 02','NPR 04','Fuso 03','L300 05','Jack 06','Jack 07'].map(v => `<option value="${v}"${choferActual?.unidad === v ? ' selected' : ''}>${v}</option>`).join('')}
                 </select>
 
-                <label style="font-size:0.75rem;color:#888;display:block;margin-bottom:6px;">SALE DE</label>
-                <select id="mov-origen" style="width:100%;background:#111;border:1px solid #333;color:#e0e0e0;border-radius:6px;padding:8px;font-size:0.85rem;margin-bottom:12px;">
-                    ${lugares.map(s => `<option value="${s}">${s}</option>`).join('')}
-                </select>
-
-                <label style="font-size:0.75rem;color:#888;display:block;margin-bottom:6px;">VA HACIA</label>
-                <select id="mov-destino" style="width:100%;background:#111;border:1px solid #333;color:#e0e0e0;border-radius:6px;padding:8px;font-size:0.85rem;margin-bottom:12px;">
-                    ${lugares.map(s => `<option value="${s}">${s}</option>`).join('')}
-                </select>
-
-                <label style="font-size:0.75rem;color:#888;display:block;margin-bottom:6px;">MOTIVO</label>
-                <select id="mov-motivo" style="width:100%;background:#111;border:1px solid #333;color:#e0e0e0;border-radius:6px;padding:8px;font-size:0.85rem;margin-bottom:14px;">
-                    ${motivos.map(m => `<option value="${m}">${m}</option>`).join('')}
-                </select>
+                <label style="font-size:0.75rem;color:#888;display:block;margin-bottom:6px;">📝 ¿A DÓNDE VAS Y POR QUÉ?</label>
+                <div style="position:relative;margin-bottom:14px;">
+                    <textarea id="mov-nota" placeholder="Ej: Saliendo de Miranda para CDE a buscar carga de charcutería..." rows="3"
+                        style="width:100%;padding:10px 42px 10px 12px;background:#111;border:1px solid #ffb703;color:#e0e0e0;border-radius:6px;font-size:0.85rem;font-family:inherit;resize:none;"></textarea>
+                    <button type="button" onclick="usarMicrofonoMovimiento()"
+                        style="position:absolute;right:8px;top:10px;background:transparent;border:none;font-size:1.4rem;cursor:pointer;">🎤</button>
+                </div>
 
                 <div style="display:flex;gap:8px;">
                     <button onclick="document.getElementById('modal-movimiento').remove()" 
@@ -1117,28 +1110,38 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
         document.body.appendChild(modal);
     }
 
+    function usarMicrofonoMovimiento() {
+        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+            mostrarToast('⚠️ Tu navegador no soporta dictado'); return;
+        }
+        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const rec = new SR();
+        rec.lang = 'es-VE'; rec.interimResults = false;
+        mostrarToast('🎤 Escuchando...');
+        rec.start();
+        rec.onresult = e => { document.getElementById('mov-nota').value = e.results[0][0].transcript; mostrarToast('✅ Texto capturado'); };
+        rec.onerror = () => mostrarToast('⚠️ No se pudo capturar');
+    }
+
     async function registrarMovimiento() {
         const vehiculo = document.getElementById('mov-vehiculo')?.value || choferActual.unidad || '';
-        const origen = document.getElementById('mov-origen')?.value;
-        const destino = document.getElementById('mov-destino')?.value;
-        const motivo = document.getElementById('mov-motivo')?.value;
+        const nota = document.getElementById('mov-nota')?.value?.trim();
+        if (!nota) { mostrarToast('⚠️ Escribe o dicta el movimiento'); return; }
         const ahora = new Date();
         const hora = ahora.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-        // Guardar movimiento activo para calcular tiempo en ruta
-        movimientoActivo = { origen, destino, vehiculo, hora, ts: ahora.getTime() };
+        // Guardar movimiento activo
+        movimientoActivo = { nota, vehiculo, hora, ts: ahora.getTime() };
         localStorage.setItem('movimientoActivo', JSON.stringify(movimientoActivo));
 
         await notificarDiscord(choferActual.nombre,
-            `🚗 **${choferActual.nombre.split(' ')[0]} saliendo de ${origen} → ${destino}**\n🕐 ${hora} | ${vehiculo}\n📋 Motivo: ${motivo}`,
+            `🚗 **Movimiento — ${choferActual.nombre.split(' ')[0]}**\n🕐 ${hora} | ${vehiculo}\n📋 ${nota}`,
             null, vehiculo
         );
 
         document.getElementById('modal-movimiento').remove();
-        mostrarToast(`✅ Salida registrada → ${destino}`);
-
-        // Mostrar botón de llegada en pantalla principal
-        mostrarBotonLlegada(destino, vehiculo);
+        mostrarToast('✅ Movimiento registrado');
+        mostrarBotonLlegada(nota.substring(0, 30), vehiculo);
     }
 
     function mostrarBotonLlegada(destino, vehiculo) {
