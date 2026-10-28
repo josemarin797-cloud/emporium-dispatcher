@@ -835,6 +835,25 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
                                 </div>
                                 <div style="color:#888;font-size:0.75rem;margin-top:4px;">💬 ${infoTrb.split(' — ')[1] || ''}</div>
                             </div>`;
+                        } else if (entregadaEn && !esCancelada) {
+                            // Entrega confirmada — mostrar botón Saliendo vacío
+                            const tiempoStr = entregadaEn.split(' — ')[1] || '';
+                            return `<div style="background:#0a2e1a;border:1px solid #06d6a0;border-radius:8px;padding:10px 14px;margin-top:8px;">
+                                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+                                    <span style="color:#06d6a0;font-size:0.85rem;font-weight:600;">📍 ${suc}</span>
+                                    <span style="color:#06d6a0;font-size:0.78rem;">✅ ${entregadaEn.split(' — ')[0]}</span>
+                                </div>
+                                ${tiempoStr ? `<div style="color:#888;font-size:0.75rem;margin-bottom:6px;">💬 ${tiempoStr}</div>` : ''}
+                                <div style="display:flex;gap:6px;align-items:center;">
+                                    <select id="vacio_dest_${b.id}_${si}" style="flex:1;background:#111;border:1px solid #444;color:#ccc;border-radius:6px;padding:6px;font-size:0.78rem;">
+                                        ${['Casarapa','Palma Real','Miranda','La Parada','Castillejo','Lider CCS','Servicio General','Ozanam','CDE','Caracas','Araira'].map(s => `<option value="${s}">${s}</option>`).join('')}
+                                    </select>
+                                    <button onclick="salirVacio('${b.id}', '${suc}', 'vacio_dest_${b.id}_${si}')"
+                                        style="background:#1a1a2e;color:#7c9ff5;border:1px solid #3a5aad;border-radius:6px;padding:6px 10px;font-size:0.75rem;cursor:pointer;white-space:nowrap;">
+                                        🚗 Saliendo vacío
+                                    </button>
+                                </div>
+                            </div>`;
                         } else if (esCancelada) {
                             const motivoCan = valorDetalle.toString().replace(/^CANCELADA \d+:\d+.*? — /, '');
                             return `<div style="background:#1a0a0a;border:1px solid #444;border-radius:8px;padding:10px 14px;margin-top:8px;">
@@ -1739,6 +1758,34 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
     // Registro de llegadas para calcular tiempo en tienda
     const horasLlegada = {};
 
+    async function salirVacio(boletaId, origen, selectId) {
+        const destino = document.getElementById(selectId)?.value || '';
+        if (!destino) { mostrarToast('⚠️ Selecciona el destino'); return; }
+        const ahora = new Date();
+        const hora = ahora.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        // Calcular tiempo en tienda si hay hora de llegada
+        const keyLlegada = `${boletaId}_${origen}`;
+        let tiempoTienda = '';
+        if (horasLlegada[keyLlegada]) {
+            const diffMin = Math.round((Date.now() - horasLlegada[keyLlegada]) / 60000);
+            if (diffMin > 0) tiempoTienda = ` | ⏱️ ${diffMin} min en tienda`;
+            delete horasLlegada[keyLlegada];
+        }
+
+        const lista = await sbFetch('GET', `/rest/v1/boletas?id=eq.${boletaId}&select=vehiculo`);
+        const veh = lista?.[0]?.vehiculo || choferActual.unidad || '';
+
+        await notificarDiscord(choferActual.nombre,
+            `🚗 **Saliendo vacío de ${origen} → ${destino}**\n🕐 ${hora} | ${veh}${tiempoTienda}\n👤 ${choferActual.nombre.split(' ')[0]}`,
+            null, veh
+        );
+        mostrarToast(`✅ Salida registrada → ${destino}`);
+
+        // Guardar hora de salida para calcular tiempo en ruta
+        horasLlegada[`ruta_${destino}`] = ahora.getTime();
+    }
+
     async function enviarNotaSalidaDirecta(inputId, boletaId, sucursal) {
         const input = document.getElementById(inputId);
         const texto = input?.value?.trim() || `Saliendo para ${sucursal}`;
@@ -1761,10 +1808,18 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
         const hora = ahora.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         // Guardar hora de llegada para calcular tiempo en tienda
         horasLlegada[`${boletaId}_${sucursal}`] = ahora.getTime();
+
+        // Calcular tiempo en ruta si venía vacío
+        let tiempoRuta = '';
+        if (horasLlegada[`ruta_${sucursal}`]) {
+            const diffMin = Math.round((ahora.getTime() - horasLlegada[`ruta_${sucursal}`]) / 60000);
+            if (diffMin > 0) tiempoRuta = ` | 🛣️ ${diffMin} min en ruta`;
+            delete horasLlegada[`ruta_${sucursal}`];
+        }
         const lista = await sbFetch('GET', `/rest/v1/boletas?id=eq.${boletaId}&select=vehiculo`);
         const veh = lista?.[0]?.vehiculo || choferActual.unidad || '';
         await notificarDiscord(choferActual.nombre,
-            `📍 **${texto}**\n🕐 ${hora} | ${veh}\n👤 ${choferActual.nombre.split(' ')[0]}`,
+            `📍 **${texto}**\n🕐 ${hora} | ${veh}${tiempoRuta}\n👤 ${choferActual.nombre.split(' ')[0]}`,
             null, veh
         );
         mostrarToast('✅ Nota enviada');
