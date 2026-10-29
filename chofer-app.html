@@ -1250,7 +1250,7 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
     let movFotoFile = null;
     function agregarFotoMovimiento() {
         const inp = document.createElement('input');
-        inp.type = 'file'; inp.accept = 'image/*';
+        inp.type = 'file'; inp.accept = 'image/*'; inp.capture = 'environment';
         inp.onchange = () => {
             movFotoFile = inp.files[0];
             const cont = document.getElementById('mov-foto-cont');
