@@ -429,10 +429,17 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
         document.querySelectorAll('.chofer-btn').forEach(b => b.classList.remove('selected'));
         el.classList.add('selected');
         choferSeleccionado = { nombre, unidad };
-        document.getElementById('btn-huella').disabled = false;
+        // Mostrar selector de vehículo directamente
+        mostrarSelectorVehiculo({ nombre, unidad }, (choferConVehiculo) => {
+            localStorage.setItem('emp_chofer', JSON.stringify({ ...choferConVehiculo, unidad: '' }));
+            entrarConChofer(choferConVehiculo);
+        });
     }
 
     async function entrarConHuella() {
+        // Si ya hay selector de vehículo abierto, no hacer nada
+        if (document.getElementById('modal-vehiculo')) return;
+
         // Si ya tiene chofer guardado, usarlo directamente
         const guardado = localStorage.getItem('emp_chofer');
         const choferParaUsar = guardado ? JSON.parse(guardado) : choferSeleccionado;
@@ -464,21 +471,13 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 
     function entrar(chofer) {
         // Siempre preguntar vehículo a choferes sin unidad fija
-        const choferesSinUnidad = ['Jesús Lara', 'Néstor Daniel', 'José Marín'];
-        if (!chofer.unidad || choferesSinUnidad.includes(chofer.nombre)) {
-            const vehiculos = ['NPR 01', 'NPR 02', 'NPR 04', 'Fuso 03', 'L300 05', 'Jack 06', 'Jack 07'];
-            const sel = prompt(`${chofer.nombre.split(' ')[0]}, ¿qué vehículo usas hoy?\n\n${vehiculos.map((v, i) => `${i+1}. ${v}`).join('\n')}\n\nEscribe el número:`);
-            const idx = parseInt(sel) - 1;
-            if (idx >= 0 && idx < vehiculos.length) {
-                chofer = { ...chofer, unidad: vehiculos[idx] };
-            }
-        }
-        // Limpiar unidad del localStorage para que siempre pregunte a estos choferes
-        const choferParaGuardar = choferesSinUnidad.includes(chofer.nombre) 
-            ? { ...chofer, unidad: '' } 
-            : chofer;
-        localStorage.setItem('emp_chofer', JSON.stringify(choferParaGuardar));
-        choferActual = chofer;
+        // Todos los choferes seleccionan vehículo al entrar
+        localStorage.setItem('emp_chofer', JSON.stringify({ ...chofer, unidad: '' }));
+        mostrarSelectorVehiculo(chofer, (choferConVehiculo) => {
+            localStorage.setItem('emp_chofer', JSON.stringify({ ...choferConVehiculo, unidad: '' }));
+            entrarConChofer(choferConVehiculo);
+        });
+        return;
 
         // Actualizar topbar
         document.getElementById('topbar-name').textContent = chofer.nombre.split(' ')[0];
@@ -504,7 +503,7 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
             try {
                 const mov = JSON.parse(movGuardado);
                 movimientoActivo = mov;
-                mostrarBotonLlegada(mov.destino, mov.vehiculo);
+                mostrarBotonLlegada(mov.nota?.substring(0, 40) || mov.destino || '...', mov.vehiculo);
             } catch(e) {}
         }
 
@@ -513,6 +512,101 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 
         // Mostrar decálogo
         mostrarDecalogo(chofer.nombre.split(' ')[0]);
+    }
+
+    function entrarConChofer(chofer) {
+        choferActual = chofer;
+        // Intentar ambos IDs posibles
+        const loginEl = document.getElementById('pantalla-login') || document.getElementById('screen-login');
+        const mainEl = document.getElementById('pantalla-main') || document.getElementById('screen-main');
+        if (loginEl) loginEl.style.display = 'none';
+        if (mainEl) mainEl.style.display = 'block';
+        document.getElementById('topbar-name').textContent = chofer.nombre.split(' ')[0];
+        document.getElementById('topbar-unit').textContent = chofer.unidad || '';
+        document.getElementById('topbar-avatar').textContent = AVATARES[chofer.nombre] || '🚚';
+        // Fecha
+        const hoy = new Date().toLocaleDateString('es-VE', {weekday:'long', day:'numeric', month:'long'});
+        const diaLabel = document.getElementById('dia-label');
+        if (diaLabel) diaLabel.textContent = hoy.charAt(0).toUpperCase() + hoy.slice(1);
+        cargarBoletas();
+        mostrarToast(`👋 Bienvenido, ${chofer.nombre.split(' ')[0]}`);
+        setTimeout(() => hablarBienvenida(chofer.nombre.split(' ')[0]), 800);
+        mostrarDecalogo(chofer.nombre.split(' ')[0]);
+        // Restaurar movimiento activo
+        const movGuardado = localStorage.getItem('movimientoActivo');
+        if (movGuardado) {
+            try {
+                const mov = JSON.parse(movGuardado);
+                movimientoActivo = mov;
+                mostrarBotonLlegada(mov.nota?.substring(0, 40) || '...', mov.vehiculo);
+            } catch(e) {}
+        }
+    }
+
+    function mostrarSelectorVehiculo(chofer, callback) {
+        // Evitar doble modal
+        if (document.getElementById('modal-vehiculo')) return;
+        // Ocultar botón de huella mientras se selecciona vehículo
+        const btnHuella = document.getElementById('btn-huella');
+        if (btnHuella) btnHuella.style.display = 'none';
+        const vehiculos = ['NPR 01', 'NPR 02', 'NPR 04', 'Fuso 03', 'L300 05', 'Jack 06', 'Jack 07'];
+        const iconos = {'NPR 01':'🚛','NPR 02':'🚛','NPR 04':'🚛','Fuso 03':'🚚','L300 05':'🚐','Jack 06':'🚐','Jack 07':'🚐'};
+
+        const modal = document.createElement('div');
+        modal.id = 'modal-vehiculo';
+        modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:#0f0f0f;z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;';
+        modal.innerHTML = `
+            <div style="width:100%;max-width:360px;">
+                <div style="text-align:center;margin-bottom:24px;">
+                    <div style="font-size:1.8rem;margin-bottom:8px;">🚗</div>
+                    <div style="color:#ffb703;font-weight:700;font-size:1.1rem;">${chofer.nombre.split(' ')[0]}, ¿qué vehículo usas hoy?</div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                    ${vehiculos.map(v => `
+                        <button onclick="seleccionarVehiculoModal('${v}', this)" 
+                            style="background:#1c1c1c;border:2px solid #333;border-radius:10px;padding:16px 10px;cursor:pointer;text-align:center;transition:all 0.2s;">
+                            <div style="font-size:1.5rem;margin-bottom:6px;">${iconos[v]||'🚛'}</div>
+                            <div style="color:#e0e0e0;font-size:0.85rem;font-weight:600;">${v}</div>
+                        </button>`).join('')}
+                </div>
+                <button id="btn-confirmar-vehiculo" onclick="confirmarVehiculoModal('${chofer.nombre}')" disabled
+                    style="width:100%;margin-top:16px;background:#444;color:#888;border:none;border-radius:8px;padding:14px;font-size:0.95rem;font-weight:700;cursor:not-allowed;">
+                    ✅ Confirmar
+                </button>
+            </div>`;
+        document.body.appendChild(modal);
+
+        window._vehiculoCallback = callback;
+        window._vehiculoChofer = chofer;
+        window._vehiculoSeleccionado = null;
+    }
+
+    function seleccionarVehiculoModal(vehiculo, btn) {
+        // Resetear todos
+        btn.closest('div').querySelectorAll('button').forEach(b => {
+            b.style.borderColor = '#333';
+            b.style.background = '#1c1c1c';
+            b.querySelector('div:last-child').style.color = '#e0e0e0';
+        });
+        // Marcar seleccionado
+        btn.style.borderColor = '#ffb703';
+        btn.style.background = '#2a1f00';
+        btn.querySelector('div:last-child').style.color = '#ffb703';
+        window._vehiculoSeleccionado = vehiculo;
+        const confirmar = document.getElementById('btn-confirmar-vehiculo');
+        if (confirmar) {
+            confirmar.disabled = false;
+            confirmar.style.background = '#ffb703';
+            confirmar.style.color = '#000';
+            confirmar.style.cursor = 'pointer';
+        }
+    }
+
+    function confirmarVehiculoModal(nombreChofer) {
+        if (!window._vehiculoSeleccionado) return;
+        const chofer = { ...window._vehiculoChofer, unidad: window._vehiculoSeleccionado };
+        document.getElementById('modal-vehiculo')?.remove();
+        if (window._vehiculoCallback) window._vehiculoCallback(chofer);
     }
 
     function hablarBienvenida(nombre) {
@@ -615,6 +709,18 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
         });
 
         renderBoletas(lista);
+
+        // Restaurar banner de movimiento si hay uno activo
+        if (!document.getElementById('banner-llegada-movimiento')) {
+            const movGuardado = localStorage.getItem('movimientoActivo');
+            if (movGuardado) {
+                try {
+                    const mov = JSON.parse(movGuardado);
+                    movimientoActivo = mov;
+                    mostrarBotonLlegada(mov.nota?.substring(0, 40) || '...', mov.vehiculo);
+                } catch(e) {}
+            }
+        }
     }
 
     function renderBoletas(lista) {
@@ -654,7 +760,19 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
         
         if (listaActiva.length === 0 && lista.length > 0) {
             const nombre = choferActual?.nombre?.split(' ')[0] || '';
-            const pendTotal = lista.filter(b => b.chofer === choferActual.nombre && b.estado !== 'entregada').length;
+            // Calcular pendientes reales del chofer
+            let pendTotal = 0;
+            lista.filter(b => b.chofer === choferActual.nombre && b.estado !== 'entregada').forEach(b => {
+                const det = b.entregas_detalle ? JSON.parse(b.entregas_detalle) : {};
+                const envs = b.envios ? JSON.parse(b.envios) : [];
+                envs.forEach(e => {
+                    (e.destinos || []).forEach(suc => {
+                        const k = `${b.id}_${parseInt(e.num)}_${suc}`;
+                        const val = det[k] || entregasConfirmadas[k];
+                        if (!val) pendTotal++;
+                    });
+                });
+            });
 
             if (pendTotal === 0) {
                 cont.innerHTML = `
@@ -693,21 +811,15 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 
         // Calcular contadores por sucursal sobre TODA la lista
         lista.filter(b => b.chofer === choferActual.nombre).forEach(b => {
-            if (b.estado === 'entregada') {
-                const enviosTodo = b.envios ? JSON.parse(b.envios) : [];
-                enviosTodo.forEach(e => {
-                    (e.destinos || []).forEach(() => { entg++; });
-                });
-                return;
-            }
             const detalleTodo = b.entregas_detalle ? JSON.parse(b.entregas_detalle) : {};
             const enviosTodo = b.envios ? JSON.parse(b.envios) : [];
             enviosTodo.forEach(e => {
                 (e.destinos || []).forEach(suc => {
                     const k = `${b.id}_${parseInt(e.num)}_${suc}`;
                     const val = detalleTodo[k] || entregasConfirmadas[k];
-                    if (val) entg++;
-                    else pend++;
+                    if (!val) pend++;
+                    else if (val.toString().startsWith('CANCELADA')) { /* no cuenta */ }
+                    else entg++; // Entregada o Trasbordo cuenta como completada
                 });
             });
         });
@@ -763,6 +875,10 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
                                     <button onclick="abrirTrasbordo('${b.id}', ${e.num}, '${recoge}')"
                                         style="background:#1a1a2e;color:#7c9ff5;border:1px solid #3a5aad;border-radius:4px;padding:2px 7px;font-size:0.68rem;cursor:pointer;">
                                         🔄 Trasbordo
+                                    </button>
+                                    <button onclick="abrirAgregarEntrega('${b.id}', ${e.num})"
+                                        style="background:#1a2e00;color:#06d6a0;border:1px solid #06d6a0;border-radius:4px;padding:2px 7px;font-size:0.68rem;cursor:pointer;">
+                                        ➕ Agregar entrega
                                     </button>
                                 </div>
                             </div>
@@ -895,12 +1011,18 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
                             const prioLabel  = prioSuc === 'Urgente' ? '🔴 ENTREGAR PRIMERO' : prioSuc === 'Alta' ? '🟡 ALTA PRIORIDAD' : '🟢 Normal';
                             const orden = si + 1;
                             const contId = `cont_${uid}`;
+                            // Departamentos que van a esta sucursal
+                            const dptosSuc = (e.items || []).filter(it => !it.cancelado).map(it => it.dpto).filter(Boolean);
+                            const dptosHtml = dptosSuc.length > 0 
+                                ? `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px;">${dptosSuc.map(d => `<span style="background:#2a1f00;color:#ffb703;border:1px solid #554400;border-radius:4px;padding:2px 8px;font-size:0.72rem;">${d}</span>`).join('')}</div>`
+                                : '';
                             return `<div id="${contId}" style="background:#1c1c1c;border:2px solid ${prioBorder};border-radius:8px;padding:12px;margin-top:8px;">
-                                <div style="display:flex;align-items:center;gap:8px;margin-bottom:${notaSuc ? '6px' : '8px'};">
+                                <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
                                     <span style="background:${prioColor};color:#000;border-radius:50%;width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;font-size:0.8rem;font-weight:700;flex-shrink:0;">${orden}</span>
                                     <span style="color:#e0e0e0;font-size:0.9rem;font-weight:700;">📍 ${suc}</span>
                                     <span style="color:${prioColor};font-size:0.72rem;font-weight:700;margin-left:auto;">${prioLabel}</span>
                                 </div>
+                                ${dptosHtml}
                                 ${notaSuc ? `<div style="background:#111;border:1px solid #333;border-radius:6px;padding:6px 10px;margin-bottom:6px;font-size:0.8rem;color:#aaa;">📝 ${notaSuc}</div>` : ''}
                                 ${fotoProducto ? `<div style="margin-bottom:8px;"><div style="font-size:0.72rem;color:#888;margin-bottom:4px;">📷 Foto del producto:</div><img src="${fotoProducto}" style="width:100%;border-radius:6px;max-height:150px;object-fit:cover;border:1px solid #333;"></div>` : ''}
                                 ${mapsSuc ? `<a href="${mapsSuc}" target="_blank" style="display:block;background:#0a2e1a;border:1px solid #06d6a0;border-radius:6px;padding:7px;text-align:center;color:#06d6a0;font-size:0.82rem;font-weight:700;text-decoration:none;margin-bottom:8px;">🗺️ Abrir en Google Maps</a>` : ''}
@@ -928,10 +1050,16 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
                                         ▶ Enviar
                                     </button>
                                 </div>
-                                <button onclick="abrirTrasbordoSucursal('${b.id}', ${e.num}, '${suc}', '${recoge}')"
-                                    style="width:100%;background:#1a1a2e;color:#7c9ff5;border:1px solid #3a5aad;border-radius:6px;padding:8px;font-size:0.8rem;cursor:pointer;margin-bottom:8px;font-weight:600;">
-                                    🔄 Trasbordo esta entrega a otro chofer
-                                </button>
+                                <div style="display:flex;gap:6px;margin-bottom:8px;">
+                                    <button onclick="abrirTrasbordoSucursal('${b.id}', ${e.num}, '${suc}', '${recoge}')"
+                                        style="flex:1;background:#1a1a2e;color:#7c9ff5;border:1px solid #3a5aad;border-radius:6px;padding:8px;font-size:0.78rem;cursor:pointer;font-weight:600;">
+                                        🔄 Trasbordo
+                                    </button>
+                                    <button onclick="cancelarEntregaAgregada('${b.id}', ${e.num}, '${suc}')"
+                                        style="background:#2e0a0a;color:#d90429;border:1px solid #d90429;border-radius:6px;padding:8px 10px;font-size:0.78rem;cursor:pointer;">
+                                        🗑️
+                                    </button>
+                                </div>
                                 <select id="nov_${uid}" onchange="toggleNovedad('${uid}')"
                                     style="width:100%;padding:8px;background:#111;border:1px solid #333;color:#ccc;border-radius:6px;font-size:0.82rem;margin-bottom:6px;">
                                     <option value="">✅ Sin novedad en la entrega</option>
@@ -1041,7 +1169,9 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
                     (e.destinos || []).forEach(suc => {
                         const key = `${b.id}_${parseInt(e.num)}_${suc}`;
                         const val = detalle[key] || entregasConfirmadas[key];
-                        if (val) sucEntg++; else sucPend++;
+                        if (!val) sucPend++;
+                        else if (val.toString().startsWith('CANCELADA')) { /* no cuenta */ }
+                        else sucEntg++;
                     });
                 });
             } else {
@@ -1093,12 +1223,19 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
                 </select>
 
                 <label style="font-size:0.75rem;color:#888;display:block;margin-bottom:6px;">📝 ¿A DÓNDE VAS Y POR QUÉ?</label>
-                <div style="position:relative;margin-bottom:14px;">
+                <div style="position:relative;margin-bottom:12px;">
                     <textarea id="mov-nota" placeholder="Ej: Saliendo de Miranda para CDE a buscar carga de charcutería..." rows="3"
                         style="width:100%;padding:10px 42px 10px 12px;background:#111;border:1px solid #ffb703;color:#e0e0e0;border-radius:6px;font-size:0.85rem;font-family:inherit;resize:none;"></textarea>
                     <button type="button" onclick="usarMicrofonoMovimiento()"
                         style="position:absolute;right:8px;top:10px;background:transparent;border:none;font-size:1.4rem;cursor:pointer;">🎤</button>
                 </div>
+
+                <label style="font-size:0.75rem;color:#888;display:block;margin-bottom:6px;">📷 FOTO (opcional)</label>
+                <div id="mov-foto-cont" style="margin-bottom:8px;"></div>
+                <button type="button" onclick="agregarFotoMovimiento()"
+                    style="width:100%;background:#2a1f00;color:#ffb703;border:1px solid #554400;border-radius:6px;padding:8px;font-size:0.82rem;cursor:pointer;margin-bottom:14px;">
+                    📷 Tomar / subir foto
+                </button>
 
                 <div style="display:flex;gap:8px;">
                     <button onclick="document.getElementById('modal-movimiento').remove()" 
@@ -1108,6 +1245,24 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
                 </div>
             </div>`;
         document.body.appendChild(modal);
+    }
+
+    let movFotoFile = null;
+    function agregarFotoMovimiento() {
+        const inp = document.createElement('input');
+        inp.type = 'file'; inp.accept = 'image/*';
+        inp.onchange = () => {
+            movFotoFile = inp.files[0];
+            const cont = document.getElementById('mov-foto-cont');
+            if (cont && movFotoFile) {
+                const reader = new FileReader();
+                reader.onload = e => {
+                    cont.innerHTML = `<img src="${e.target.result}" style="width:100%;border-radius:6px;max-height:80px;object-fit:cover;border:1px solid #ffb703;margin-bottom:4px;">`;
+                };
+                reader.readAsDataURL(movFotoFile);
+            }
+        };
+        inp.click();
     }
 
     function usarMicrofonoMovimiento() {
@@ -1130,32 +1285,100 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
         const ahora = new Date();
         const hora = ahora.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
+        // Subir foto si hay
+        let fotoUrl = null;
+        if (movFotoFile) {
+            try {
+                const ext = movFotoFile.type === 'image/png' ? 'png' : 'jpg';
+                const nombreBase = choferActual.nombre.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-zA-Z0-9]/g,'_');
+                const nombre = `movimientos/${nombreBase}_${Date.now()}.${ext}`;
+                const res = await fetch(`${SB_URL}/storage/v1/object/fotos-flota/${nombre}`, {
+                    method: 'POST',
+                    headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': movFotoFile.type },
+                    body: movFotoFile
+                });
+                if (res.ok) fotoUrl = `${SB_URL}/storage/v1/object/public/fotos-flota/${nombre}`;
+            } catch(e) {}
+            movFotoFile = null;
+        }
+
         // Guardar movimiento activo
         movimientoActivo = { nota, vehiculo, hora, ts: ahora.getTime() };
         localStorage.setItem('movimientoActivo', JSON.stringify(movimientoActivo));
 
         await notificarDiscord(choferActual.nombre,
-            `🚗 **Movimiento — ${choferActual.nombre.split(' ')[0]}**\n🕐 ${hora} | ${vehiculo}\n📋 ${nota}`,
-            null, vehiculo
+            `🚗 **${choferActual.nombre.split(' ')[0]} — Salida registrada**\n🕐 ${hora} | ${vehiculo}\n💬 ${nota}`,
+            fotoUrl, vehiculo
         );
 
         document.getElementById('modal-movimiento').remove();
         mostrarToast('✅ Movimiento registrado');
-        mostrarBotonLlegada(nota.substring(0, 30), vehiculo);
+        mostrarBotonLlegada(nota.substring(0, 40), vehiculo);
     }
 
     function mostrarBotonLlegada(destino, vehiculo) {
-        const existente = document.getElementById('btn-llegada-movimiento');
+        const existente = document.getElementById('banner-llegada-movimiento');
         if (existente) existente.remove();
 
-        const btn = document.createElement('button');
-        btn.id = 'btn-llegada-movimiento';
-        btn.style.cssText = 'width:100%;background:#06d6a0;color:#000;border:none;border-radius:8px;padding:12px;font-size:0.9rem;font-weight:700;cursor:pointer;margin-bottom:10px;animation:pulse 2s infinite;';
-        btn.innerHTML = `📍 Llegué a ${destino}`;
-        btn.onclick = () => registrarLlegada(destino, vehiculo);
+        const banner = document.createElement('div');
+        banner.id = 'banner-llegada-movimiento';
+        banner.style.cssText = 'background:#0a2e1a;border:2px solid #06d6a0;border-radius:10px;padding:12px;margin-bottom:10px;';
+        banner.innerHTML = `
+            <div style="color:#06d6a0;font-size:0.78rem;margin-bottom:8px;">🚗 En ruta — confirma cuando llegues</div>
+            <div style="color:#e0e0e0;font-size:0.82rem;margin-bottom:10px;font-style:italic;">"${destino}"</div>
+            <div style="position:relative;margin-bottom:8px;">
+                <input id="llegada-donde" type="text" placeholder="¿Dónde llegaste? Ej: Palma Real, CDE..."
+                    style="width:100%;padding:8px 38px 8px 10px;background:#111;border:1px solid #06d6a0;color:#e0e0e0;border-radius:6px;font-size:0.82rem;font-family:inherit;">
+                <button type="button" onclick="micLlegada()"
+                    style="position:absolute;right:6px;top:50%;transform:translateY(-50%);background:transparent;border:none;font-size:1.1rem;cursor:pointer;">🎤</button>
+            </div>
+            <button onclick="registrarLlegada('${destino}', '${vehiculo}')" 
+                style="width:100%;background:#06d6a0;color:#000;border:none;border-radius:6px;padding:12px;font-size:0.9rem;font-weight:700;cursor:pointer;">
+                📍 Llegué — Confirmar
+            </button>`;
 
-        const cont = document.querySelector('#pantalla-main > div');
-        if (cont) cont.insertBefore(btn, cont.firstChild);
+        // Buscar el contenedor correcto
+        const cont = document.getElementById('boletas-lista')?.parentElement 
+            || document.querySelector('#screen-main > div')
+            || document.querySelector('#pantalla-main > div')
+            || document.body;
+        const ref = document.getElementById('boletas-lista') || cont.firstChild;
+        cont.insertBefore(banner, ref);
+    }
+
+    function micLlegada() {
+        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+            mostrarToast('⚠️ Micrófono no disponible'); return;
+        }
+        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const rec = new SR();
+        rec.lang = 'es-VE'; rec.interimResults = false;
+        mostrarToast('🎤 Escuchando...');
+        rec.start();
+        rec.onresult = e => { 
+            const input = document.getElementById('llegada-donde');
+            if (input) input.value = e.results[0][0].transcript;
+            mostrarToast('✅ Capturado');
+        };
+        rec.onerror = () => mostrarToast('⚠️ No se pudo capturar');
+    }
+
+    let llegadaFotoFile = null;
+    function agregarFotoLlegada() {
+        const inp = document.createElement('input');
+        inp.type = 'file'; inp.accept = 'image/*';
+        inp.onchange = () => {
+            llegadaFotoFile = inp.files[0];
+            const cont = document.getElementById('llegada-foto-cont');
+            if (cont && llegadaFotoFile) {
+                const reader = new FileReader();
+                reader.onload = e => {
+                    cont.innerHTML = `<img src="${e.target.result}" style="width:100%;border-radius:6px;max-height:80px;object-fit:cover;border:1px solid #06d6a0;margin-bottom:4px;">`;
+                };
+                reader.readAsDataURL(llegadaFotoFile);
+            }
+        };
+        inp.click();
     }
 
     async function registrarLlegada(destino, vehiculo) {
@@ -1172,12 +1395,32 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
             localStorage.removeItem('movimientoActivo');
         }
 
+        // Subir foto si hay
+        let fotoUrl = null;
+        if (llegadaFotoFile) {
+            try {
+                const ext = llegadaFotoFile.type === 'image/png' ? 'png' : 'jpg';
+                const nombreBase = choferActual.nombre.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-zA-Z0-9]/g,'_');
+                const nombre = `movimientos/${nombreBase}_llegada_${Date.now()}.${ext}`;
+                const res = await fetch(`${SB_URL}/storage/v1/object/fotos-flota/${nombre}`, {
+                    method: 'POST',
+                    headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': llegadaFotoFile.type },
+                    body: llegadaFotoFile
+                });
+                if (res.ok) fotoUrl = `${SB_URL}/storage/v1/object/public/fotos-flota/${nombre}`;
+            } catch(e) {}
+            llegadaFotoFile = null;
+        }
+
+        const dondeInput = document.getElementById('llegada-donde')?.value?.trim();
+        const dondeStr = dondeInput ? `\n📍 Llegó a: ${dondeInput}` : '';
+        const notaOrigen = movGuardado?.nota ? `\n🚗 Venía: ${movGuardado.nota}` : '';
         await notificarDiscord(choferActual.nombre,
-            `📍 **${choferActual.nombre.split(' ')[0]} llegó a ${destino}**\n🕐 ${hora} | ${vehiculo}${tiempoRuta}`,
-            null, vehiculo
+            `📍 **${choferActual.nombre.split(' ')[0]} — Llegada confirmada**\n🕐 ${hora} | ${vehiculo}${tiempoRuta}${dondeStr}${notaOrigen}`,
+            fotoUrl, vehiculo
         );
 
-        document.getElementById('btn-llegada-movimiento')?.remove();
+        document.getElementById('banner-llegada-movimiento')?.remove();
         mostrarToast(`✅ Llegada registrada en ${destino}`);
     }
 
@@ -1247,7 +1490,7 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 
     function agregarItemRec() {
         const cont = document.getElementById('rec-items-cont');
-        const dptos = ['Víveres','Charcutería','Carnicería','Desposte','Preparados','Manicería','Mercadeo','Suministros','Otros'];
+        const dptos = ['Víveres','Charcutería','Carnicería','Desposte','Frutería','Preparados','Manicería','Mercadeo','Suministros','Otros'];
         const div = document.createElement('div');
         div.style.cssText = 'background:#1a1000;border:1px solid #554400;border-radius:6px;padding:8px;margin-bottom:6px;display:flex;gap:6px;align-items:center;';
         div.innerHTML = `
@@ -1591,6 +1834,128 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 
         document.getElementById('modal-cde').remove();
         mostrarToast(`✅ Carga CDE registrada — ${codigo}`);
+        cargarBoletas();
+    }
+
+    function abrirAgregarEntrega(boletaId, envioNum) {
+        const sucursales = ['Casarapa','Palma Real','Miranda','La Parada','Castillejo','Lider CCS','Servicio General','Ozanam','Caracas','Araira'];
+        const dptos = ['Víveres','Charcutería','Carnicería','Desposte','Frutería','Preparados','Manicería','Mercadeo','Suministros','Otros'];
+
+        const modal = document.createElement('div');
+        modal.id = 'modal-agregar-entrega';
+        modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;';
+        modal.innerHTML = `
+            <div style="background:#1c1c1c;border:1px solid #06d6a0;border-radius:12px;padding:20px;width:100%;max-width:380px;">
+                <div style="color:#06d6a0;font-size:0.95rem;font-weight:700;margin-bottom:14px;">➕ Agregar entrega a boleta</div>
+
+                <label style="font-size:0.75rem;color:#888;display:block;margin-bottom:6px;">ENTREGA EN</label>
+                <select id="ae-sucursal" style="width:100%;background:#111;border:1px solid #06d6a0;color:#06d6a0;border-radius:6px;padding:8px;font-size:0.85rem;margin-bottom:12px;">
+                    ${sucursales.map(s => `<option value="${s}">${s}</option>`).join('')}
+                </select>
+
+                <label style="font-size:0.75rem;color:#888;display:block;margin-bottom:6px;">¿QUÉ LLEVA?</label>
+                <select id="ae-dpto" style="width:100%;background:#111;border:1px solid #333;color:#ffb703;border-radius:6px;padding:8px;font-size:0.85rem;margin-bottom:12px;">
+                    ${dptos.map(d => `<option value="${d}">${d}</option>`).join('')}
+                </select>
+
+                <label style="font-size:0.75rem;color:#888;display:block;margin-bottom:6px;">📷 FOTO (opcional)</label>
+                <div id="ae-foto-cont" style="margin-bottom:12px;"></div>
+                <button type="button" onclick="agregarFotoAE()"
+                    style="width:100%;background:#1a2e1a;color:#06d6a0;border:1px solid #06d6a0;border-radius:6px;padding:8px;font-size:0.82rem;cursor:pointer;margin-bottom:14px;">
+                    📷 Tomar foto
+                </button>
+
+                <div style="display:flex;gap:8px;">
+                    <button onclick="document.getElementById('modal-agregar-entrega').remove()"
+                        style="flex:1;background:#2a2a2a;color:#888;border:1px solid #444;border-radius:6px;padding:10px;cursor:pointer;">Cancelar</button>
+                    <button onclick="confirmarAgregarEntrega('${boletaId}', ${envioNum})"
+                        style="flex:2;background:#06d6a0;color:#000;border:none;border-radius:6px;padding:10px;cursor:pointer;font-weight:700;">✅ Agregar</button>
+                </div>
+            </div>`;
+        document.body.appendChild(modal);
+    }
+
+    let aeFotoFile = null;
+    function agregarFotoAE() {
+        const inp = document.createElement('input');
+        inp.type = 'file'; inp.accept = 'image/*'; inp.capture = 'environment';
+        inp.onchange = () => {
+            aeFotoFile = inp.files[0];
+            const cont = document.getElementById('ae-foto-cont');
+            if (cont && aeFotoFile) {
+                const reader = new FileReader();
+                reader.onload = e => {
+                    cont.innerHTML = `<img src="${e.target.result}" style="width:100%;border-radius:6px;max-height:80px;object-fit:cover;border:1px solid #06d6a0;">`;
+                };
+                reader.readAsDataURL(aeFotoFile);
+            }
+        };
+        inp.click();
+    }
+
+    async function cancelarEntregaAgregada(boletaId, envioNum, sucursal) {
+        const motivo = prompt(`🗑️ Cancelar entrega en ${sucursal}\n\nMotivo:`, '');
+        if (!motivo) return;
+        const hora = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const lista = await sbFetch('GET', `/rest/v1/boletas?id=eq.${boletaId}&select=*`);
+        if (!lista || !lista[0]) return;
+        const b = lista[0];
+        const detalle = JSON.parse(b.entregas_detalle || '{}');
+        const key = `${boletaId}_${parseInt(envioNum)}_${sucursal}`;
+        detalle[key] = `CANCELADA ${hora} — ${motivo}`;
+        await sbFetch('PATCH', `/rest/v1/boletas?id=eq.${boletaId}`, { entregas_detalle: JSON.stringify(detalle) });
+        mostrarToast(`✅ Entrega cancelada — ${sucursal}`);
+        cargarBoletas();
+    }
+
+    async function confirmarAgregarEntrega(boletaId, envioNum) {
+        const sucursal = document.getElementById('ae-sucursal')?.value;
+        const dpto = document.getElementById('ae-dpto')?.value;
+
+        const lista = await sbFetch('GET', `/rest/v1/boletas?id=eq.${boletaId}&select=*`);
+        if (!lista || !lista[0]) return;
+        const b = lista[0];
+        const envios = JSON.parse(b.envios || '[]');
+        const envio = envios.find(e => parseInt(e.num) === parseInt(envioNum));
+        if (!envio) return;
+
+        // Agregar sucursal solo si no existe ya
+        if (!envio.destinos) envio.destinos = [];
+        if (!envio.destinos.includes(sucursal)) envio.destinos.push(sucursal);
+        if (!envio.items) envio.items = [];
+        envio.items.push({ dpto });
+
+        await sbFetch('PATCH', `/rest/v1/boletas?id=eq.${boletaId}`, {
+            envios: JSON.stringify(envios),
+            destinos: envios.flatMap(e => e.destinos || []).join(', ')
+        });
+
+        // Subir foto si hay y notificar Discord
+        const vehiculoBoleta = b.vehiculo || choferActual.unidad || '';
+        let fotoUrl = null;
+        if (aeFotoFile) {
+            try {
+                const ext = aeFotoFile.type === 'image/png' ? 'png' : 'jpg';
+                const nombreBase = choferActual.nombre.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-zA-Z0-9]/g,'_');
+                const nombre = `anexos/${nombreBase}_${Date.now()}.${ext}`;
+                const res = await fetch(`${SB_URL}/storage/v1/object/fotos-flota/${nombre}`, {
+                    method: 'POST',
+                    headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': aeFotoFile.type },
+                    body: aeFotoFile
+                });
+                if (res.ok) fotoUrl = `${SB_URL}/storage/v1/object/public/fotos-flota/${nombre}`;
+            } catch(e) {}
+            aeFotoFile = null;
+        }
+
+        const hora = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        await notificarDiscord(choferActual.nombre,
+            `➕ **Entrega agregada — ${boletaId}**\n🕐 ${hora} | ${vehiculoBoleta}\n👤 ${choferActual.nombre.split(' ')[0]}\n📦 ${dpto} → 📍 ${sucursal}`,
+            fotoUrl, vehiculoBoleta
+        );
+
+        document.getElementById('modal-agregar-entrega').remove();
+        mostrarToast(`✅ Entrega agregada — ${dpto} → ${sucursal}`);
         cargarBoletas();
     }
 
@@ -2302,27 +2667,10 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
             try {
                 let chofer = JSON.parse(guardado);
                 // Para choferes sin unidad fija, limpiar unidad para que pregunten al entrar
-                const sinUnidadFija = ['Jesús Lara', 'Néstor Daniel', 'José Marín'];
-                if (sinUnidadFija.includes(chofer.nombre)) {
-                    // Preguntar vehículo siempre
-                    const vehiculos = ['NPR 01', 'NPR 02', 'NPR 04', 'Fuso 03', 'L300 05', 'Jack 06', 'Jack 07'];
-                    const sel = prompt(`${chofer.nombre.split(' ')[0]}, ¿qué vehículo usas hoy?\n\n${vehiculos.map((v, i) => `${i+1}. ${v}`).join('\n')}\n\nEscribe el número:`);
-                    const idx = parseInt(sel) - 1;
-                    if (idx >= 0 && idx < vehiculos.length) {
-                        chofer = { ...chofer, unidad: vehiculos[idx] };
-                    }
-                }
-                // Entrar automáticamente sin pedir huella de nuevo
-                choferActual = chofer;
-                document.getElementById('pantalla-login').style.display = 'none';
-                document.getElementById('pantalla-main').style.display = 'block';
-                document.getElementById('topbar-name').textContent = chofer.nombre.split(' ')[0];
-                document.getElementById('topbar-unit').textContent = chofer.unidad || '';
-                document.getElementById('topbar-avatar').textContent = AVATARES[chofer.nombre] || '🚚';
-                cargarBoletas();
-                mostrarToast(`👋 Bienvenido de vuelta, ${chofer.nombre.split(' ')[0]}`);
-                setTimeout(() => hablarBienvenida(chofer.nombre.split(' ')[0]), 800);
-                mostrarDecalogo(chofer.nombre.split(' ')[0]);
+                // Todos los choferes seleccionan vehículo siempre
+                mostrarSelectorVehiculo(chofer, (choferConVehiculo) => {
+                    entrarConChofer(choferConVehiculo);
+                });
             } catch(e) {
                 localStorage.removeItem('emp_chofer');
             }
