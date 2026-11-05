@@ -316,8 +316,11 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
         <button onclick="abrirFormRecogida()" style="width:100%;background:#1a2e1a;color:#06d6a0;border:1px solid #06d6a0;border-radius:8px;padding:10px;font-size:0.85rem;font-weight:700;cursor:pointer;margin-bottom:6px;">
             📦 Registrar recogida
         </button>
-        <button onclick="abrirFormMovimiento()" style="width:100%;background:#2e1a00;color:#ffb703;border:1px solid #ffb703;border-radius:8px;padding:10px;font-size:0.85rem;font-weight:700;cursor:pointer;margin-bottom:10px;">
+        <button onclick="abrirFormMovimiento()" style="width:100%;background:#2e1a00;color:#ffb703;border:1px solid #ffb703;border-radius:8px;padding:10px;font-size:0.85rem;font-weight:700;cursor:pointer;margin-bottom:6px;">
             🚗 Registrar movimiento
+        </button>
+        <button onclick="abrirFormCombustible()" style="width:100%;background:#2e1500;color:#ff6b00;border:1px solid #ff6b00;border-radius:8px;padding:10px;font-size:0.85rem;font-weight:700;cursor:pointer;margin-bottom:10px;">
+            ⛽ Surtir combustible
         </button>
 
         <div class="stats-row">
@@ -364,6 +367,32 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
         'Jack 06': 'https://discord.com/api/webhooks/1562565834248032278/oUWkGCXE-1hwH2f3R_BRuzFLWNbvyCafaxSEXa6KT6jDt8u8yww51CquFGUcIwCq0iIk',
         'Jack 07': 'https://discord.com/api/webhooks/1562566225316290640/IYW_INAJYOnz997hFvOFtcqlZOVGrM-4za_uhzqjcaZhS2PcIkmgM9mRboF5yegj3X1A'
     };
+
+    const DISCORD_WEBHOOKS_MANT = {
+        'NPR 01':  'https://discord.com/api/webhooks/1564713475392151612/qvLuhGTmT_A4OAKzUQlounyFs5QTqS99Shl-88L0OQn-iXHzb2Y4GKrp-SjKgqf-xXFn',
+        'NPR 02':  'https://discord.com/api/webhooks/1564714004893401292/nWYtp5cK9i7DF8vRou8P5y6FkAfJnQqjuJlWpvn3O7mjLv1nrF6eisy8R0DNAdFIVwJX',
+        'NPR 04':  'https://discord.com/api/webhooks/1564713475392151612/qvLuhGTmT_A4OAKzUQlounyFs5QTqS99Shl-88L0OQn-iXHzb2Y4GKrp-SjKgqf-xXFn',
+        'Fuso 03': 'https://discord.com/api/webhooks/1564714152658866427/CxbyRY1qXQ2N6jVmsJPvvWuRzSchcY8CdpUVoESTnpFgnyL7A783FeZ6ECOZxaBuB3H0',
+        'L300 05': 'https://discord.com/api/webhooks/1564714004893401292/nWYtp5cK9i7DF8vRou8P5y6FkAfJnQqjuJlWpvn3O7mjLv1nrF6eisy8R0DNAdFIVwJX',
+        'Jack 06': 'https://discord.com/api/webhooks/1564714324717469787/QEzxAvDQ5INfzKjSZBQQgZmxc6wa5O13lG9xAx8ChfCss6yXSkuuWCCY_6Gx5GEZox8m',
+        'Jack 07': 'https://discord.com/api/webhooks/1564714456716546159/nEGGVa_-EoOqnpGVY1g8O9_qnQHyVq-lKYdPh4hMSUcn_LcUG2mUSCrwVt4GuhGNP0rW',
+    };
+
+    async function notificarMant(vehiculo, mensaje, fotoUrl) {
+        const webhook = DISCORD_WEBHOOKS_MANT[vehiculo];
+        if (!webhook) return;
+        try {
+            if (fotoUrl) {
+                const form = new FormData();
+                form.append('payload_json', JSON.stringify({ content: mensaje }));
+                const blob = await fetch(fotoUrl).then(r => r.blob()).catch(() => null);
+                if (blob) form.append('file', blob, 'falla.jpg');
+                await fetch(webhook, { method: 'POST', body: form });
+            } else {
+                await fetch(webhook, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content: mensaje }) });
+            }
+        } catch(e) {}
+    }
 
     async function notificarDiscord(chofer, mensaje, fotoUrl, vehiculo = null) {
         // Usar webhook por vehículo siempre — si no hay vehículo, usar el del chofer
@@ -510,8 +539,8 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
         // Bienvenida por voz
         setTimeout(() => hablarBienvenida(chofer.nombre.split(' ')[0]), 800);
 
-        // Mostrar decálogo
         mostrarDecalogo(chofer.nombre.split(' ')[0]);
+        setTimeout(() => abrirChecklistEntrada(chofer.unidad || 'NPR 01'), 4000);
     }
 
     function entrarConChofer(chofer) {
@@ -532,6 +561,8 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
         mostrarToast(`👋 Bienvenido, ${chofer.nombre.split(' ')[0]}`);
         setTimeout(() => hablarBienvenida(chofer.nombre.split(' ')[0]), 800);
         mostrarDecalogo(chofer.nombre.split(' ')[0]);
+        // Lanzar checklist 4 segundos después de entrar (da tiempo al decálogo)
+        setTimeout(() => abrirChecklistEntrada(chofer.unidad || 'NPR 01'), 4000);
         // Restaurar movimiento activo
         const movGuardado = localStorage.getItem('movimientoActivo');
         if (movGuardado) {
@@ -618,7 +649,7 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
         window.speechSynthesis.speak(msg);
     }
 
-    function mostrarDecalogo(nombre) {
+    function mostrarDecalogo(nombre, onClose) {
         const todosPuntos = [
             '📋 Revisa tu boleta completa antes de salir — verifica sucursales, departamentos y prioridades.',
             '📦 Al recoger, toma foto de cada departamento por separado — sin foto no hay evidencia.',
@@ -656,12 +687,21 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
                             <span style="color:#ccc;font-size:0.78rem;line-height:1.4;">${p}</span>
                         </div>`).join('')}
                 </div>
-                <button onclick="document.getElementById('modal-decalogo').remove()" 
+                <button onclick="cerrarDecalogo()" 
                     style="width:100%;background:#ffb703;color:#000;border:none;border-radius:8px;padding:12px;font-weight:700;font-size:0.9rem;cursor:pointer;">
-                    ✅ Entendido
+                    ✅ Entendido — Continuar
                 </button>
             </div>`;
         document.body.appendChild(modal);
+        window._decalogoCallback = onClose;
+    }
+
+    function cerrarDecalogo() {
+        const modal = document.getElementById('modal-decalogo');
+        const cb = window._decalogoCallback;
+        window._decalogoCallback = null;
+        if (modal) modal.remove();
+        if (typeof cb === 'function') setTimeout(cb, 300);
     }
 
     // Sonido de alerta para urgentes
@@ -1204,44 +1244,661 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
     const SUCURSALES_CDE = ['Casarapa','Palma Real','Miranda','La Parada','Castillejo','Lider CCS','Servicio General','Ozanam'];
 
     // Registro de movimiento activo
+    // ── Mapas de IDs Supabase ──────────────────────────────
+    const DRIVER_IDS = {
+        'Jose Marin':        'd_1779379366806',
+        'Daniel Subero':     'd1',
+        'Jackson Hernandez': 'd2',
+        'Willmer Fernandez': 'd3',
+        'Richard Hernandez': 'd4',
+        'Darwin Serrano':    'd5',
+        'Nestor Daniel':     'd6',
+        'Jesus Lara':        'd7',
+    };
+    const TRUCK_IDS = {
+        'NPR 01':  { id: 'npr01',  plate: 'A91BF8M'  },
+        'NPR 02':  { id: 'npr02',  plate: 'A21AM9G'  },
+        'NPR 04':  { id: 'npr04',  plate: 'A15AM5G'  },
+        'Fuso 03': { id: 'fuso03', plate: 'A374J01'  },
+        'L300 05': { id: 'l300',   plate: 'A15BP7M'  },
+        'Jack 06': { id: 'jack06', plate: 'A88ET1M'  },
+        'Jack 07': { id: 'jack07', plate: 'A80ET6M'  },
+    };
+    function getDriverId()  { return DRIVER_IDS[choferActual?.nombre] || choferActual?.nombre || ''; }
+    function getTruckInfo(v){ return TRUCK_IDS[v] || { id: v, plate: '' }; }
+
+    // ── Escritura genérica a Supabase ──────────────────────
+    async function sbInsert(table, data) {
+        try {
+            await fetch(`${SB_URL}/rest/v1/${table}`, {
+                method: 'POST',
+                headers: {
+                    'apikey': SB_KEY,
+                    'Authorization': `Bearer ${SB_KEY}`,
+                    'Content-Type': 'application/json',
+                    'Prefer': 'return=minimal'
+                },
+                body: JSON.stringify(data)
+            });
+        } catch(e) { console.warn('sbInsert error:', e); }
+    }
+    async function sbPatchById(table, id, data) {
+        try {
+            await fetch(`${SB_URL}/rest/v1/${table}?id=eq.${id}`, {
+                method: 'PATCH',
+                headers: {
+                    'apikey': SB_KEY,
+                    'Authorization': `Bearer ${SB_KEY}`,
+                    'Content-Type': 'application/json',
+                    'Prefer': 'return=minimal'
+                },
+                body: JSON.stringify(data)
+            });
+        } catch(e) { console.warn('sbPatch error:', e); }
+    }
+
+    // ── CHECKLIST ──────────────────────────────────────────
+    const CHECKLIST_ITEMS = [
+        // SEGURIDAD
+        { id: 'frenos',   group: 'seguridad', label: 'Sistema de frenos',            ok: 'bien',      warn: 'revisar',    bad: 'crítico',     warnBtn: 'R', badBtn: 'C' },
+        { id: 'neumat',   group: 'seguridad', label: 'Neumáticos',                   ok: 'bien',      warn: 'revisar',    bad: 'crítico',     warnBtn: 'R', badBtn: 'C' },
+        { id: 'luces_d',  group: 'seguridad', label: 'Luces delanteras',             ok: 'bien',      warn: 'revisar',    bad: 'roto',        warnBtn: 'R', badBtn: 'R' },
+        { id: 'luces_t',  group: 'seguridad', label: 'Luces traseras (freno + stop)',ok: 'bien',      warn: 'revisar',    bad: 'roto',        warnBtn: 'R', badBtn: 'R' },
+        { id: 'direcc',   group: 'seguridad', label: 'Direccionales',                ok: 'bien',      warn: 'revisar',    bad: 'roto',        warnBtn: 'R', badBtn: 'R' },
+        // MECÁNICA Y NIVELES
+        { id: 'aceite',   group: 'mecanica',  label: 'Nivel de aceite',              ok: 'bien',      warn: 'falta',      bad: 'crítico',     warnBtn: 'F', badBtn: 'C' },
+        { id: 'agua',     group: 'mecanica',  label: 'Nivel de agua / refrigerante', ok: 'bien',      warn: 'bajo',       bad: 'vacío',       warnBtn: 'B', badBtn: 'V' },
+        { id: 'combus',   group: 'mecanica',  label: 'Combustible',                  ok: 'full',      warn: '½ tanque',   bad: '¼ tanque',    warnBtn: '½', badBtn: '¼', noFalla: true },
+        { id: 'espejos',  group: 'mecanica',  label: 'Espejos retrovisores',         ok: 'bien',      warn: 'sucios',     bad: 'rotos',       warnBtn: 'S', badBtn: 'R' },
+        { id: 'limpia',   group: 'mecanica',  label: 'Limpiaparabrisas',             ok: 'bien',      warn: 'revisar',    bad: 'no funciona', warnBtn: 'R', badBtn: 'N' },
+        { id: 'bocina',   group: 'mecanica',  label: 'Bocina / claxon',              ok: 'bien',      warn: 'débil',      bad: 'no suena',    warnBtn: 'D', badBtn: 'N' },
+        { id: 'fugas',    group: 'mecanica',  label: 'Fugas visibles',               ok: 'sin fugas', warn: 'pequeña',    bad: 'grave',       warnBtn: 'P', badBtn: 'G' },
+        // DOCUMENTOS
+        { id: 'licencia', group: 'docs',      label: 'Licencia de conducir',         ok: 'vigente',   warn: 'por vencer', bad: 'vencida',     warnBtn: 'V', badBtn: 'V', noFalla: true },
+        { id: 'docs_veh', group: 'docs',      label: 'Documentos del vehículo',      ok: 'vigentes',  warn: 'por vencer', bad: 'vencidos',    warnBtn: 'V', badBtn: 'V', noFalla: true },
+    ];
+    const CHK_GROUPS = {
+        seguridad: { label: 'SEGURIDAD',          color: '#ef4444' },
+        mecanica:  { label: 'MECÁNICA Y NIVELES', color: '#f59e0b' },
+        docs:      { label: 'DOCUMENTOS',         color: '#3b82f6' },
+    };
+    let _chkFotoFile = null;
+    let _chkFirmaCanvas = null;
+    let _chkEstados = {}; // {itemId: 'ok'|'warn'|'bad'}
+
+    function abrirChecklistEntrada(vehiculo) {
+        // Verificar si ya hizo el checklist hoy
+        const fecha = new Date().toISOString().slice(0,10);
+        const yaHecho = localStorage.getItem(`chk_hecho_${choferActual?.nombre}_${fecha}`);
+        if (yaHecho) {
+            mostrarToast('✅ Checklist de hoy ya completado');
+            return;
+        }
+        // Checklist al entrar — no tiene cancelar, es obligatorio
+        _abrirChecklistModal(vehiculo, false, null);
+    }
+
+    function abrirChecklist(vehiculo, onComplete) {
+        // Checklist desde movimiento — tiene cancelar
+        _abrirChecklistModal(vehiculo, true, onComplete);
+    }
+
+    function _abrirChecklistModal(vehiculo, cancelable, onComplete) {
+        if (document.getElementById('modal-checklist')) return;
+        _chkFotoFile = null;
+        _chkFirmaCanvas = null;
+        _chkEstados = {};
+
+        const grupos = ['seguridad','mecanica','docs'];
+        const itemsHTML = grupos.map(g => {
+            const gitems = CHECKLIST_ITEMS.filter(i => i.group === g);
+            const gc = CHK_GROUPS[g];
+            return `
+                <div style="font-size:0.68rem;font-weight:700;color:${gc.color};text-transform:uppercase;letter-spacing:0.8px;margin:14px 0 6px;">● ${gc.label}</div>
+                ${gitems.map(item => `
+                    <div id="chk-row-${item.id}" style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;margin-bottom:6px;display:flex;align-items:center;gap:8px;">
+                        <div style="flex:1;">
+                            <div style="font-size:0.85rem;font-weight:600;color:#1c1917;">${item.label}</div>
+                            <div style="font-size:0.72rem;margin-top:2px;">
+                                <span style="color:#39d353;">${item.ok}</span> &nbsp;
+                                <span style="color:#f59e0b;">${item.warn}</span> &nbsp;
+                                <span style="color:#ef4444;">${item.bad}</span>
+                            </div>
+                        </div>
+                        <div style="display:flex;gap:4px;flex-shrink:0;">
+                            <button onclick="chkSetEstado('${item.id}','ok','${item.ok}')"   id="chk-ok-${item.id}"
+                                style="width:28px;height:28px;border-radius:6px;border:1.5px solid #d1d5db;background:#fff;font-size:0.7rem;font-weight:700;color:#6b7280;cursor:pointer;">${item.id === 'combus' ? 'F' : '📷'}</button>
+                            ${item.id === 'combus' ? `<button onclick="chkSetEstado('combus','tres4','¾ tanque')" id="chk-tres4-combus"
+                                style="width:28px;height:28px;border-radius:6px;border:1.5px solid #d1d5db;background:#fff;font-size:0.72rem;font-weight:700;color:#6b7280;cursor:pointer;">¾</button>` : ''}
+                            <button onclick="chkSetEstado('${item.id}','warn','${item.warn}')" id="chk-warn-${item.id}"
+                                style="width:28px;height:28px;border-radius:6px;border:1.5px solid #d1d5db;background:#fff;font-size:0.72rem;font-weight:700;color:#6b7280;cursor:pointer;">${item.warnBtn}</button>
+                            <button onclick="chkSetEstado('${item.id}','bad','${item.bad}')"  id="chk-bad-${item.id}"
+                                style="width:28px;height:28px;border-radius:6px;border:1.5px solid #d1d5db;background:#fff;font-size:0.72rem;font-weight:700;color:#6b7280;cursor:pointer;">${item.badBtn}</button>
+                        </div>
+                    </div>`).join('')}`;
+        }).join('');
+
+        const modal = document.createElement('div');
+        modal.id = 'modal-checklist';
+        modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:#f3f4f6;z-index:9999;overflow-y:auto;';
+        modal.innerHTML = `
+            <div style="max-width:480px;margin:0 auto;padding:16px;">
+                <!-- Header -->
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+                    <div style="font-size:1.1rem;font-weight:700;color:#1c1917;">Chequeo pre-viaje</div>
+                    <div id="chk-contador" style="margin-left:auto;font-size:0.85rem;font-weight:700;color:#6b7280;">0/${CHECKLIST_ITEMS.length}</div>
+                </div>
+                <div style="color:#6b7280;font-size:0.75rem;margin-bottom:12px;">${vehiculo} · ${new Date().toLocaleDateString('es-VE',{weekday:'long',day:'numeric',month:'long'})}</div>
+
+                <!-- Chofer y KM -->
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+                    <div>
+                        <div style="font-size:0.68rem;text-transform:uppercase;color:#9ca3af;font-weight:700;margin-bottom:4px;">Chofer</div>
+                        <div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:9px;font-size:0.85rem;color:#1c1917;font-weight:600;">${choferActual?.nombre?.split(' ')[0] || '—'}</div>
+                    </div>
+                    <div>
+                        <div style="font-size:0.68rem;text-transform:uppercase;color:#9ca3af;font-weight:700;margin-bottom:4px;">KM odómetro</div>
+                        <input type="number" id="chk-km" placeholder="0" min="0"
+                            style="width:100%;background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:9px;font-size:0.85rem;color:#1c1917;box-sizing:border-box;">
+                    </div>
+                </div>
+
+                <!-- Ítems -->
+                ${itemsHTML}
+
+                <!-- Reporte de novedades -->
+                <div style="font-size:0.68rem;text-transform:uppercase;color:#9ca3af;font-weight:700;margin:14px 0 6px;">Reporte de novedades (opcional)</div>
+                <textarea id="chk-obs" placeholder="Ej: vibración en el volante al pasar de 60 km/h..." rows="3"
+                    style="width:100%;background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:10px;font-size:0.85rem;color:#1c1917;font-family:inherit;resize:none;box-sizing:border-box;"></textarea>
+
+                <!-- Fotos de la unidad -->
+                <div style="font-size:0.68rem;text-transform:uppercase;color:#9ca3af;font-weight:700;margin:14px 0 6px;">📷 Fotos de la unidad <span style="color:#d1d5db;font-weight:400;text-transform:none;">(opcional — toma las que quieras)</span></div>
+                <div id="chk-fotos-cont" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px;"></div>
+                <button type="button" onclick="agregarFotoChecklist()"
+                    style="background:#fff;border:1.5px dashed #d1d5db;border-radius:8px;padding:14px;width:70px;height:70px;cursor:pointer;font-size:1.4rem;color:#9ca3af;">📷</button>
+
+                <!-- Firma -->
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px;">
+                    <div>
+                        <div style="font-size:0.68rem;text-transform:uppercase;color:#9ca3af;font-weight:700;margin-bottom:6px;">Firma del chofer <span style="color:#ef4444;">*</span> <span style="font-weight:400;text-transform:none;">(dibuja con el dedo)</span></div>
+                        <canvas id="chk-firma-canvas" width="200" height="100"
+                            style="background:#fff;border:1.5px dashed #d1d5db;border-radius:8px;width:100%;touch-action:none;cursor:crosshair;display:block;"></canvas>
+                        <button onclick="chkBorrarFirma()" style="font-size:0.72rem;color:#9ca3af;background:none;border:none;cursor:pointer;margin-top:4px;">🗑️ Borrar firma</button>
+                    </div>
+                    <div>
+                        <div style="font-size:0.68rem;text-transform:uppercase;color:#9ca3af;font-weight:700;margin-bottom:6px;">Foto de respaldo final <span style="color:#ef4444;">*</span> <span style="font-weight:400;text-transform:none;">(chofer + unidad)</span></div>
+                        <div id="chk-foto-resp-cont" style="background:#fff;border:1.5px dashed #d1d5db;border-radius:8px;height:100px;display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;" onclick="agregarFotoRespaldo()">
+                            <div style="text-align:center;color:#9ca3af;">
+                                <div style="font-size:1.5rem;">📷</div>
+                                <div style="font-size:0.72rem;margin-top:4px;">Tomar foto de respaldo</div>
+                                <div style="font-size:0.65rem;">Activa cámara</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Botón finalizar -->
+                <button onclick="confirmarChecklist('${vehiculo}', ${cancelable})"
+                    style="width:100%;background:#10b981;color:#fff;border:none;border-radius:10px;padding:14px;font-size:0.95rem;font-weight:700;cursor:pointer;margin-top:16px;margin-bottom:24px;">
+                    ✅ Finalizar y enviar chequeo
+                </button>
+            </div>`;
+        document.body.appendChild(modal);
+
+        // Inicializar canvas de firma
+        setTimeout(() => {
+            const canvas = document.getElementById('chk-firma-canvas');
+            if (!canvas) return;
+            _chkFirmaCanvas = canvas;
+            const ctx = canvas.getContext('2d');
+            ctx.strokeStyle = '#1c1917';
+            ctx.lineWidth = 2;
+            ctx.lineCap = 'round';
+            let drawing = false, lx = 0, ly = 0;
+            const getPos = e => {
+                const r = canvas.getBoundingClientRect();
+                const src = e.touches ? e.touches[0] : e;
+                return { x: (src.clientX - r.left) * canvas.width / r.width, y: (src.clientY - r.top) * canvas.height / r.height };
+            };
+            const start = e => { e.preventDefault(); drawing = true; const p = getPos(e); lx = p.x; ly = p.y; };
+            const draw  = e => { if (!drawing) return; e.preventDefault(); const p = getPos(e); ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(p.x, p.y); ctx.stroke(); lx = p.x; ly = p.y; };
+            const stop  = () => { drawing = false; };
+            canvas.addEventListener('mousedown', start); canvas.addEventListener('mousemove', draw); canvas.addEventListener('mouseup', stop);
+            canvas.addEventListener('touchstart', start, {passive:false}); canvas.addEventListener('touchmove', draw, {passive:false}); canvas.addEventListener('touchend', stop);
+        }, 100);
+
+        // Inicializar estados en 'ok' para todos
+        CHECKLIST_ITEMS.forEach(item => chkSetEstado(item.id, 'ok', item.ok));
+
+        modal._onComplete = onComplete;
+    }
+
+    function chkSetEstado(id, estado, label) {
+        _chkEstados[id] = { estado, label, nota: _chkEstados[id]?.nota || '' };
+        const colors = { ok: '#39d353', warn: '#f59e0b', bad: '#ef4444', tres4: '#39d353' };
+        const btnIds = id === 'combus' ? ['ok','tres4','warn','bad'] : ['ok','warn','bad'];
+        btnIds.forEach(e => {
+            const btnId = e === 'tres4' ? `chk-tres4-${id}` : `chk-${e}-${id}`;
+            const btn = document.getElementById(btnId);
+            if (!btn) return;
+            if (e === estado) {
+                btn.style.background  = colors[e] || '#39d353';
+                btn.style.color       = '#fff';
+                btn.style.borderColor = colors[e] || '#39d353';
+            } else {
+                btn.style.background  = '#fff';
+                btn.style.color       = '#6b7280';
+                btn.style.borderColor = '#d1d5db';
+            }
+        });
+
+        const row = document.getElementById(`chk-row-${id}`);
+        if (row) {
+            row.style.borderColor = estado === 'ok' ? '#d1fae5' : estado === 'warn' ? '#fef3c7' : '#fee2e2';
+            row.style.background  = estado === 'ok' ? '#f0fdf4' : estado === 'warn' ? '#fffbeb' : '#fef2f2';
+        }
+
+        // Mostrar/ocultar campo de descripción de falla (no para combustible ni docs)
+        const itemDef = CHECKLIST_ITEMS.find(i => i.id === id);
+        const falla = document.getElementById(`chk-falla-${id}`);
+        if (estado !== 'ok' && !itemDef?.noFalla) {
+            if (!falla) {
+                const inp = document.createElement('div');
+                inp.id = `chk-falla-${id}`;
+                inp.style.cssText = 'margin-top:6px;';
+                inp.innerHTML = `<textarea id="chk-falla-txt-${id}" placeholder="Describe la falla o anomalía..." rows="2"
+                    style="width:100%;background:#fff;border:1.5px solid ${colors[estado]};border-radius:6px;padding:8px;font-size:0.82rem;font-family:inherit;resize:none;box-sizing:border-box;color:#1c1917;"
+                    oninput="chkGuardarNota('${id}', this.value)"></textarea>`;
+                row?.appendChild(inp);
+                setTimeout(() => document.getElementById(`chk-falla-txt-${id}`)?.focus(), 100);
+            } else {
+                // Actualizar color del borde si cambió el estado
+                const ta = document.getElementById(`chk-falla-txt-${id}`);
+                if (ta) ta.style.borderColor = colors[estado];
+                falla.style.display = '';
+            }
+        } else {
+            if (falla) falla.style.display = 'none';
+        }
+
+        // Actualizar contador
+        const hechos = Object.keys(_chkEstados).length;
+        const cont = document.getElementById('chk-contador');
+        if (cont) cont.textContent = `${hechos}/${CHECKLIST_ITEMS.length}`;
+    }
+
+    function chkGuardarNota(id, valor) {
+        if (_chkEstados[id]) _chkEstados[id].nota = valor;
+    }
+
+    function chkBorrarFirma() {
+        const canvas = document.getElementById('chk-firma-canvas');
+        if (!canvas) return;
+        canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    let _chkFotoRespFile = null;
+    function agregarFotoRespaldo() {
+        const inp = document.createElement('input');
+        inp.type = 'file'; inp.accept = 'image/*'; inp.capture = 'environment';
+        inp.onchange = () => {
+            _chkFotoRespFile = inp.files[0];
+            const cont = document.getElementById('chk-foto-resp-cont');
+            if (cont && _chkFotoRespFile) {
+                const r = new FileReader();
+                r.onload = e => { cont.innerHTML = `<img src="${e.target.result}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;">`; };
+                r.readAsDataURL(_chkFotoRespFile);
+            }
+        };
+        inp.click();
+    }
+
+    let _chkFotosFiles = [];
+    function agregarFotoChecklist() {
+        const inp = document.createElement('input');
+        inp.type = 'file'; inp.accept = 'image/*'; inp.capture = 'environment';
+        inp.onchange = () => {
+            const file = inp.files[0];
+            if (!file) return;
+            _chkFotosFiles.push(file);
+            const cont = document.getElementById('chk-fotos-cont');
+            if (!cont) return;
+            const r = new FileReader();
+            r.onload = e => {
+                const img = document.createElement('img');
+                img.src = e.target.result;
+                img.style.cssText = 'width:70px;height:70px;object-fit:cover;border-radius:8px;border:1.5px solid #d1d5db;';
+                cont.appendChild(img);
+            };
+            r.readAsDataURL(file);
+        };
+        inp.click();
+    }
+
+    async function confirmarChecklist(vehiculo, cancelable) {
+        const km    = parseInt(document.getElementById('chk-km')?.value) || null;
+        const obs   = document.getElementById('chk-obs')?.value?.trim() || '';
+        const ahora = new Date();
+        const hora  = ahora.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
+        const fecha = ahora.toISOString().slice(0,10);
+        const truck = getTruckInfo(vehiculo);
+
+        const items = CHECKLIST_ITEMS.map(item => {
+            const est = _chkEstados[item.id] || { estado: 'ok', label: item.ok };
+            return { id: item.id, label: item.label, estado: est.estado, valor: est.label };
+        });
+        const itemsFalla = items.filter(i => {
+            const def = CHECKLIST_ITEMS.find(c => c.id === i.id);
+            return !def?.noFalla && def?.group !== 'docs';
+        });
+        const todoOk    = itemsFalla.every(i => i.estado === 'ok' || i.estado === 'tres4');
+        const revisar   = itemsFalla.filter(i => i.estado === 'warn').length;
+        const criticos  = itemsFalla.filter(i => i.estado === 'bad').map(i => i.label);
+        const faltantes = itemsFalla.filter(i => i.estado !== 'ok' && i.estado !== 'tres4').map(i => `${i.label} (${i.valor})`);
+
+        // Subir fotos de la unidad
+        const nb = choferActual.nombre.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-zA-Z0-9]/g,'_');
+        const fotosUrls = [];
+        for (const f of _chkFotosFiles) {
+            try {
+                const ext = f.type === 'image/png' ? 'png' : 'jpg';
+                const nombre = `checklists/${nb}_foto_${Date.now()}.${ext}`;
+                const res = await fetch(`${SB_URL}/storage/v1/object/fotos-flota/${nombre}`, {
+                    method: 'POST', headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': f.type }, body: f
+                });
+                if (res.ok) fotosUrls.push(`${SB_URL}/storage/v1/object/public/fotos-flota/${nombre}`);
+            } catch(e) {}
+        }
+        _chkFotosFiles = [];
+
+        // Subir foto de respaldo
+        let fotoRespUrl = null;
+        if (_chkFotoRespFile) {
+            try {
+                const ext = _chkFotoRespFile.type === 'image/png' ? 'png' : 'jpg';
+                const nombre = `checklists/${nb}_respaldo_${Date.now()}.${ext}`;
+                const res = await fetch(`${SB_URL}/storage/v1/object/fotos-flota/${nombre}`, {
+                    method: 'POST', headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': _chkFotoRespFile.type }, body: _chkFotoRespFile
+                });
+                if (res.ok) fotoRespUrl = `${SB_URL}/storage/v1/object/public/fotos-flota/${nombre}`;
+            } catch(e) {}
+            _chkFotoRespFile = null;
+        }
+
+        // Capturar firma como imagen
+        let firmaUrl = null;
+        const canvas = document.getElementById('chk-firma-canvas');
+        if (canvas) {
+            try {
+                const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
+                if (blob && blob.size > 1000) {
+                    const nombre = `checklists/${nb}_firma_${Date.now()}.png`;
+                    const res = await fetch(`${SB_URL}/storage/v1/object/fotos-flota/${nombre}`, {
+                        method: 'POST', headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'image/png' }, body: blob
+                    });
+                    if (res.ok) firmaUrl = `${SB_URL}/storage/v1/object/public/fotos-flota/${nombre}`;
+                }
+            } catch(e) {}
+        }
+
+        const fotoUrl = fotoRespUrl || (fotosUrls.length > 0 ? fotosUrls[0] : null);
+
+        await sbInsert('checklists', {
+            id:            `chk_${Date.now()}`,
+            driver_id:     getDriverId(),
+            vehicle_id:    truck.id,
+            vehicle_code:  vehiculo,
+            vehicle_plate: truck.plate,
+            driver_name:   choferActual.nombre,
+            date:          fecha,
+            time:          hora,
+            km_inicial:    km,
+            items:         JSON.stringify(items),
+            notes:         obs || null,
+            reporte:       todoOk ? 'EMPTY' : faltantes.join(' | '),
+            signature:     firmaUrl || 'EMPTY',
+        });
+
+        if (km) await sbPatchById('trucks', truck.id, { current_km: km });
+
+        // Mensaje Discord igual al formato de referencia
+        const estadoEmoji = { ok: '✅', warn: '⚠️', bad: '🔴' };
+        const titulo = todoOk
+            ? `✅ CHEQUEO PRE-VIAJE — ${vehiculo} — ✅ OK`
+            : criticos.length > 0
+                ? `🔴 CHEQUEO PRE-VIAJE — ${vehiculo} — 🔴 CRÍTICO`
+                : `⚠️ CHEQUEO PRE-VIAJE — ${vehiculo} — ⚠️ REVISAR`;
+
+        const grupos = { seguridad: '🔴 SEGURIDAD', mecanica: '🟡 MECÁNICA Y NIVELES', docs: '🔵 DOCUMENTOS' };
+        let detalle = '';
+        ['seguridad','mecanica','docs'].forEach(g => {
+            const gitems = items.filter(i => CHECKLIST_ITEMS.find(c => c.id === i.id)?.group === g);
+            detalle += `\n**${grupos[g]}**\n`;
+            detalle += gitems.map(i => `${estadoEmoji[i.estado] || '✅'} **${i.label}:** ${i.valor}`).join('\n');
+            detalle += '\n';
+        });
+
+        const kmStr  = km ? `**🔢 Odómetro** ${km.toLocaleString()} km` : '—';
+        const resStr = todoOk ? `✅ Todo OK` : criticos.length > 0 ? `🔴 ${criticos.length} crítico(s)` : `⚠️ ${revisar} para revisar`;
+        const obsStr = obs ? `\n\n📝 **Novedades:** ${obs}` : '';
+        const firmaStr = firmaUrl ? '\n✅ Firmado por el chofer' : '\n⚠️ Sin firma digital';
+        const fotoStr = fotosUrls.length > 0 ? `\n✅ ${fotosUrls.length} foto(s) adjunta(s)` : '';
+        const respStr = fotoRespUrl ? '\n✅ Foto de respaldo adjunta' : '';
+
+        const discordMsg1 = `🚛 **${titulo}**
+${choferActual.nombre} completó el chequeo de **${vehiculo}** (${truck.plate})
+
+📅 **Fecha y hora** · 🔢 **Odómetro** · ✅ **Resultado**
+${fecha} a las ${hora} · ${kmStr} · ${resStr}
+${detalle}`;
+
+        const discordMsg2 = `🖊️ **Firma**${firmaStr}
+
+📸 **Foto de la unidad**${fotoStr}${respStr}${obsStr}`;
+
+        // Checklist va SOLO al canal de mantenimiento
+        await notificarMant(vehiculo, discordMsg1, null);
+        await notificarMant(vehiculo, discordMsg2, fotoRespUrl || (fotosUrls[0] || null));
+
+        // Si hay fallas reales, enviar alerta adicional al canal de mantenimiento
+        const fallaItems = items.filter(i => {
+            const def = CHECKLIST_ITEMS.find(c => c.id === i.id);
+            return i.estado !== 'ok' && i.estado !== 'tres4' && !def?.noFalla && def?.group !== 'docs';
+        });
+        const criticosReales = fallaItems.filter(i => i.estado === 'bad');
+
+        if (fallaItems.length > 0) {
+            const nivelEmoji = criticosReales.length > 0 ? '🔴' : '⚠️';
+            const nivelTxt   = criticosReales.length > 0 ? 'FALLA CRÍTICA' : 'REQUIERE REVISIÓN';
+            let mantMsg = `${nivelEmoji} **ALERTA — ${nivelTxt}**\n`;
+            mantMsg += `🚛 ${vehiculo} (${truck.plate}) · 👤 ${choferActual.nombre.split(' ')[0]} · 🕐 ${hora}\n`;
+            if (km) mantMsg += `🔢 KM: ${km.toLocaleString()}\n`;
+            mantMsg += `\n**Fallas reportadas:**\n`;
+            fallaItems.forEach(i => {
+                const emoji = i.estado === 'bad' ? '🔴' : '⚠️';
+                const nota  = _chkEstados[i.id]?.nota ? ` — _${_chkEstados[i.id].nota}_` : '';
+                mantMsg += `${emoji} **${i.label}:** ${i.valor}${nota}\n`;
+            });
+            if (obs) mantMsg += `\n📝 Novedades: ${obs}`;
+            await notificarMant(vehiculo, mantMsg, null);
+        }
+
+        // Guardar en localStorage que hoy ya hizo el checklist
+        localStorage.setItem(`chk_hecho_${choferActual.nombre}_${fecha}`, '1');
+
+        const modal = document.getElementById('modal-checklist');
+        const cb = modal?._onComplete;
+        modal?.remove();
+        mostrarToast(todoOk ? '✅ Checklist completo — ¡Buen viaje!' : '⚠️ Checklist guardado con observaciones');
+        if (cb) cb(km);
+    }
+
+    // ── COMBUSTIBLE ────────────────────────────────────────
+    function abrirFormCombustible(vehiculoPreset) {
+        const veh = vehiculoPreset || choferActual?.unidad || 'NPR 01';
+        const modal = document.createElement('div');
+        modal.id = 'modal-combustible';
+        modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;';
+        modal.innerHTML = `
+            <div style="background:#1c1c1c;border:2px solid #ff6b00;border-radius:14px;padding:20px;width:100%;max-width:380px;">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+                    <span style="font-size:1.2rem;">⛽</span>
+                    <span style="color:#ff6b00;font-size:0.95rem;font-weight:700;">Registrar surtida</span>
+                </div>
+                <div style="color:#555;font-size:0.75rem;margin-bottom:16px;">${veh} · ${choferActual?.nombre || ''}</div>
+
+                <label style="font-size:0.72rem;color:#888;display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">Vehículo</label>
+                <select id="comb-vehiculo" style="width:100%;background:#111;border:1px solid #ff6b00;color:#ff6b00;border-radius:8px;padding:10px;font-size:0.9rem;margin-bottom:12px;">
+                    ${['NPR 01','NPR 02','NPR 04','Fuso 03','L300 05','Jack 06','Jack 07'].map(v=>`<option value="${v}"${v===veh?' selected':''}>${v}</option>`).join('')}
+                </select>
+
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+                    <div>
+                        <label style="font-size:0.72rem;color:#888;display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">Litros surtidos</label>
+                        <input type="number" id="comb-litros" placeholder="Ej: 80" min="1" step="0.5"
+                            style="width:100%;background:#111;border:1px solid #ff6b00;color:#ff6b00;border-radius:8px;padding:10px;font-size:0.9rem;">
+                    </div>
+                    <div>
+                        <label style="font-size:0.72rem;color:#888;display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">Precio/litro (Bs)</label>
+                        <input type="number" id="comb-precio" placeholder="Ej: 0.50" min="0" step="0.01"
+                            style="width:100%;background:#111;border:1px solid #333;color:#e0e0e0;border-radius:8px;padding:10px;font-size:0.9rem;">
+                    </div>
+                </div>
+
+                <label style="font-size:0.72rem;color:#888;display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">🔢 KM al surtir</label>
+                <input type="number" id="comb-km" placeholder="Ej: 149500" min="0"
+                    style="width:100%;background:#111;border:1px solid #ff6b00;color:#ff6b00;border-radius:8px;padding:10px;font-size:0.9rem;margin-bottom:12px;">
+
+                <label style="font-size:0.72rem;color:#888;display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">Nota (opcional)</label>
+                <input type="text" id="comb-nota" placeholder="Ej: Bomba Terpel, Guarenas"
+                    style="width:100%;background:#111;border:1px solid #333;color:#e0e0e0;border-radius:8px;padding:10px;font-size:0.9rem;margin-bottom:16px;">
+
+                <div id="comb-costo-preview" style="background:#1a0a00;border-radius:8px;padding:8px;text-align:center;margin-bottom:14px;display:none;">
+                    <span style="font-size:0.75rem;color:#888;">Costo estimado: </span>
+                    <span id="comb-costo-val" style="color:#ff6b00;font-weight:700;"></span>
+                </div>
+
+                <div style="display:flex;gap:8px;">
+                    <button onclick="document.getElementById('modal-combustible').remove()"
+                        style="flex:1;background:#2a2a2a;color:#888;border:1px solid #333;border-radius:8px;padding:11px;cursor:pointer;">Cancelar</button>
+                    <button onclick="registrarCombustible()"
+                        style="flex:2;background:#ff6b00;color:#000;border:none;border-radius:8px;padding:11px;font-weight:700;cursor:pointer;font-size:0.9rem;">⛽ Registrar</button>
+                </div>
+            </div>`;
+        document.body.appendChild(modal);
+
+        // Preview de costo en tiempo real
+        const litrosEl = document.getElementById('comb-litros');
+        const precioEl = document.getElementById('comb-precio');
+        const preview  = document.getElementById('comb-costo-preview');
+        const costoEl  = document.getElementById('comb-costo-val');
+        function actualizarCosto() {
+            const l = parseFloat(litrosEl.value) || 0;
+            const p = parseFloat(precioEl.value) || 0;
+            if (l > 0 && p > 0) {
+                costoEl.textContent = `Bs ${(l * p).toFixed(2)}`;
+                preview.style.display = 'block';
+            } else { preview.style.display = 'none'; }
+        }
+        litrosEl?.addEventListener('input', actualizarCosto);
+        precioEl?.addEventListener('input', actualizarCosto);
+    }
+
+    async function registrarCombustible() {
+        const vehiculo = document.getElementById('comb-vehiculo')?.value;
+        const litros   = parseFloat(document.getElementById('comb-litros')?.value) || null;
+        const precio   = parseFloat(document.getElementById('comb-precio')?.value) || null;
+        const km       = parseInt(document.getElementById('comb-km')?.value)        || null;
+        const nota     = document.getElementById('comb-nota')?.value?.trim()        || null;
+
+        if (!litros) { mostrarToast('⚠️ Indica los litros surtidos'); return; }
+
+        const ahora = new Date();
+        const hora  = ahora.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
+        const fecha = ahora.toISOString().slice(0,10);
+        const truck = getTruckInfo(vehiculo);
+        const costo = litros && precio ? +(litros * precio).toFixed(2) : null;
+
+        await sbInsert('fuel_records', {
+            vehicle_id:    truck.id,
+            vehicle_code:  vehiculo,
+            vehicle_plate: truck.plate,
+            driver_id:     getDriverId(),
+            driver_name:   choferActual.nombre,
+            date:          fecha,
+            time:          hora,
+            km:            km,
+            liters:        litros,
+            price_per_liter: precio,
+            cost:          costo,
+        });
+
+        // Actualizar KM en trucks
+        if (km) await sbPatchById('trucks', truck.id, { current_km: km });
+
+        const litrosStr = litros.toLocaleString('es-VE') + ' L';
+        const costoStr  = costo ? ` · Bs ${costo.toLocaleString('es-VE')}` : '';
+        const kmStr     = km    ? `\n🔢 KM: ${km.toLocaleString()}` : '';
+        const notaStr   = nota  ? `\n📍 ${nota}` : '';
+
+        const msgCombustible = `⛽ **${choferActual.nombre.split(' ')[0]} — Surtida registrada**\n🕐 ${hora} | ${vehiculo}\n🛢️ ${litrosStr}${costoStr}${kmStr}${notaStr}`;
+
+        // Combustible va SOLO al canal de mantenimiento
+        await notificarMant(vehiculo, msgCombustible, null);
+
+        document.getElementById('modal-combustible')?.remove();
+        mostrarToast(`✅ ${litrosStr} registrados — ${vehiculo}`);
+    }
+
+    // ── MOVIMIENTO ACTIVO ──────────────────────────────────
     let movimientoActivo = null;
 
     function abrirFormMovimiento() {
-        const lugares = ['Casarapa','Palma Real','Miranda','La Parada','Castillejo','Lider CCS','Servicio General','Ozanam','CDE','Caracas','Araira','Otra dirección'];
-        const motivos = ['Vacío — sin carga','Buscar carga','Diligencia de empresa','Mantenimiento / taller','Apoyo a otro camión','Otro'];
+        _abrirModalMovimiento(null);
+    }
 
+    function _abrirModalMovimiento(kmInicial) {
         const modal = document.createElement('div');
         modal.id = 'modal-movimiento';
-        modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;';
+        modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;';
         modal.innerHTML = `
-            <div style="background:#1c1c1c;border:1px solid #ffb703;border-radius:12px;padding:20px;width:100%;max-width:380px;">
-                <div style="color:#ffb703;font-size:0.95rem;font-weight:700;margin-bottom:14px;">🚗 Registrar movimiento</div>
+            <div style="background:#1c1c1c;border:2px solid #ffb703;border-radius:14px;padding:20px;width:100%;max-width:380px;">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+                    <span style="font-size:1.2rem;">🚗</span>
+                    <span style="color:#ffb703;font-size:0.95rem;font-weight:700;">Registrar movimiento</span>
+                </div>
+                <div style="color:#555;font-size:0.75rem;margin-bottom:16px;">${choferActual?.unidad || ''} · Checklist ✅</div>
 
-                <label style="font-size:0.75rem;color:#888;display:block;margin-bottom:6px;">VEHÍCULO</label>
-                <select id="mov-vehiculo" onchange="choferActual.unidad=this.value;" style="width:100%;background:#111;border:1px solid #ffb703;color:#ffb703;border-radius:6px;padding:8px;font-size:0.85rem;margin-bottom:14px;">
-                    ${['NPR 01','NPR 02','NPR 04','Fuso 03','L300 05','Jack 06','Jack 07'].map(v => `<option value="${v}"${choferActual?.unidad === v ? ' selected' : ''}>${v}</option>`).join('')}
+                <label style="font-size:0.72rem;color:#888;display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">Vehículo</label>
+                <select id="mov-vehiculo" onchange="choferActual.unidad=this.value;" 
+                    style="width:100%;background:#111;border:1px solid #ffb703;color:#ffb703;border-radius:8px;padding:10px;font-size:0.9rem;margin-bottom:12px;">
+                    ${['NPR 01','NPR 02','NPR 04','Fuso 03','L300 05','Jack 06','Jack 07'].map(v=>`<option value="${v}"${v===choferActual?.unidad?' selected':''}>${v}</option>`).join('')}
                 </select>
 
-                <label style="font-size:0.75rem;color:#888;display:block;margin-bottom:6px;">📝 ¿A DÓNDE VAS Y POR QUÉ?</label>
+                <label style="font-size:0.72rem;color:#888;display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">🔢 KM actual (odómetro)</label>
+                <input type="number" id="mov-km" placeholder="Ej: 149500" min="0" value="${kmInicial||''}"
+                    style="width:100%;background:#111;border:1px solid #ffb703;color:#ffb703;border-radius:8px;padding:10px;font-size:0.9rem;margin-bottom:12px;">
+
+                <label style="font-size:0.72rem;color:#888;display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">📝 ¿A dónde vas y por qué?</label>
                 <div style="position:relative;margin-bottom:12px;">
                     <textarea id="mov-nota" placeholder="Ej: Saliendo de Miranda para CDE a buscar carga de charcutería..." rows="3"
-                        style="width:100%;padding:10px 42px 10px 12px;background:#111;border:1px solid #ffb703;color:#e0e0e0;border-radius:6px;font-size:0.85rem;font-family:inherit;resize:none;"></textarea>
+                        style="width:100%;padding:10px 42px 10px 12px;background:#111;border:1px solid #ffb703;color:#e0e0e0;border-radius:8px;font-size:0.88rem;font-family:inherit;resize:none;"></textarea>
                     <button type="button" onclick="usarMicrofonoMovimiento()"
                         style="position:absolute;right:8px;top:10px;background:transparent;border:none;font-size:1.4rem;cursor:pointer;">🎤</button>
                 </div>
 
-                <label style="font-size:0.75rem;color:#888;display:block;margin-bottom:6px;">📷 FOTO (opcional)</label>
+                <label style="font-size:0.72rem;color:#888;display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">📷 Foto (opcional)</label>
                 <div id="mov-foto-cont" style="margin-bottom:8px;"></div>
                 <button type="button" onclick="agregarFotoMovimiento()"
-                    style="width:100%;background:#2a1f00;color:#ffb703;border:1px solid #554400;border-radius:6px;padding:8px;font-size:0.82rem;cursor:pointer;margin-bottom:14px;">
+                    style="width:100%;background:#2a1f00;color:#ffb703;border:1px solid #554400;border-radius:8px;padding:9px;font-size:0.82rem;cursor:pointer;margin-bottom:14px;">
                     📷 Tomar / subir foto
                 </button>
 
                 <div style="display:flex;gap:8px;">
-                    <button onclick="document.getElementById('modal-movimiento').remove()" 
-                        style="flex:1;background:#2a2a2a;color:#888;border:1px solid #444;border-radius:6px;padding:10px;cursor:pointer;">Cancelar</button>
-                    <button onclick="registrarMovimiento()" 
-                        style="flex:2;background:#ffb703;color:#000;border:none;border-radius:6px;padding:10px;cursor:pointer;font-weight:700;">✅ Registrar salida</button>
+                    <button onclick="document.getElementById('modal-movimiento').remove()"
+                        style="flex:1;background:#2a2a2a;color:#888;border:1px solid #333;border-radius:8px;padding:11px;cursor:pointer;">Cancelar</button>
+                    <button onclick="registrarMovimiento()"
+                        style="flex:2;background:#ffb703;color:#000;border:none;border-radius:8px;padding:11px;cursor:pointer;font-weight:700;font-size:0.9rem;">🚗 Registrar salida</button>
                 </div>
             </div>`;
         document.body.appendChild(modal);
@@ -1280,18 +1937,22 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 
     async function registrarMovimiento() {
         const vehiculo = document.getElementById('mov-vehiculo')?.value || choferActual.unidad || '';
-        const nota = document.getElementById('mov-nota')?.value?.trim();
+        const nota     = document.getElementById('mov-nota')?.value?.trim();
+        const kmSalida = parseInt(document.getElementById('mov-km')?.value) || null;
         if (!nota) { mostrarToast('⚠️ Escribe o dicta el movimiento'); return; }
+
         const ahora = new Date();
-        const hora = ahora.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const hora  = ahora.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
+        const fecha = ahora.toISOString().slice(0,10);
+        const truck = getTruckInfo(vehiculo);
 
         // Subir foto si hay
         let fotoUrl = null;
         if (movFotoFile) {
             try {
                 const ext = movFotoFile.type === 'image/png' ? 'png' : 'jpg';
-                const nombreBase = choferActual.nombre.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-zA-Z0-9]/g,'_');
-                const nombre = `movimientos/${nombreBase}_${Date.now()}.${ext}`;
+                const nb  = choferActual.nombre.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-zA-Z0-9]/g,'_');
+                const nombre = `movimientos/${nb}_${Date.now()}.${ext}`;
                 const res = await fetch(`${SB_URL}/storage/v1/object/fotos-flota/${nombre}`, {
                     method: 'POST',
                     headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': movFotoFile.type },
@@ -1302,12 +1963,29 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
             movFotoFile = null;
         }
 
-        // Guardar movimiento activo
-        movimientoActivo = { nota, vehiculo, hora, ts: ahora.getTime() };
+        // Guardar en bitacora (salida)
+        const bitacoraId = `bit_${Date.now()}`;
+        await sbInsert('bitacora', {
+            id:         bitacoraId,
+            truck_id:   truck.id,
+            type:       'salida',
+            date:       fecha,
+            time:       hora,
+            km_out:     kmSalida,
+            notes_salida: nota,
+            fotos:      fotoUrl ? [fotoUrl] : [],
+        });
+
+        // Actualizar KM en trucks
+        if (kmSalida) await sbPatchById('trucks', truck.id, { current_km: kmSalida });
+
+        // Guardar movimiento activo con bitacoraId para cerrar al llegar
+        movimientoActivo = { nota, vehiculo, hora, ts: ahora.getTime(), kmSalida, bitacoraId };
         localStorage.setItem('movimientoActivo', JSON.stringify(movimientoActivo));
 
+        const kmStr = kmSalida ? `\n🔢 KM salida: ${kmSalida.toLocaleString()}` : '';
         await notificarDiscord(choferActual.nombre,
-            `🚗 **${choferActual.nombre.split(' ')[0]} — Salida registrada**\n🕐 ${hora} | ${vehiculo}\n💬 ${nota}`,
+            `🚗 **${choferActual.nombre.split(' ')[0]} — Salida registrada**\n🕐 ${hora} | ${vehiculo}${kmStr}\n💬 ${nota}`,
             fotoUrl, vehiculo
         );
 
@@ -1322,18 +2000,23 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 
         const banner = document.createElement('div');
         banner.id = 'banner-llegada-movimiento';
-        banner.style.cssText = 'background:#0a2e1a;border:2px solid #06d6a0;border-radius:10px;padding:12px;margin-bottom:10px;';
+        banner.style.cssText = 'background:#0a2e1a;border:2px solid #06d6a0;border-radius:12px;padding:14px;margin-bottom:10px;';
         banner.innerHTML = `
-            <div style="color:#06d6a0;font-size:0.78rem;margin-bottom:8px;">🚗 En ruta — confirma cuando llegues</div>
-            <div style="color:#e0e0e0;font-size:0.82rem;margin-bottom:10px;font-style:italic;">"${destino}"</div>
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+                <div style="width:7px;height:7px;background:#06d6a0;border-radius:50%;animation:pulse 1s infinite;"></div>
+                <span style="color:#06d6a0;font-size:0.78rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">En ruta</span>
+            </div>
+            <div style="color:#e0e0e0;font-size:0.82rem;margin-bottom:10px;font-style:italic;padding:6px;background:#0f2e1f;border-radius:6px;">"${destino}"</div>
             <div style="position:relative;margin-bottom:8px;">
                 <input id="llegada-donde" type="text" placeholder="¿Dónde llegaste? Ej: Palma Real, CDE..."
-                    style="width:100%;padding:8px 38px 8px 10px;background:#111;border:1px solid #06d6a0;color:#e0e0e0;border-radius:6px;font-size:0.82rem;font-family:inherit;">
+                    style="width:100%;padding:9px 38px 9px 10px;background:#111;border:1px solid #06d6a0;color:#e0e0e0;border-radius:8px;font-size:0.85rem;font-family:inherit;">
                 <button type="button" onclick="micLlegada()"
                     style="position:absolute;right:6px;top:50%;transform:translateY(-50%);background:transparent;border:none;font-size:1.1rem;cursor:pointer;">🎤</button>
             </div>
+            <input id="llegada-km" type="number" placeholder="🔢 KM al llegar (odómetro)" min="0"
+                style="width:100%;padding:9px 10px;background:#111;border:1px solid #06d6a0;color:#06d6a0;border-radius:8px;font-size:0.85rem;margin-bottom:10px;">
             <button onclick="registrarLlegada('${destino}', '${vehiculo}')" 
-                style="width:100%;background:#06d6a0;color:#000;border:none;border-radius:6px;padding:12px;font-size:0.9rem;font-weight:700;cursor:pointer;">
+                style="width:100%;background:#06d6a0;color:#000;border:none;border-radius:8px;padding:13px;font-size:0.92rem;font-weight:700;cursor:pointer;">
                 📍 Llegué — Confirmar
             </button>`;
 
@@ -1382,15 +2065,49 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
     }
 
     async function registrarLlegada(destino, vehiculo) {
-        const ahora = new Date();
-        const hora = ahora.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const ahora    = new Date();
+        const hora     = ahora.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
+        const fecha    = ahora.toISOString().slice(0,10);
+        const kmLlegada = parseInt(document.getElementById('llegada-km')?.value) || null;
+        const dondeInput = document.getElementById('llegada-donde')?.value?.trim();
+        const truck    = getTruckInfo(vehiculo);
 
-        // Calcular tiempo en ruta
+        // Calcular tiempo en ruta y KM recorridos
         let tiempoRuta = '';
+        let kmStr = '';
         const movGuardado = movimientoActivo || JSON.parse(localStorage.getItem('movimientoActivo') || 'null');
         if (movGuardado) {
             const diffMin = Math.round((ahora.getTime() - movGuardado.ts) / 60000);
-            if (diffMin > 0) tiempoRuta = `\n🛣️ Tiempo en ruta: ${diffMin} min`;
+            if (diffMin > 0) tiempoRuta = `\n⏱️ Tiempo en ruta: ${diffMin} min`;
+            if (kmLlegada && movGuardado.kmSalida) {
+                const rec = kmLlegada - movGuardado.kmSalida;
+                if (rec > 0) kmStr = `\n🔢 ${movGuardado.kmSalida.toLocaleString()} → ${kmLlegada.toLocaleString()} km (${rec} recorridos)`;
+            } else if (kmLlegada) {
+                kmStr = `\n🔢 KM llegada: ${kmLlegada.toLocaleString()}`;
+            }
+
+            // Cerrar registro en bitacora
+            if (movGuardado.bitacoraId) {
+                await sbPatchById('bitacora', movGuardado.bitacoraId, {
+                    km_in: kmLlegada,
+                    notes_in: dondeInput || null,
+                });
+            } else {
+                // Si no hay bitacoraId (movimiento previo sin el nuevo sistema), crear entrada
+                await sbInsert('bitacora', {
+                    id:      `bit_${Date.now()}`,
+                    truck_id: truck.id,
+                    type:    'entrada',
+                    date:    fecha,
+                    time:    hora,
+                    km_in:   kmLlegada,
+                    notes_in: dondeInput || destino || null,
+                });
+            }
+
+            // Actualizar KM en trucks
+            if (kmLlegada) await sbPatchById('trucks', truck.id, { current_km: kmLlegada });
+
             movimientoActivo = null;
             localStorage.removeItem('movimientoActivo');
         }
@@ -1400,8 +2117,8 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
         if (llegadaFotoFile) {
             try {
                 const ext = llegadaFotoFile.type === 'image/png' ? 'png' : 'jpg';
-                const nombreBase = choferActual.nombre.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-zA-Z0-9]/g,'_');
-                const nombre = `movimientos/${nombreBase}_llegada_${Date.now()}.${ext}`;
+                const nb  = choferActual.nombre.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-zA-Z0-9]/g,'_');
+                const nombre = `movimientos/${nb}_llegada_${Date.now()}.${ext}`;
                 const res = await fetch(`${SB_URL}/storage/v1/object/fotos-flota/${nombre}`, {
                     method: 'POST',
                     headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': llegadaFotoFile.type },
@@ -1412,16 +2129,15 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
             llegadaFotoFile = null;
         }
 
-        const dondeInput = document.getElementById('llegada-donde')?.value?.trim();
-        const dondeStr = dondeInput ? `\n📍 Llegó a: ${dondeInput}` : '';
-        const notaOrigen = movGuardado?.nota ? `\n🚗 Venía: ${movGuardado.nota}` : '';
+        const dondeStr   = dondeInput ? `\n📍 Llegó a: ${dondeInput}` : '';
+        const origenStr  = movGuardado?.nota ? `\n🚗 Venía: ${movGuardado.nota}` : '';
         await notificarDiscord(choferActual.nombre,
-            `📍 **${choferActual.nombre.split(' ')[0]} — Llegada confirmada**\n🕐 ${hora} | ${vehiculo}${tiempoRuta}${dondeStr}${notaOrigen}`,
+            `📍 **${choferActual.nombre.split(' ')[0]} — Llegada confirmada**\n🕐 ${hora} | ${vehiculo}${tiempoRuta}${kmStr}${dondeStr}${origenStr}`,
             fotoUrl, vehiculo
         );
 
         document.getElementById('banner-llegada-movimiento')?.remove();
-        mostrarToast(`✅ Llegada registrada en ${destino}`);
+        mostrarToast('✅ Llegada registrada');
     }
 
     function abrirFormRecogida() {
