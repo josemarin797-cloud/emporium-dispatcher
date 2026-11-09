@@ -8,24 +8,7 @@
 <title>Emporium — Mis Entregas</title>
 <link rel="manifest" href="/manifest-chofer.json">
 <meta name="theme-color" content="#ffb703">
-<script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
-<script>
-  window.OneSignalDeferred = window.OneSignalDeferred || [];
-  OneSignalDeferred.push(async function(OneSignal) {
-    await OneSignal.init({
-      appId: "4b7c6ad7-ef30-44eb-8847-c42f1529a48f",
-      notifyButton: { enable: false },
-      allowLocalhostAsSecureOrigin: true,
-    });
-    // Registrar el chofer con su nombre como external_id
-    const guardado = localStorage.getItem('emp_chofer');
-    if (guardado) {
-      const chofer = JSON.parse(guardado);
-      const extId = chofer.nombre.toLowerCase().replace(/\s+/g, '_');
-      await OneSignal.login(extId);
-    }
-  });
-</script>
+
 <style>
 :root {
     --bg: #0f0f0f;
@@ -310,14 +293,11 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
     <div class="content">
         <div class="dia-label" id="dia-label">—</div>
 
-        <button onclick="abrirFormCDE()" style="width:100%;background:#1a1a2e;color:#7c9ff5;border:1px solid #3a5aad;border-radius:8px;padding:10px;font-size:0.85rem;font-weight:700;cursor:pointer;margin-bottom:6px;">
-            📋 Registrar carga CDE
+        <button onclick="abrirFormSalida()" style="width:100%;background:#1a2e1a;color:#39d353;border:2px solid #39d353;border-radius:10px;padding:14px;font-size:0.95rem;font-weight:900;cursor:pointer;margin-bottom:6px;">
+            🚗 Registrar salida
         </button>
-        <button onclick="abrirFormRecogida()" style="width:100%;background:#1a2e1a;color:#06d6a0;border:1px solid #06d6a0;border-radius:8px;padding:10px;font-size:0.85rem;font-weight:700;cursor:pointer;margin-bottom:6px;">
-            📦 Registrar recogida
-        </button>
-        <button onclick="abrirFormMovimiento()" style="width:100%;background:#2e1a00;color:#ffb703;border:1px solid #ffb703;border-radius:8px;padding:10px;font-size:0.85rem;font-weight:700;cursor:pointer;margin-bottom:10px;">
-            🚗 Registrar movimiento
+        <button onclick="abrirFormCombustible()" style="width:100%;background:#2e1500;color:#ff6b00;border:1px solid #ff6b00;border-radius:8px;padding:10px;font-size:0.85rem;font-weight:700;cursor:pointer;margin-bottom:10px;">
+            ⛽ Surtir combustible
         </button>
 
         <div class="stats-row">
@@ -346,24 +326,52 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
     const SB_KEY = 'sb_publishable_10TgLdGmmcHccAqJu2JLiw_zyYgKT_M';
 
     const DISCORD_WEBHOOKS_CHOFER = {
-        'Darwin Serrano':    'https://discord.com/api/webhooks/1502385562844139627/ZXLNCWCxD_CChv_s1P9Bj0D4RlcaLhyOQeCnjwstB7LrLxvzjOL9N1nZh0mKvNLo4zkb',
-        'Daniel Subero':     'https://discord.com/api/webhooks/1502381757486338068/LZM4F-lSvlcTL-UiDpsu-8Cj3pn4x51YdQk6bTvpfsqZvVJsybjygo9AjZD2g-eY9pRu',
-        'Richard Hernandez': 'https://discord.com/api/webhooks/1502384852001886358/mNtpqadkHNu3qMYhLNGV_RFQ1Ju_PSFLt7GJNzRJ3cS7of5NGH0da_xLNj1tGfNlSIDz',
-        'Willmer Fernández': 'https://discord.com/api/webhooks/1502385224175063082/oUu-T5-mVatGrCJa_vlFtG6e1mZtZN9BwIf_JVXCjq4NRGWs_zyHPVwdg6LXccMq1LpU',
-        'Jackson Hernandez': 'https://discord.com/api/webhooks/1502385365305000058/syirI93eXxrKposvFYj21DbWChBoy0KtEXkz10ZtKTHzYCVuRu50Tw7DWUj08LEEBDt2',
-        'Jesús Lara':        'https://discord.com/api/webhooks/1502385365305000058/syirI93eXxrKposvFYj21DbWChBoy0KtEXkz10ZtKTHzYCVuRu50Tw7DWUj08LEEBDt2',
-        'Néstor Daniel':     'https://discord.com/api/webhooks/1502385365305000058/syirI93eXxrKposvFYj21DbWChBoy0KtEXkz10ZtKTHzYCVuRu50Tw7DWUj08LEEBDt2'
+        'Néstor Daniel':     'https://discord.com/api/webhooks/1569418899844243536/RAHZctWv4tf18u8gdmg34vDOnu2avRNtS-zL-Na0f9pMMR2rfWtGATL0RrN9xTGxJAqM',
+        'Daniel Subero':     'https://discord.com/api/webhooks/1569419025757249707/GjL6yeL58duZEVbThMgvkzOjf1phMY5FhBbLBMXokwDx6xH9JEIuqwX7iuDOAOcwHZ8Y',
+        'Richard Hernandez': 'https://discord.com/api/webhooks/1569419161480732794/9cvYxMX13if4IBBlL4yE8bM196bD2X7IK6E3IratGc3JkiqjH6EFmYTFfXa5dqfwkaLT',
+        'Willmer Fernández': 'https://discord.com/api/webhooks/1569419270259998864/xQqWLgScbNj9qjUCsZhl0CD-6Wa-oHiUs9SKju7a25aPfEs4Ujspc4qu_w8bX7oZRGfn',
+        'Jackson Hernandez': 'https://discord.com/api/webhooks/1564714324717469787/QEzxAvDQ5INfzKjSZBQQgZmxc6wa5O13lG9xAx8ChfCss6yXSkuuWCCY_6Gx5GEZox8m',
+        'Jesús Lara':        'https://discord.com/api/webhooks/1569419475252416705/Hh59WkS7ErxyMcxT1ZaJTiO2bomdwGM3C1OODQvESX510luVONhMmhW0TZ6SlMTA5zba',
+        'Darwin Serrano':    'https://discord.com/api/webhooks/1569419161480732794/9cvYxMX13if4IBBlL4yE8bM196bD2X7IK6E3IratGc3JkiqjH6EFmYTFfXa5dqfwkaLT',
+        'Jose Marin':        'https://discord.com/api/webhooks/1569418899844243536/RAHZctWv4tf18u8gdmg34vDOnu2avRNtS-zL-Na0f9pMMR2rfWtGATL0RrN9xTGxJAqM',
     };
 
     const DISCORD_WEBHOOKS_VEHICULO = {
-        'NPR 01':  'https://discord.com/api/webhooks/1502381757486338068/LZM4F-lSvlcTL-UiDpsu-8Cj3pn4x51YdQk6bTvpfsqZvVJsybjygo9AjZD2g-eY9pRu',
-        'NPR 02':  'https://discord.com/api/webhooks/1502384852001886358/mNtpqadkHNu3qMYhLNGV_RFQ1Ju_PSFLt7GJNzRJ3cS7of5NGH0da_xLNj1tGfNlSIDz',
-        'NPR 04':  'https://discord.com/api/webhooks/1502385562844139627/ZXLNCWCxD_CChv_s1P9Bj0D4RlcaLhyOQeCnjwstB7LrLxvzjOL9N1nZh0mKvNLo4zkb',
-        'Fuso 03': 'https://discord.com/api/webhooks/1502385224175063082/oUu-T5-mVatGrCJa_vlFtG6e1mZtZN9BwIf_JVXCjq4NRGWs_zyHPVwdg6LXccMq1LpU',
-        'L300 05': 'https://discord.com/api/webhooks/1502385365305000058/syirI93eXxrKposvFYj21DbWChBoy0KtEXkz10ZtKTHzYCVuRu50Tw7DWUj08LEEBDt2',
-        'Jack 06': 'https://discord.com/api/webhooks/1562565834248032278/oUWkGCXE-1hwH2f3R_BRuzFLWNbvyCafaxSEXa6KT6jDt8u8yww51CquFGUcIwCq0iIk',
-        'Jack 07': 'https://discord.com/api/webhooks/1562566225316290640/IYW_INAJYOnz997hFvOFtcqlZOVGrM-4za_uhzqjcaZhS2PcIkmgM9mRboF5yegj3X1A'
+        'NPR 04':  'https://discord.com/api/webhooks/1569418899844243536/RAHZctWv4tf18u8gdmg34vDOnu2avRNtS-zL-Na0f9pMMR2rfWtGATL0RrN9xTGxJAqM',
+        'NPR 01':  'https://discord.com/api/webhooks/1569419025757249707/GjL6yeL58duZEVbThMgvkzOjf1phMY5FhBbLBMXokwDx6xH9JEIuqwX7iuDOAOcwHZ8Y',
+        'NPR 02':  'https://discord.com/api/webhooks/1569419161480732794/9cvYxMX13if4IBBlL4yE8bM196bD2X7IK6E3IratGc3JkiqjH6EFmYTFfXa5dqfwkaLT',
+        'Fuso 03': 'https://discord.com/api/webhooks/1569419270259998864/xQqWLgScbNj9qjUCsZhl0CD-6Wa-oHiUs9SKju7a25aPfEs4Ujspc4qu_w8bX7oZRGfn',
+        'L300 05': 'https://discord.com/api/webhooks/1569419475252416705/Hh59WkS7ErxyMcxT1ZaJTiO2bomdwGM3C1OODQvESX510luVONhMmhW0TZ6SlMTA5zba',
+        'Jack 06': 'https://discord.com/api/webhooks/1564714324717469787/QEzxAvDQ5INfzKjSZBQQgZmxc6wa5O13lG9xAx8ChfCss6yXSkuuWCCY_6Gx5GEZox8m',
+        'Jack 07': 'https://discord.com/api/webhooks/1564714456716546159/nEGGVa_-EoOqnpGVY1g8O9_qnQHyVq-lKYdPh4hMSUcn_LcUG2mUSCrwVt4GuhGNP0rW',
     };
+
+
+    const DISCORD_WEBHOOKS_MANT = {
+        'NPR 01':  'https://discord.com/api/webhooks/1564713475392151612/qvLuhGTmT_A4OAKzUQlounyFs5QTqS99Shl-88L0OQn-iXHzb2Y4GKrp-SjKgqf-xXFn',
+        'NPR 02':  'https://discord.com/api/webhooks/1564714004893401292/nWYtp5cK9i7DF8vRou8P5y6FkAfJnQqjuJlWpvn3O7mjLv1nrF6eisy8R0DNAdFIVwJX',
+        'NPR 04':  'https://discord.com/api/webhooks/1564713475392151612/qvLuhGTmT_A4OAKzUQlounyFs5QTqS99Shl-88L0OQn-iXHzb2Y4GKrp-SjKgqf-xXFn',
+        'Fuso 03': 'https://discord.com/api/webhooks/1564714152658866427/CxbyRY1qXQ2N6jVmsJPvvWuRzSchcY8CdpUVoESTnpFgnyL7A783FeZ6ECOZxaBuB3H0',
+        'L300 05': 'https://discord.com/api/webhooks/1564714004893401292/nWYtp5cK9i7DF8vRou8P5y6FkAfJnQqjuJlWpvn3O7mjLv1nrF6eisy8R0DNAdFIVwJX',
+        'Jack 06': 'https://discord.com/api/webhooks/1564714324717469787/QEzxAvDQ5INfzKjSZBQQgZmxc6wa5O13lG9xAx8ChfCss6yXSkuuWCCY_6Gx5GEZox8m',
+        'Jack 07': 'https://discord.com/api/webhooks/1564714456716546159/nEGGVa_-EoOqnpGVY1g8O9_qnQHyVq-lKYdPh4hMSUcn_LcUG2mUSCrwVt4GuhGNP0rW',
+    };
+
+    async function notificarMant(vehiculo, mensaje, fotoUrl) {
+        const webhook = DISCORD_WEBHOOKS_MANT[vehiculo];
+        if (!webhook) return;
+        try {
+            if (fotoUrl) {
+                const form = new FormData();
+                form.append('payload_json', JSON.stringify({ content: mensaje }));
+                const blob = await fetch(fotoUrl).then(r => r.blob()).catch(() => null);
+                if (blob) form.append('file', blob, 'falla.jpg');
+                await fetch(webhook, { method: 'POST', body: form });
+            } else {
+                await fetch(webhook, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content: mensaje }) });
+            }
+        } catch(e) {}
+    }
 
     async function notificarDiscord(chofer, mensaje, fotoUrl, vehiculo = null) {
         // Usar webhook por vehículo siempre — si no hay vehículo, usar el del chofer
@@ -371,20 +379,19 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
         const webhook = DISCORD_WEBHOOKS_VEHICULO[veh] || DISCORD_WEBHOOKS_CHOFER[chofer];
         if (!webhook) return;
         try {
-            const body = {
-                username: '🚛 Emporium Flota',
-                embeds: [{
-                    description: mensaje,
-                    color: 0xFFB703,
-                    timestamp: new Date().toISOString(),
-                    image: fotoUrl ? { url: fotoUrl } : undefined
-                }]
-            };
-            await fetch(webhook, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body)
-            });
+            if (fotoUrl) {
+                const form = new FormData();
+                form.append('payload_json', JSON.stringify({ content: mensaje }));
+                const blob = await fetch(fotoUrl).then(r => r.blob()).catch(() => null);
+                if (blob) form.append('file', blob, 'foto.jpg');
+                await fetch(webhook, { method: 'POST', body: form });
+            } else {
+                await fetch(webhook, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content: mensaje })
+                });
+            }
         } catch(e) { console.log('Discord webhook error:', e); }
     }
 
@@ -510,8 +517,8 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
         // Bienvenida por voz
         setTimeout(() => hablarBienvenida(chofer.nombre.split(' ')[0]), 800);
 
-        // Mostrar decálogo
         mostrarDecalogo(chofer.nombre.split(' ')[0]);
+        setTimeout(() => abrirChecklistEntrada(chofer.unidad || 'NPR 01'), 4000);
     }
 
     function entrarConChofer(chofer) {
@@ -532,6 +539,8 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
         mostrarToast(`👋 Bienvenido, ${chofer.nombre.split(' ')[0]}`);
         setTimeout(() => hablarBienvenida(chofer.nombre.split(' ')[0]), 800);
         mostrarDecalogo(chofer.nombre.split(' ')[0]);
+        // Lanzar checklist 4 segundos después de entrar (da tiempo al decálogo)
+        setTimeout(() => abrirChecklistEntrada(chofer.unidad || 'NPR 01'), 4000);
         // Restaurar movimiento activo
         const movGuardado = localStorage.getItem('movimientoActivo');
         if (movGuardado) {
@@ -618,7 +627,7 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
         window.speechSynthesis.speak(msg);
     }
 
-    function mostrarDecalogo(nombre) {
+    function mostrarDecalogo(nombre, onClose) {
         const todosPuntos = [
             '📋 Revisa tu boleta completa antes de salir — verifica sucursales, departamentos y prioridades.',
             '📦 Al recoger, toma foto de cada departamento por separado — sin foto no hay evidencia.',
@@ -656,12 +665,21 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
                             <span style="color:#ccc;font-size:0.78rem;line-height:1.4;">${p}</span>
                         </div>`).join('')}
                 </div>
-                <button onclick="document.getElementById('modal-decalogo').remove()" 
+                <button onclick="cerrarDecalogo()" 
                     style="width:100%;background:#ffb703;color:#000;border:none;border-radius:8px;padding:12px;font-weight:700;font-size:0.9rem;cursor:pointer;">
-                    ✅ Entendido
+                    ✅ Entendido — Continuar
                 </button>
             </div>`;
         document.body.appendChild(modal);
+        window._decalogoCallback = onClose;
+    }
+
+    function cerrarDecalogo() {
+        const modal = document.getElementById('modal-decalogo');
+        const cb = window._decalogoCallback;
+        window._decalogoCallback = null;
+        if (modal) modal.remove();
+        if (typeof cb === 'function') setTimeout(cb, 300);
     }
 
     // Sonido de alerta para urgentes
@@ -1012,7 +1030,11 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
                             const orden = si + 1;
                             const contId = `cont_${uid}`;
                             // Departamentos que van a esta sucursal
-                            const dptosSuc = (e.items || []).filter(it => !it.cancelado).map(it => it.dpto).filter(Boolean);
+                            // Departamentos específicos de esta sucursal (nuevo sistema) o todos (sistema antiguo)
+                            const dptosPorSuc = (e.prioSuc && e.prioSuc[suc+'_dptos']) || [];
+                            const dptosSuc = dptosPorSuc.length > 0 
+                                ? dptosPorSuc 
+                                : (e.items || []).filter(it => !it.cancelado).map(it => it.dpto).filter(Boolean);
                             const dptosHtml = dptosSuc.length > 0 
                                 ? `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px;">${dptosSuc.map(d => `<span style="background:#2a1f00;color:#ffb703;border:1px solid #554400;border-radius:4px;padding:2px 8px;font-size:0.72rem;">${d}</span>`).join('')}</div>`
                                 : '';
@@ -1026,30 +1048,7 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
                                 ${notaSuc ? `<div style="background:#111;border:1px solid #333;border-radius:6px;padding:6px 10px;margin-bottom:6px;font-size:0.8rem;color:#aaa;">📝 ${notaSuc}</div>` : ''}
                                 ${fotoProducto ? `<div style="margin-bottom:8px;"><div style="font-size:0.72rem;color:#888;margin-bottom:4px;">📷 Foto del producto:</div><img src="${fotoProducto}" style="width:100%;border-radius:6px;max-height:150px;object-fit:cover;border:1px solid #333;"></div>` : ''}
                                 ${mapsSuc ? `<a href="${mapsSuc}" target="_blank" style="display:block;background:#0a2e1a;border:1px solid #06d6a0;border-radius:6px;padding:7px;text-align:center;color:#06d6a0;font-size:0.82rem;font-weight:700;text-decoration:none;margin-bottom:8px;">🗺️ Abrir en Google Maps</a>` : ''}
-                                <div style="display:flex;gap:6px;margin-bottom:8px;">
-                                    <div style="flex:1;position:relative;">
-                                        <input id="sal_${uid}" type="text" placeholder="🚗 Saliendo para ${suc}..."
-                                            style="width:100%;padding:7px 32px 7px 8px;background:#111;border:1px solid #333;color:#ccc;border-radius:6px;font-size:0.78rem;font-family:inherit;">
-                                        <button type="button" onclick="enviarNotaSaliendo('sal_${uid}', '${b.id}', '${suc}')"
-                                            style="position:absolute;right:4px;top:50%;transform:translateY(-50%);background:transparent;border:none;font-size:1rem;cursor:pointer;" title="Enviar nota saliendo">🎤</button>
-                                    </div>
-                                    <button onclick="enviarNotaSalidaDirecta('sal_${uid}', '${b.id}', '${suc}')"
-                                        style="background:#1a1a2e;color:#7c9ff5;border:1px solid #3a5aad;border-radius:6px;padding:6px 10px;font-size:0.75rem;cursor:pointer;white-space:nowrap;">
-                                        ▶ Enviar
-                                    </button>
-                                </div>
-                                <div style="display:flex;gap:6px;margin-bottom:8px;">
-                                    <div style="flex:1;position:relative;">
-                                        <input id="nota_${uid}" type="text" placeholder="📍 Llegando a ${suc}..."
-                                            style="width:100%;padding:7px 32px 7px 8px;background:#111;border:1px solid #333;color:#ccc;border-radius:6px;font-size:0.78rem;font-family:inherit;">
-                                        <button type="button" onclick="usarMicrofonoNota2('nota_${uid}')"
-                                            style="position:absolute;right:4px;top:50%;transform:translateY(-50%);background:transparent;border:none;font-size:1rem;cursor:pointer;" title="Dictar llegando">🎤</button>
-                                    </div>
-                                    <button onclick="enviarNotaLlegandoDirecta('nota_${uid}', '${b.id}', '${suc}')"
-                                        style="background:#1a2e1a;color:#06d6a0;border:1px solid #06d6a0;border-radius:6px;padding:6px 10px;font-size:0.75rem;cursor:pointer;white-space:nowrap;">
-                                        ▶ Enviar
-                                    </button>
-                                </div>
+
                                 <div style="display:flex;gap:6px;margin-bottom:8px;">
                                     <button onclick="abrirTrasbordoSucursal('${b.id}', ${e.num}, '${suc}', '${recoge}')"
                                         style="flex:1;background:#1a1a2e;color:#7c9ff5;border:1px solid #3a5aad;border-radius:6px;padding:8px;font-size:0.78rem;cursor:pointer;font-weight:600;">
@@ -1060,27 +1059,9 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
                                         🗑️
                                     </button>
                                 </div>
-                                <select id="nov_${uid}" onchange="toggleNovedad('${uid}')"
-                                    style="width:100%;padding:8px;background:#111;border:1px solid #333;color:#ccc;border-radius:6px;font-size:0.82rem;margin-bottom:6px;">
-                                    <option value="">✅ Sin novedad en la entrega</option>
-                                    <option value="novedad">⚠️ Hubo una novedad</option>
-                                </select>
-                                <div style="display:none;position:relative;margin-bottom:8px;" id="nov-cont-${uid}">
-                                    <input id="${uid}" type="text" placeholder="Describe la novedad..."
-                                        style="width:100%;padding:8px 38px 8px 10px;background:#111;border:1px solid #f77f00;color:#ccc;border-radius:6px;font-size:0.82rem;font-family:inherit;">
-                                    <button type="button" onclick="usarMicrofono('${uid}')"
-                                        style="position:absolute;right:6px;top:50%;transform:translateY(-50%);background:transparent;border:none;font-size:1.1rem;cursor:pointer;" title="Dictar con micrófono">🎤</button>
+                                <div style="background:#0a1a0a;border:1px solid #1a4a1a;border-radius:6px;padding:8px;font-size:0.75rem;color:#555;text-align:center;">
+                                    Usa el banner <strong style="color:#06d6a0;">Llegué — Confirmar</strong> para registrar la entrega
                                 </div>
-                                <button onclick="
-                                        if(this.disabled) return;
-                                        this.disabled=true;
-                                        const c = document.getElementById('${contId}');
-                                        if(c) c.style.display='none';
-                                        const notaRapida = (document.getElementById('nota_${uid}')?.value||'').trim();
-                                        confirmarSucursalConNota('${b.id}', ${e.num}, '${suc}', document.getElementById('${uid}')?.value||'', notaRapida);"
-                                    style="width:100%;background:#06d6a0;color:#000;border:none;border-radius:6px;padding:10px;font-size:0.85rem;font-weight:700;cursor:pointer;">
-                                    ✅ Confirmar entrega
-                                </button>
                             </div>`;
                         }
                     }).join('');
@@ -1114,10 +1095,7 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
                     } else {
                         return `<div style="display:flex;align-items:center;justify-content:space-between;background:#1c1c1c;border:1px solid #444;border-radius:8px;padding:10px 14px;margin-top:8px;">
                             <span style="color:#ccc;font-size:0.85rem;">📍 ${suc}</span>
-                            <button onclick="confirmarSucursal('${b.id}', 1, '${suc}')"
-                                style="background:#06d6a0;color:#000;border:none;border-radius:6px;padding:6px 14px;font-size:0.8rem;font-weight:700;cursor:pointer;">
-                                Entregar
-                            </button>
+                            <span style="color:#555;font-size:0.72rem;">Usa "Llegué — Confirmar"</span>
                         </div>`;
                     }
                 }).join('');
@@ -1180,6 +1158,13 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
         });
         document.getElementById('s-pend').textContent = sucPend;
         document.getElementById('s-entg').textContent = sucEntg;
+
+        // Limpiar banner EN RUTA si no hay boletas pendientes
+        if (sucPend === 0 && document.getElementById('banner-llegada-movimiento')) {
+            document.getElementById('banner-llegada-movimiento').remove();
+            movimientoActivo = null;
+            localStorage.removeItem('movimientoActivo');
+        }
     }
 
     const fotosRecogida = {};
@@ -1204,47 +1189,1081 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
     const SUCURSALES_CDE = ['Casarapa','Palma Real','Miranda','La Parada','Castillejo','Lider CCS','Servicio General','Ozanam'];
 
     // Registro de movimiento activo
+    // ── Rendimiento de vehículos (km por litro) ───────────
+    const RENDIMIENTO_VEHICULOS = {
+        'NPR 01':  4.5,
+        'NPR 02':  4.5,
+        'NPR 04':  4.5,
+        'Fuso 03': 3.8,
+        'L300 05': 10.0,
+        'Jack 06': 3.5,
+        'Jack 07': 3.5,
+    };
+
+    // ── KM Global del vehículo ────────────────────────────
+    let _kmActual = null; // Se precarga del checklist y se actualiza en cada salida/llegada
+
+    function getKmActual() {
+        if (_kmActual) return _kmActual;
+        const guardado = localStorage.getItem('km_actual');
+        return guardado ? parseInt(guardado) : null;
+    }
+
+    function setKmActual(km) {
+        if (!km) return;
+        _kmActual = km;
+        localStorage.setItem('km_actual', km);
+        // Actualizar todos los campos de KM visibles
+        ['cde-km','rec-km','mov-km','chk-km','comb-km','llegada-km'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el && !el.value) el.value = km;
+        });
+    }
+
+    // ── Mapas de IDs Supabase ──────────────────────────────
+    const DRIVER_IDS = {
+        'Jose Marin':        'd_1779379366806',
+        'Daniel Subero':     'd1',
+        'Jackson Hernandez': 'd2',
+        'Willmer Fernandez': 'd3',
+        'Richard Hernandez': 'd4',
+        'Darwin Serrano':    'd5',
+        'Nestor Daniel':     'd6',
+        'Jesus Lara':        'd7',
+    };
+    const TRUCK_IDS = {
+        'NPR 01':  { id: 'npr01',  plate: 'A91BF8M'  },
+        'NPR 02':  { id: 'npr02',  plate: 'A21AM9G'  },
+        'NPR 04':  { id: 'npr04',  plate: 'A15AM5G'  },
+        'Fuso 03': { id: 'fuso03', plate: 'A374J01'  },
+        'L300 05': { id: 'l300',   plate: 'A15BP7M'  },
+        'Jack 06': { id: 'jack06', plate: 'A88ET1M'  },
+        'Jack 07': { id: 'jack07', plate: 'A80ET6M'  },
+    };
+    function getDriverId()  { return DRIVER_IDS[choferActual?.nombre] || choferActual?.nombre || ''; }
+    function getTruckInfo(v){ return TRUCK_IDS[v] || { id: v, plate: '' }; }
+
+    // ── Escritura genérica a Supabase ──────────────────────
+    async function sbInsert(table, data) {
+        try {
+            await fetch(`${SB_URL}/rest/v1/${table}`, {
+                method: 'POST',
+                headers: {
+                    'apikey': SB_KEY,
+                    'Authorization': `Bearer ${SB_KEY}`,
+                    'Content-Type': 'application/json',
+                    'Prefer': 'return=minimal'
+                },
+                body: JSON.stringify(data)
+            });
+        } catch(e) { console.warn('sbInsert error:', e); }
+    }
+    async function sbPatchById(table, id, data) {
+        try {
+            await fetch(`${SB_URL}/rest/v1/${table}?id=eq.${id}`, {
+                method: 'PATCH',
+                headers: {
+                    'apikey': SB_KEY,
+                    'Authorization': `Bearer ${SB_KEY}`,
+                    'Content-Type': 'application/json',
+                    'Prefer': 'return=minimal'
+                },
+                body: JSON.stringify(data)
+            });
+        } catch(e) { console.warn('sbPatch error:', e); }
+    }
+
+    // ── CHECKLIST ──────────────────────────────────────────
+    const CHECKLIST_ITEMS = [
+        // SEGURIDAD
+        { id: 'frenos',   group: 'seguridad', label: 'Sistema de frenos',            ok: 'bien',      warn: 'revisar',    bad: 'crítico',     warnBtn: 'R', badBtn: 'C' },
+        { id: 'neumat',   group: 'seguridad', label: 'Neumáticos',                   ok: 'bien',      warn: 'revisar',    bad: 'crítico',     warnBtn: 'R', badBtn: 'C' },
+        { id: 'luces_d',  group: 'seguridad', label: 'Luces delanteras',             ok: 'bien',      warn: 'revisar',    bad: 'roto',        warnBtn: 'R', badBtn: 'R' },
+        { id: 'luces_t',  group: 'seguridad', label: 'Luces traseras (freno + stop)',ok: 'bien',      warn: 'revisar',    bad: 'roto',        warnBtn: 'R', badBtn: 'R' },
+        { id: 'direcc',   group: 'seguridad', label: 'Direccionales',                ok: 'bien',      warn: 'revisar',    bad: 'roto',        warnBtn: 'R', badBtn: 'R' },
+        // MECÁNICA Y NIVELES
+        { id: 'aceite',   group: 'mecanica',  label: 'Nivel de aceite',              ok: 'bien',      warn: 'falta',      bad: 'crítico',     warnBtn: 'F', badBtn: 'C' },
+        { id: 'agua',     group: 'mecanica',  label: 'Nivel de agua / refrigerante', ok: 'bien',      warn: 'bajo',       bad: 'vacío',       warnBtn: 'B', badBtn: 'V' },
+        { id: 'combus',   group: 'mecanica',  label: 'Combustible',                  ok: 'full',      warn: '½ tanque',   bad: '¼ tanque',    warnBtn: '½', badBtn: '¼', noFalla: true },
+        { id: 'espejos',  group: 'mecanica',  label: 'Espejos retrovisores',         ok: 'bien',      warn: 'sucios',     bad: 'rotos',       warnBtn: 'S', badBtn: 'R' },
+        { id: 'limpia',   group: 'mecanica',  label: 'Limpiaparabrisas',             ok: 'bien',      warn: 'revisar',    bad: 'no funciona', warnBtn: 'R', badBtn: 'N' },
+        { id: 'bocina',   group: 'mecanica',  label: 'Bocina / claxon',              ok: 'bien',      warn: 'débil',      bad: 'no suena',    warnBtn: 'D', badBtn: 'N' },
+        { id: 'fugas',    group: 'mecanica',  label: 'Fugas visibles',               ok: 'sin fugas', warn: 'pequeña',    bad: 'grave',       warnBtn: 'P', badBtn: 'G' },
+        // DOCUMENTOS
+        { id: 'licencia', group: 'docs',      label: 'Licencia de conducir',         ok: 'vigente',   warn: 'por vencer', bad: 'vencida',     warnBtn: 'V', badBtn: 'V', noFalla: true },
+        { id: 'docs_veh', group: 'docs',      label: 'Documentos del vehículo',      ok: 'vigentes',  warn: 'por vencer', bad: 'vencidos',    warnBtn: 'V', badBtn: 'V', noFalla: true },
+    ];
+    const CHK_GROUPS = {
+        seguridad: { label: 'SEGURIDAD',          color: '#ef4444' },
+        mecanica:  { label: 'MECÁNICA Y NIVELES', color: '#f59e0b' },
+        docs:      { label: 'DOCUMENTOS',         color: '#3b82f6' },
+    };
+    let _chkFotoFile = null;
+    let _chkFirmaCanvas = null;
+    let _chkEstados = {}; // {itemId: 'ok'|'warn'|'bad'}
+
+    function abrirChecklistEntrada(vehiculo) {
+        // Verificar si ya hizo el checklist hoy
+        const fecha = new Date().toISOString().slice(0,10);
+        const yaHecho = localStorage.getItem(`chk_hecho_${choferActual?.nombre}_${fecha}`);
+        if (yaHecho) {
+            mostrarToast('✅ Checklist de hoy ya completado');
+            return;
+        }
+        // Checklist al entrar — no tiene cancelar, es obligatorio
+        _abrirChecklistModal(vehiculo, false, null);
+    }
+
+    function abrirChecklist(vehiculo, onComplete) {
+        // Checklist desde movimiento — tiene cancelar
+        _abrirChecklistModal(vehiculo, true, onComplete);
+    }
+
+    function _abrirChecklistModal(vehiculo, cancelable, onComplete) {
+        if (document.getElementById('modal-checklist')) return;
+        _chkFotoFile = null;
+        _chkFirmaCanvas = null;
+        _chkEstados = {};
+
+        const grupos = ['seguridad','mecanica','docs'];
+        const itemsHTML = grupos.map(g => {
+            const gitems = CHECKLIST_ITEMS.filter(i => i.group === g);
+            const gc = CHK_GROUPS[g];
+            return `
+                <div style="font-size:0.68rem;font-weight:700;color:${gc.color};text-transform:uppercase;letter-spacing:0.8px;margin:14px 0 6px;">● ${gc.label}</div>
+                ${gitems.map(item => `
+                    <div id="chk-row-${item.id}" style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;margin-bottom:6px;display:flex;align-items:center;gap:8px;">
+                        <div style="flex:1;">
+                            <div style="font-size:0.85rem;font-weight:600;color:#1c1917;">${item.label}</div>
+                            <div style="font-size:0.72rem;margin-top:2px;">
+                                <span style="color:#39d353;">${item.ok}</span> &nbsp;
+                                <span style="color:#f59e0b;">${item.warn}</span> &nbsp;
+                                <span style="color:#ef4444;">${item.bad}</span>
+                            </div>
+                        </div>
+                        <div style="display:flex;gap:4px;flex-shrink:0;">
+                            <button onclick="chkSetEstado('${item.id}','ok','${item.ok}')"   id="chk-ok-${item.id}"
+                                style="width:28px;height:28px;border-radius:6px;border:1.5px solid #d1d5db;background:#fff;font-size:0.7rem;font-weight:700;color:#6b7280;cursor:pointer;">${item.id === 'combus' ? 'F' : '📷'}</button>
+                            ${item.id === 'combus' ? `<button onclick="chkSetEstado('combus','tres4','¾ tanque')" id="chk-tres4-combus"
+                                style="width:28px;height:28px;border-radius:6px;border:1.5px solid #d1d5db;background:#fff;font-size:0.72rem;font-weight:700;color:#6b7280;cursor:pointer;">¾</button>` : ''}
+                            <button onclick="chkSetEstado('${item.id}','warn','${item.warn}')" id="chk-warn-${item.id}"
+                                style="width:28px;height:28px;border-radius:6px;border:1.5px solid #d1d5db;background:#fff;font-size:0.72rem;font-weight:700;color:#6b7280;cursor:pointer;">${item.warnBtn}</button>
+                            <button onclick="chkSetEstado('${item.id}','bad','${item.bad}')"  id="chk-bad-${item.id}"
+                                style="width:28px;height:28px;border-radius:6px;border:1.5px solid #d1d5db;background:#fff;font-size:0.72rem;font-weight:700;color:#6b7280;cursor:pointer;">${item.badBtn}</button>
+                        </div>
+                    </div>`).join('')}`;
+        }).join('');
+
+        const modal = document.createElement('div');
+        modal.id = 'modal-checklist';
+        modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:#f3f4f6;z-index:9999;overflow-y:auto;';
+        modal.innerHTML = `
+            <div style="max-width:480px;margin:0 auto;padding:16px;">
+                <!-- Header -->
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+                    <div style="font-size:1.1rem;font-weight:700;color:#1c1917;">Chequeo pre-viaje</div>
+                    <div id="chk-contador" style="margin-left:auto;font-size:0.85rem;font-weight:700;color:#6b7280;">0/${CHECKLIST_ITEMS.length}</div>
+                </div>
+                <div style="color:#6b7280;font-size:0.75rem;margin-bottom:12px;">${vehiculo} · ${new Date().toLocaleDateString('es-VE',{weekday:'long',day:'numeric',month:'long'})}</div>
+
+                <!-- Chofer y KM -->
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+                    <div>
+                        <div style="font-size:0.68rem;text-transform:uppercase;color:#9ca3af;font-weight:700;margin-bottom:4px;">Chofer</div>
+                        <div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:9px;font-size:0.85rem;color:#1c1917;font-weight:600;">${choferActual?.nombre?.split(' ')[0] || '—'}</div>
+                    </div>
+                    <div>
+                        <div style="font-size:0.68rem;text-transform:uppercase;color:#9ca3af;font-weight:700;margin-bottom:4px;">KM odómetro</div>
+                        <input type="number" id="chk-km" placeholder="0" min="0"
+                            style="width:100%;background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:9px;font-size:0.85rem;color:#1c1917;box-sizing:border-box;">
+                    </div>
+                </div>
+
+                <!-- Ítems -->
+                ${itemsHTML}
+
+                <!-- Reporte de novedades -->
+                <div style="font-size:0.68rem;text-transform:uppercase;color:#9ca3af;font-weight:700;margin:14px 0 6px;">Reporte de novedades (opcional)</div>
+                <textarea id="chk-obs" placeholder="Ej: vibración en el volante al pasar de 60 km/h..." rows="3"
+                    style="width:100%;background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:10px;font-size:0.85rem;color:#1c1917;font-family:inherit;resize:none;box-sizing:border-box;"></textarea>
+
+                <!-- Fotos de la unidad -->
+                <div style="font-size:0.68rem;text-transform:uppercase;color:#9ca3af;font-weight:700;margin:14px 0 6px;">📷 Fotos de la unidad <span style="color:#d1d5db;font-weight:400;text-transform:none;">(opcional — toma las que quieras)</span></div>
+                <div id="chk-fotos-cont" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px;"></div>
+                <button type="button" onclick="agregarFotoChecklist()"
+                    style="background:#fff;border:1.5px dashed #d1d5db;border-radius:8px;padding:14px;width:70px;height:70px;cursor:pointer;font-size:1.4rem;color:#9ca3af;">📷</button>
+
+                <!-- Firma -->
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px;">
+                    <div>
+                        <div style="font-size:0.68rem;text-transform:uppercase;color:#9ca3af;font-weight:700;margin-bottom:6px;">Firma del chofer <span style="color:#ef4444;">*</span> <span style="font-weight:400;text-transform:none;">(dibuja con el dedo)</span></div>
+                        <canvas id="chk-firma-canvas" width="200" height="100"
+                            style="background:#fff;border:1.5px dashed #d1d5db;border-radius:8px;width:100%;touch-action:none;cursor:crosshair;display:block;"></canvas>
+                        <button onclick="chkBorrarFirma()" style="font-size:0.72rem;color:#9ca3af;background:none;border:none;cursor:pointer;margin-top:4px;">🗑️ Borrar firma</button>
+                    </div>
+                    <div>
+                        <div style="font-size:0.68rem;text-transform:uppercase;color:#9ca3af;font-weight:700;margin-bottom:6px;">Foto de respaldo final <span style="color:#ef4444;">*</span> <span style="font-weight:400;text-transform:none;">(chofer + unidad)</span></div>
+                        <div id="chk-foto-resp-cont" style="background:#fff;border:1.5px dashed #d1d5db;border-radius:8px;height:100px;display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;" onclick="agregarFotoRespaldo()">
+                            <div style="text-align:center;color:#9ca3af;">
+                                <div style="font-size:1.5rem;">📷</div>
+                                <div style="font-size:0.72rem;margin-top:4px;">Tomar foto de respaldo</div>
+                                <div style="font-size:0.65rem;">Activa cámara</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Botón finalizar -->
+                <button onclick="confirmarChecklist('${vehiculo}', ${cancelable})"
+                    style="width:100%;background:#10b981;color:#fff;border:none;border-radius:10px;padding:14px;font-size:0.95rem;font-weight:700;cursor:pointer;margin-top:16px;margin-bottom:24px;">
+                    ✅ Finalizar y enviar chequeo
+                </button>
+            </div>`;
+        document.body.appendChild(modal);
+
+        // Inicializar canvas de firma
+        setTimeout(() => {
+            const canvas = document.getElementById('chk-firma-canvas');
+            if (!canvas) return;
+            _chkFirmaCanvas = canvas;
+            const ctx = canvas.getContext('2d');
+            ctx.strokeStyle = '#1c1917';
+            ctx.lineWidth = 2;
+            ctx.lineCap = 'round';
+            let drawing = false, lx = 0, ly = 0;
+            const getPos = e => {
+                const r = canvas.getBoundingClientRect();
+                const src = e.touches ? e.touches[0] : e;
+                return { x: (src.clientX - r.left) * canvas.width / r.width, y: (src.clientY - r.top) * canvas.height / r.height };
+            };
+            const start = e => { e.preventDefault(); drawing = true; const p = getPos(e); lx = p.x; ly = p.y; };
+            const draw  = e => { if (!drawing) return; e.preventDefault(); const p = getPos(e); ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(p.x, p.y); ctx.stroke(); lx = p.x; ly = p.y; };
+            const stop  = () => { drawing = false; };
+            canvas.addEventListener('mousedown', start); canvas.addEventListener('mousemove', draw); canvas.addEventListener('mouseup', stop);
+            canvas.addEventListener('touchstart', start, {passive:false}); canvas.addEventListener('touchmove', draw, {passive:false}); canvas.addEventListener('touchend', stop);
+        }, 100);
+
+        // Inicializar estados en 'ok' para todos
+        CHECKLIST_ITEMS.forEach(item => chkSetEstado(item.id, 'ok', item.ok));
+
+        modal._onComplete = onComplete;
+    }
+
+    function chkSetEstado(id, estado, label) {
+        _chkEstados[id] = { estado, label, nota: _chkEstados[id]?.nota || '' };
+        const colors = { ok: '#39d353', warn: '#f59e0b', bad: '#ef4444', tres4: '#39d353' };
+        const btnIds = id === 'combus' ? ['ok','tres4','warn','bad'] : ['ok','warn','bad'];
+        btnIds.forEach(e => {
+            const btnId = e === 'tres4' ? `chk-tres4-${id}` : `chk-${e}-${id}`;
+            const btn = document.getElementById(btnId);
+            if (!btn) return;
+            if (e === estado) {
+                btn.style.background  = colors[e] || '#39d353';
+                btn.style.color       = '#fff';
+                btn.style.borderColor = colors[e] || '#39d353';
+            } else {
+                btn.style.background  = '#fff';
+                btn.style.color       = '#6b7280';
+                btn.style.borderColor = '#d1d5db';
+            }
+        });
+
+        const row = document.getElementById(`chk-row-${id}`);
+        if (row) {
+            row.style.borderColor = estado === 'ok' ? '#d1fae5' : estado === 'warn' ? '#fef3c7' : '#fee2e2';
+            row.style.background  = estado === 'ok' ? '#f0fdf4' : estado === 'warn' ? '#fffbeb' : '#fef2f2';
+        }
+
+        // Mostrar/ocultar campo de descripción de falla (no para combustible ni docs)
+        const itemDef = CHECKLIST_ITEMS.find(i => i.id === id);
+        const falla = document.getElementById(`chk-falla-${id}`);
+        if (estado !== 'ok' && !itemDef?.noFalla) {
+            if (!falla) {
+                const inp = document.createElement('div');
+                inp.id = `chk-falla-${id}`;
+                inp.style.cssText = 'margin-top:6px;';
+                inp.innerHTML = `<textarea id="chk-falla-txt-${id}" placeholder="Describe la falla o anomalía..." rows="2"
+                    style="width:100%;background:#fff;border:1.5px solid ${colors[estado]};border-radius:6px;padding:8px;font-size:0.82rem;font-family:inherit;resize:none;box-sizing:border-box;color:#1c1917;"
+                    oninput="chkGuardarNota('${id}', this.value)"></textarea>`;
+                row?.appendChild(inp);
+                setTimeout(() => document.getElementById(`chk-falla-txt-${id}`)?.focus(), 100);
+            } else {
+                // Actualizar color del borde si cambió el estado
+                const ta = document.getElementById(`chk-falla-txt-${id}`);
+                if (ta) ta.style.borderColor = colors[estado];
+                falla.style.display = '';
+            }
+        } else {
+            if (falla) falla.style.display = 'none';
+        }
+
+        // Actualizar contador
+        const hechos = Object.keys(_chkEstados).length;
+        const cont = document.getElementById('chk-contador');
+        if (cont) cont.textContent = `${hechos}/${CHECKLIST_ITEMS.length}`;
+    }
+
+    function chkGuardarNota(id, valor) {
+        if (_chkEstados[id]) _chkEstados[id].nota = valor;
+    }
+
+    function chkBorrarFirma() {
+        const canvas = document.getElementById('chk-firma-canvas');
+        if (!canvas) return;
+        canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    let _chkFotoRespFile = null;
+    function agregarFotoRespaldo() {
+        const inp = document.createElement('input');
+        inp.type = 'file'; inp.accept = 'image/*'; inp.capture = 'environment';
+        inp.onchange = () => {
+            _chkFotoRespFile = inp.files[0];
+            const cont = document.getElementById('chk-foto-resp-cont');
+            if (cont && _chkFotoRespFile) {
+                const r = new FileReader();
+                r.onload = e => { cont.innerHTML = `<img src="${e.target.result}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;">`; };
+                r.readAsDataURL(_chkFotoRespFile);
+            }
+        };
+        inp.click();
+    }
+
+    let _chkFotosFiles = [];
+    function agregarFotoChecklist() {
+        const inp = document.createElement('input');
+        inp.type = 'file'; inp.accept = 'image/*'; inp.capture = 'environment';
+        inp.onchange = () => {
+            const file = inp.files[0];
+            if (!file) return;
+            _chkFotosFiles.push(file);
+            const cont = document.getElementById('chk-fotos-cont');
+            if (!cont) return;
+            const r = new FileReader();
+            r.onload = e => {
+                const img = document.createElement('img');
+                img.src = e.target.result;
+                img.style.cssText = 'width:70px;height:70px;object-fit:cover;border-radius:8px;border:1.5px solid #d1d5db;';
+                cont.appendChild(img);
+            };
+            r.readAsDataURL(file);
+        };
+        inp.click();
+    }
+
+    async function confirmarChecklist(vehiculo, cancelable) {
+        const km    = parseInt(document.getElementById('chk-km')?.value) || null;
+        const obs   = document.getElementById('chk-obs')?.value?.trim() || '';
+        const ahora = new Date();
+        const hora  = ahora.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
+        const fecha = ahora.toISOString().slice(0,10);
+        const truck = getTruckInfo(vehiculo);
+
+        const items = CHECKLIST_ITEMS.map(item => {
+            const est = _chkEstados[item.id] || { estado: 'ok', label: item.ok };
+            return { id: item.id, label: item.label, estado: est.estado, valor: est.label };
+        });
+        const itemsFalla = items.filter(i => {
+            const def = CHECKLIST_ITEMS.find(c => c.id === i.id);
+            return !def?.noFalla && def?.group !== 'docs';
+        });
+        const todoOk    = itemsFalla.every(i => i.estado === 'ok' || i.estado === 'tres4');
+        const revisar   = itemsFalla.filter(i => i.estado === 'warn').length;
+        const criticos  = itemsFalla.filter(i => i.estado === 'bad').map(i => i.label);
+        const faltantes = itemsFalla.filter(i => i.estado !== 'ok' && i.estado !== 'tres4').map(i => `${i.label} (${i.valor})`);
+
+        // Subir fotos de la unidad
+        const nb = choferActual.nombre.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-zA-Z0-9]/g,'_');
+        const fotosUrls = [];
+        for (const f of _chkFotosFiles) {
+            try {
+                const ext = f.type === 'image/png' ? 'png' : 'jpg';
+                const nombre = `checklists/${nb}_foto_${Date.now()}.${ext}`;
+                const res = await fetch(`${SB_URL}/storage/v1/object/fotos-flota/${nombre}`, {
+                    method: 'POST', headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': f.type }, body: f
+                });
+                if (res.ok) fotosUrls.push(`${SB_URL}/storage/v1/object/public/fotos-flota/${nombre}`);
+            } catch(e) {}
+        }
+        _chkFotosFiles = [];
+
+        // Subir foto de respaldo
+        let fotoRespUrl = null;
+        if (_chkFotoRespFile) {
+            try {
+                const ext = _chkFotoRespFile.type === 'image/png' ? 'png' : 'jpg';
+                const nombre = `checklists/${nb}_respaldo_${Date.now()}.${ext}`;
+                const res = await fetch(`${SB_URL}/storage/v1/object/fotos-flota/${nombre}`, {
+                    method: 'POST', headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': _chkFotoRespFile.type }, body: _chkFotoRespFile
+                });
+                if (res.ok) fotoRespUrl = `${SB_URL}/storage/v1/object/public/fotos-flota/${nombre}`;
+            } catch(e) {}
+            _chkFotoRespFile = null;
+        }
+
+        // Capturar firma como imagen
+        let firmaUrl = null;
+        const canvas = document.getElementById('chk-firma-canvas');
+        if (canvas) {
+            try {
+                const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
+                if (blob && blob.size > 1000) {
+                    const nombre = `checklists/${nb}_firma_${Date.now()}.png`;
+                    const res = await fetch(`${SB_URL}/storage/v1/object/fotos-flota/${nombre}`, {
+                        method: 'POST', headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'image/png' }, body: blob
+                    });
+                    if (res.ok) firmaUrl = `${SB_URL}/storage/v1/object/public/fotos-flota/${nombre}`;
+                }
+            } catch(e) {}
+        }
+
+        const fotoUrl = fotoRespUrl || (fotosUrls.length > 0 ? fotosUrls[0] : null);
+
+        await sbInsert('checklists', {
+            id:            `chk_${Date.now()}`,
+            driver_id:     getDriverId(),
+            vehicle_id:    truck.id,
+            vehicle_code:  vehiculo,
+            vehicle_plate: truck.plate,
+            driver_name:   choferActual.nombre,
+            date:          fecha,
+            time:          hora,
+            km_inicial:    km,
+            items:         JSON.stringify(items),
+            notes:         obs || null,
+            reporte:       todoOk ? 'EMPTY' : faltantes.join(' | '),
+            signature:     firmaUrl || 'EMPTY',
+        });
+
+        if (km) { await sbPatchById('trucks', truck.id, { current_km: km }); setKmActual(km); }
+
+        // Mensaje Discord igual al formato de referencia
+        const estadoEmoji = { ok: '✅', warn: '⚠️', bad: '🔴' };
+        const titulo = todoOk
+            ? `✅ CHEQUEO PRE-VIAJE — ${vehiculo} — ✅ OK`
+            : criticos.length > 0
+                ? `🔴 CHEQUEO PRE-VIAJE — ${vehiculo} — 🔴 CRÍTICO`
+                : `⚠️ CHEQUEO PRE-VIAJE — ${vehiculo} — ⚠️ REVISAR`;
+
+        const grupos = { seguridad: '🔴 SEGURIDAD', mecanica: '🟡 MECÁNICA Y NIVELES', docs: '🔵 DOCUMENTOS' };
+        let detalle = '';
+        ['seguridad','mecanica','docs'].forEach(g => {
+            const gitems = items.filter(i => CHECKLIST_ITEMS.find(c => c.id === i.id)?.group === g);
+            detalle += `\n**${grupos[g]}**\n`;
+            detalle += gitems.map(i => `${estadoEmoji[i.estado] || '✅'} **${i.label}:** ${i.valor}`).join('\n');
+            detalle += '\n';
+        });
+
+        const kmStr  = km ? `**🔢 Odómetro** ${km.toLocaleString()} km` : '—';
+        const resStr = todoOk ? `✅ Todo OK` : criticos.length > 0 ? `🔴 ${criticos.length} crítico(s)` : `⚠️ ${revisar} para revisar`;
+        const obsStr = obs ? `\n\n📝 **Novedades:** ${obs}` : '';
+        const firmaStr = firmaUrl ? '\n✅ Firmado por el chofer' : '\n⚠️ Sin firma digital';
+        const fotoStr = fotosUrls.length > 0 ? `\n✅ ${fotosUrls.length} foto(s) adjunta(s)` : '';
+        const respStr = fotoRespUrl ? '\n✅ Foto de respaldo adjunta' : '';
+
+        const discordMsg1 = `🚛 **${titulo}**
+${choferActual.nombre} completó el chequeo de **${vehiculo}** (${truck.plate})
+
+📅 **Fecha y hora** · 🔢 **Odómetro** · ✅ **Resultado**
+${fecha} a las ${hora} · ${kmStr} · ${resStr}
+${detalle}`;
+
+        const discordMsg2 = `🖊️ **Firma**${firmaStr}
+
+📸 **Foto de la unidad**${fotoStr}${respStr}${obsStr}`;
+
+        // Checklist va SOLO al canal de mantenimiento
+        await notificarMant(vehiculo, discordMsg1, null);
+        await notificarMant(vehiculo, discordMsg2, fotoRespUrl || (fotosUrls[0] || null));
+
+        // Si hay fallas reales, enviar alerta adicional al canal de mantenimiento
+        const fallaItems = items.filter(i => {
+            const def = CHECKLIST_ITEMS.find(c => c.id === i.id);
+            return i.estado !== 'ok' && i.estado !== 'tres4' && !def?.noFalla && def?.group !== 'docs';
+        });
+        const criticosReales = fallaItems.filter(i => i.estado === 'bad');
+
+        if (fallaItems.length > 0) {
+            const nivelEmoji = criticosReales.length > 0 ? '🔴' : '⚠️';
+            const nivelTxt   = criticosReales.length > 0 ? 'FALLA CRÍTICA' : 'REQUIERE REVISIÓN';
+            let mantMsg = `${nivelEmoji} **ALERTA — ${nivelTxt}**\n`;
+            mantMsg += `🚛 ${vehiculo} (${truck.plate}) · 👤 ${choferActual.nombre.split(' ')[0]} · 🕐 ${hora}\n`;
+            if (km) mantMsg += `🔢 KM: ${km.toLocaleString()}\n`;
+            mantMsg += `\n**Fallas reportadas:**\n`;
+            fallaItems.forEach(i => {
+                const emoji = i.estado === 'bad' ? '🔴' : '⚠️';
+                const nota  = _chkEstados[i.id]?.nota ? ` — _${_chkEstados[i.id].nota}_` : '';
+                mantMsg += `${emoji} **${i.label}:** ${i.valor}${nota}\n`;
+            });
+            if (obs) mantMsg += `\n📝 Novedades: ${obs}`;
+            await notificarMant(vehiculo, mantMsg, null);
+        }
+
+        // Guardar en localStorage que hoy ya hizo el checklist
+        localStorage.setItem(`chk_hecho_${choferActual.nombre}_${fecha}`, '1');
+
+        const modal = document.getElementById('modal-checklist');
+        const cb = modal?._onComplete;
+        modal?.remove();
+        mostrarToast(todoOk ? '✅ Checklist completo — ¡Buen viaje!' : '⚠️ Checklist guardado con observaciones');
+        if (cb) cb(km);
+    }
+
+    // ── COMBUSTIBLE ────────────────────────────────────────
+    function abrirFormCombustible(vehiculoPreset) {
+        const veh = vehiculoPreset || choferActual?.unidad || 'NPR 01';
+        const modal = document.createElement('div');
+        modal.id = 'modal-combustible';
+        modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;';
+        modal.innerHTML = `
+            <div style="background:#1c1c1c;border:2px solid #ff6b00;border-radius:14px;padding:20px;width:100%;max-width:380px;">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+                    <span style="font-size:1.2rem;">⛽</span>
+                    <span style="color:#ff6b00;font-size:0.95rem;font-weight:700;">Registrar surtida</span>
+                </div>
+                <div style="color:#555;font-size:0.75rem;margin-bottom:16px;">${veh} · ${choferActual?.nombre || ''}</div>
+
+                <label style="font-size:0.72rem;color:#888;display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">Vehículo</label>
+                <select id="comb-vehiculo" style="width:100%;background:#111;border:1px solid #ff6b00;color:#ff6b00;border-radius:8px;padding:10px;font-size:0.9rem;margin-bottom:12px;">
+                    ${['NPR 01','NPR 02','NPR 04','Fuso 03','L300 05','Jack 06','Jack 07'].map(v=>`<option value="${v}"${v===veh?' selected':''}>${v}</option>`).join('')}
+                </select>
+
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+                    <div>
+                        <label style="font-size:0.72rem;color:#888;display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">Litros surtidos</label>
+                        <input type="number" id="comb-litros" placeholder="Ej: 80" min="1" step="0.5"
+                            style="width:100%;background:#111;border:1px solid #ff6b00;color:#ff6b00;border-radius:8px;padding:10px;font-size:0.9rem;">
+                    </div>
+                    <div>
+                        <label style="font-size:0.72rem;color:#888;display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">Precio/litro (Bs)</label>
+                        <input type="number" id="comb-precio" placeholder="Ej: 0.50" min="0" step="0.01"
+                            style="width:100%;background:#111;border:1px solid #333;color:#e0e0e0;border-radius:8px;padding:10px;font-size:0.9rem;">
+                    </div>
+                </div>
+
+                <label style="font-size:0.72rem;color:#888;display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">🔢 KM al surtir</label>
+                <input type="number" id="comb-km" placeholder="Ej: 149500" min="0"
+                    style="width:100%;background:#111;border:1px solid #ff6b00;color:#ff6b00;border-radius:8px;padding:10px;font-size:0.9rem;margin-bottom:12px;">
+
+                <label style="font-size:0.72rem;color:#888;display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">Nota (opcional)</label>
+                <input type="text" id="comb-nota" placeholder="Ej: Bomba Terpel, Guarenas"
+                    style="width:100%;background:#111;border:1px solid #333;color:#e0e0e0;border-radius:8px;padding:10px;font-size:0.9rem;margin-bottom:16px;">
+
+                <div id="comb-costo-preview" style="background:#1a0a00;border-radius:8px;padding:8px;text-align:center;margin-bottom:14px;display:none;">
+                    <span style="font-size:0.75rem;color:#888;">Costo estimado: </span>
+                    <span id="comb-costo-val" style="color:#ff6b00;font-weight:700;"></span>
+                </div>
+
+                <div style="display:flex;gap:8px;">
+                    <button onclick="document.getElementById('modal-combustible').remove()"
+                        style="flex:1;background:#2a2a2a;color:#888;border:1px solid #333;border-radius:8px;padding:11px;cursor:pointer;">Cancelar</button>
+                    <button onclick="registrarCombustible()"
+                        style="flex:2;background:#ff6b00;color:#000;border:none;border-radius:8px;padding:11px;font-weight:700;cursor:pointer;font-size:0.9rem;">⛽ Registrar</button>
+                </div>
+            </div>`;
+        document.body.appendChild(modal);
+
+        // Preview de costo en tiempo real
+        const litrosEl = document.getElementById('comb-litros');
+        const precioEl = document.getElementById('comb-precio');
+        const preview  = document.getElementById('comb-costo-preview');
+        const costoEl  = document.getElementById('comb-costo-val');
+        function actualizarCosto() {
+            const l = parseFloat(litrosEl.value) || 0;
+            const p = parseFloat(precioEl.value) || 0;
+            if (l > 0 && p > 0) {
+                costoEl.textContent = `Bs ${(l * p).toFixed(2)}`;
+                preview.style.display = 'block';
+            } else { preview.style.display = 'none'; }
+        }
+        litrosEl?.addEventListener('input', actualizarCosto);
+        precioEl?.addEventListener('input', actualizarCosto);
+    }
+
+    async function registrarCombustible() {
+        const vehiculo = document.getElementById('comb-vehiculo')?.value;
+        const litros   = parseFloat(document.getElementById('comb-litros')?.value) || null;
+        const precio   = parseFloat(document.getElementById('comb-precio')?.value) || null;
+        const km       = parseInt(document.getElementById('comb-km')?.value)        || null;
+        const nota     = document.getElementById('comb-nota')?.value?.trim()        || null;
+
+        if (!litros) { mostrarToast('⚠️ Indica los litros surtidos'); return; }
+
+        const ahora = new Date();
+        const hora  = ahora.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
+        const fecha = ahora.toISOString().slice(0,10);
+        const truck = getTruckInfo(vehiculo);
+        const costo = litros && precio ? +(litros * precio).toFixed(2) : null;
+
+        await sbInsert('fuel_records', {
+            vehicle_id:    truck.id,
+            vehicle_code:  vehiculo,
+            vehicle_plate: truck.plate,
+            driver_id:     getDriverId(),
+            driver_name:   choferActual.nombre,
+            date:          fecha,
+            time:          hora,
+            km:            km,
+            liters:        litros,
+            price_per_liter: precio,
+            cost:          costo,
+        });
+
+        // Actualizar KM en trucks
+        if (km) await sbPatchById('trucks', truck.id, { current_km: km });
+
+        const litrosStr = litros.toLocaleString('es-VE') + ' L';
+        const costoStr  = costo ? ` · Bs ${costo.toLocaleString('es-VE')}` : '';
+        const kmStr     = km    ? `\n🔢 KM: ${km.toLocaleString()}` : '';
+        const notaStr   = nota  ? `\n📍 ${nota}` : '';
+
+        const msgCombustible = `⛽ **${choferActual.nombre.split(' ')[0]} — Surtida registrada**\n🕐 ${hora} | ${vehiculo}\n🛢️ ${litrosStr}${costoStr}${kmStr}${notaStr}`;
+
+        // Combustible va SOLO al canal de mantenimiento
+        await notificarMant(vehiculo, msgCombustible, null);
+
+        document.getElementById('modal-combustible')?.remove();
+        mostrarToast(`✅ ${litrosStr} registrados — ${vehiculo}`);
+    }
+
+    // ── MOVIMIENTO ACTIVO ──────────────────────────────────
     let movimientoActivo = null;
 
     function abrirFormMovimiento() {
-        const lugares = ['Casarapa','Palma Real','Miranda','La Parada','Castillejo','Lider CCS','Servicio General','Ozanam','CDE','Caracas','Araira','Otra dirección'];
-        const motivos = ['Vacío — sin carga','Buscar carga','Diligencia de empresa','Mantenimiento / taller','Apoyo a otro camión','Otro'];
+        _abrirModalMovimiento(getKmActual());
+    }
+
+    // ══════════════════════════════════════════════════════
+    // FORMULARIO UNIFICADO DE SALIDA
+    // ══════════════════════════════════════════════════════
+    let _salidaTipo = null; // 'cde' | 'recogida' | 'vacio'
+    let _salidaFotosDoc = [];
+    let _salidaFotoVeh = null;
+
+    function abrirFormSalida() {
+        _salidaTipo = null;
+        _salidaFotosDoc = [];
+        _salidaFotoVeh = null;
+
+        const sucursales = ['CDE','Casarapa','Palma Real','Miranda','La Parada','Castillejo','Lider CCS','Servicio General','Ozanam','Caracas','Araira'];
+        const dptos = ['Víveres','Charcutería','Carnicería','Desposte','Frutería','Preparados','Manicería','Mercadeo','Suministros','Otros'];
+        const kmGuardado = getKmActual() || '';
+        const vehiculo = choferActual?.unidad || 'NPR 01';
 
         const modal = document.createElement('div');
-        modal.id = 'modal-movimiento';
-        modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;';
+        modal.id = 'modal-salida';
+        modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);z-index:9999;overflow-y:auto;';
         modal.innerHTML = `
-            <div style="background:#1c1c1c;border:1px solid #ffb703;border-radius:12px;padding:20px;width:100%;max-width:380px;">
-                <div style="color:#ffb703;font-size:0.95rem;font-weight:700;margin-bottom:14px;">🚗 Registrar movimiento</div>
+            <div style="max-width:440px;margin:0 auto;padding:16px;">
+                <div style="background:#1c1c1c;border:2px solid #39d353;border-radius:14px;padding:20px;">
 
-                <label style="font-size:0.75rem;color:#888;display:block;margin-bottom:6px;">VEHÍCULO</label>
-                <select id="mov-vehiculo" onchange="choferActual.unidad=this.value;" style="width:100%;background:#111;border:1px solid #ffb703;color:#ffb703;border-radius:6px;padding:8px;font-size:0.85rem;margin-bottom:14px;">
-                    ${['NPR 01','NPR 02','NPR 04','Fuso 03','L300 05','Jack 06','Jack 07'].map(v => `<option value="${v}"${choferActual?.unidad === v ? ' selected' : ''}>${v}</option>`).join('')}
+                    <!-- Header -->
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
+                        <span style="font-size:1.3rem;">🚗</span>
+                        <div>
+                            <div style="color:#39d353;font-size:1rem;font-weight:700;">Registrar salida</div>
+                            <div style="color:#555;font-size:0.75rem;">${vehiculo} · ${choferActual?.nombre?.split(' ')[0] || ''}</div>
+                        </div>
+                    </div>
+
+                    <!-- KM -->
+                    <label style="font-size:0.72rem;color:#888;display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">🔢 KM actual (odómetro)</label>
+                    <input type="number" id="sal-km" placeholder="Ej: 149500" min="0" value="${kmGuardado}"
+                        style="width:100%;background:#111;border:1.5px solid #39d353;color:#39d353;border-radius:8px;padding:10px;font-size:0.95rem;margin-bottom:14px;box-sizing:border-box;">
+
+                    <!-- De dónde sales -->
+                    <label style="font-size:0.72rem;color:#888;display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">📍 ¿De dónde sales?</label>
+                    <select id="sal-origen" style="width:100%;background:#111;border:1.5px solid #333;color:#e0e0e0;border-radius:8px;padding:10px;font-size:0.9rem;margin-bottom:14px;">
+                        ${sucursales.map(s => `<option value="${s}">${s}</option>`).join('')}
+                    </select>
+
+                    <!-- Tipo de salida -->
+                    <label style="font-size:0.72rem;color:#888;display:block;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;">¿Qué llevas?</label>
+                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:14px;">
+                        <button onclick="setSalidaTipo('cde')" id="sal-btn-cde"
+                            style="background:#1a1a2e;color:#7c9ff5;border:1.5px solid #3a5aad;border-radius:8px;padding:10px 4px;font-size:0.78rem;font-weight:700;cursor:pointer;text-align:center;">
+                            📋 Carga<br>CDE
+                        </button>
+                        <button onclick="setSalidaTipo('recogida')" id="sal-btn-recogida"
+                            style="background:#1a2e1a;color:#06d6a0;border:1.5px solid #06d6a0;border-radius:8px;padding:10px 4px;font-size:0.78rem;font-weight:700;cursor:pointer;text-align:center;">
+                            📦 Recogida<br>sucursal
+                        </button>
+                        <button onclick="setSalidaTipo('vacio')" id="sal-btn-vacio"
+                            style="background:#2e1a00;color:#ffb703;border:1.5px solid #ffb703;border-radius:8px;padding:10px 4px;font-size:0.78rem;font-weight:700;cursor:pointer;text-align:center;">
+                            🚗 Vacío /<br>traslado
+                        </button>
+                    </div>
+
+                    <!-- Panel dinámico según tipo -->
+                    <div id="sal-panel-dinamico"></div>
+
+                    <!-- Destinos (siempre visible excepto vacío) -->
+                    <div id="sal-destinos-wrap" style="display:none;">
+                        <label style="font-size:0.72rem;color:#888;display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">🏪 Entrega en</label>
+                        <div id="sal-destinos-cont"></div>
+                        <button type="button" onclick="agregarDestinoSalida()"
+                            style="width:100%;background:#0a2200;color:#39d353;border:1px dashed #39d353;border-radius:8px;padding:8px;font-size:0.82rem;cursor:pointer;margin-bottom:14px;">
+                            + Agregar sucursal
+                        </button>
+                    </div>
+
+                    <!-- Foto documento (CDE y recogida) -->
+                    <div id="sal-foto-doc-wrap" style="display:none;">
+                        <label style="font-size:0.72rem;color:#888;display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">📷 Foto del documento</label>
+                        <div id="sal-fotos-cont" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;"></div>
+                        <button type="button" onclick="agregarFotoDocSalida()"
+                            style="width:100%;background:#0a1a1a;color:#06d6a0;border:1px solid #06d6a0;border-radius:8px;padding:9px;font-size:0.85rem;font-weight:700;cursor:pointer;margin-bottom:14px;">
+                            📷 Tomar foto del documento
+                        </button>
+                    </div>
+
+                    <!-- Nota -->
+                    <label style="font-size:0.72rem;color:#888;display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">📝 Nota (opcional)</label>
+                    <div style="position:relative;margin-bottom:16px;">
+                        <textarea id="sal-nota" placeholder="Ej: Saliendo para Miranda con carga de charcutería..." rows="2"
+                            style="width:100%;padding:9px 40px 9px 10px;background:#111;border:1px solid #333;color:#e0e0e0;border-radius:8px;font-size:0.85rem;font-family:inherit;resize:none;box-sizing:border-box;"></textarea>
+                        <button type="button" onclick="micSalida()"
+                            style="position:absolute;right:8px;top:10px;background:transparent;border:none;font-size:1.3rem;cursor:pointer;">🎤</button>
+                    </div>
+
+                    <div style="display:flex;gap:8px;">
+                        <button onclick="document.getElementById('modal-salida').remove()"
+                            style="flex:1;background:#2a2a2a;color:#888;border:1px solid #333;border-radius:8px;padding:11px;cursor:pointer;">Cancelar</button>
+                        <button onclick="registrarSalida()"
+                            style="flex:2;background:#39d353;color:#000;border:none;border-radius:8px;padding:11px;font-weight:700;cursor:pointer;font-size:0.92rem;">🚗 Registrar salida</button>
+                    </div>
+                </div>
+            </div>`;
+        document.body.appendChild(modal);
+    }
+
+    function setSalidaTipo(tipo) {
+        _salidaTipo = tipo;
+        const btns = { cde: 'sal-btn-cde', recogida: 'sal-btn-recogida', vacio: 'sal-btn-vacio' };
+        const colors = { cde: '#7c9ff5', recogida: '#06d6a0', vacio: '#ffb703' };
+        const bgs = { cde: '#1a1a2e', recogida: '#1a2e1a', vacio: '#2e1a00' };
+        Object.entries(btns).forEach(([t, id]) => {
+            const btn = document.getElementById(id);
+            if (!btn) return;
+            if (t === tipo) {
+                btn.style.background = colors[t];
+                btn.style.color = '#000';
+            } else {
+                btn.style.background = bgs[t];
+                btn.style.color = colors[t];
+            }
+        });
+
+        const panel = document.getElementById('sal-panel-dinamico');
+        const destinosWrap = document.getElementById('sal-destinos-wrap');
+        const fotoWrap = document.getElementById('sal-foto-doc-wrap');
+        const dptos = ['Víveres','Charcutería','Carnicería','Desposte','Frutería','Preparados','Manicería','Mercadeo','Suministros','Otros'];
+
+        if (tipo === 'recogida') {
+            panel.innerHTML = '';
+            destinosWrap.style.display = 'block';
+            fotoWrap.style.display = 'block';
+            if (!document.querySelector('#sal-destinos-cont [data-sid]')) agregarDestinoSalida();
+        } else if (tipo === 'cde') {
+            panel.innerHTML = '';
+            destinosWrap.style.display = 'block';
+            fotoWrap.style.display = 'block';
+            if (!document.querySelector('#sal-destinos-cont .sal-dest-sel')) agregarDestinoSalida();
+        } else {
+            panel.innerHTML = '';
+            destinosWrap.style.display = 'none';
+            fotoWrap.style.display = 'block';
+        }
+    }
+
+    function agregarDestinoSalida() {
+        const cont = document.getElementById('sal-destinos-cont');
+        if (!cont) return;
+        const opts = ['Casarapa','Palma Real','Miranda','La Parada','Castillejo','Lider CCS','Servicio General','Ozanam','CDE','Caracas','Araira'].map(s => `<option value="${s}">${s}</option>`).join('');
+        const dptoOpts = ['Víveres','Charcutería','Carnicería','Desposte','Frutería','Preparados','Manicería','Mercadeo','Suministros','Otros'].map(d => `<option value="${d}">${d}</option>`).join('');
+        const sid = 'suc_' + Date.now();
+        const div = document.createElement('div');
+        div.dataset.sid = sid;
+        div.style.cssText = 'background:#0a2200;border:1px solid #39d353;border-radius:8px;padding:10px;margin-bottom:8px;';
+        div.innerHTML = `
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+                <span style="color:#39d353;font-size:0.8rem;font-weight:700;">📍 Sucursal</span>
+                <button type="button" onclick="this.closest('[data-sid]').remove()" style="margin-left:auto;background:transparent;border:none;color:#555;cursor:pointer;font-size:0.9rem;">✕</button>
+            </div>
+            <select class="sal-dest-sel" style="width:100%;background:#111;border:1px solid #39d353;color:#39d353;border-radius:6px;padding:8px;font-size:0.85rem;margin-bottom:8px;">${opts}</select>
+            <div style="font-size:0.72rem;color:#ffb703;font-weight:700;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;">📦 Departamentos que entrega aquí</div>
+            <div class="sal-dptos-suc-cont" style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px;min-height:20px;"></div>
+            <div style="display:flex;gap:6px;">
+                <select class="sal-dpto-suc-sel" style="flex:1;background:#111;border:1px solid #554400;color:#ffb703;border-radius:6px;padding:6px;font-size:0.82rem;">${dptoOpts}</select>
+                <button type="button" onclick="agregarDptoDestSalida(this)" style="background:#2a1f00;color:#ffb703;border:1px solid #554400;border-radius:6px;padding:6px 10px;font-size:0.82rem;cursor:pointer;">+ Agregar</button>
+            </div>`;
+        cont.appendChild(div);
+    }
+
+    function agregarDptoDestSalida(btn) {
+        const card = btn.closest('[data-sid]');
+        const sel  = card.querySelector('.sal-dpto-suc-sel');
+        const dpto = sel?.value;
+        if (!dpto) return;
+        const cont = card.querySelector('.sal-dptos-suc-cont');
+        if ([...cont.querySelectorAll('[data-dpto]')].some(el => el.dataset.dpto === dpto)) return;
+        const tag = document.createElement('span');
+        tag.dataset.dpto = dpto;
+        tag.style.cssText = 'background:#2a1f00;color:#ffb703;border:1px solid #554400;border-radius:4px;padding:3px 8px;font-size:0.75rem;cursor:pointer;display:inline-flex;align-items:center;gap:4px;';
+        tag.innerHTML = `${dpto} <span onclick="this.parentElement.remove()" style="font-size:0.8rem;color:#888;">✕</span>`;
+        cont.appendChild(tag);
+    }
+
+    function agregarDptoSalida() {
+        const cont = document.getElementById('sal-dptos-cont');
+        if (!cont) return;
+        const dptos = ['Víveres','Charcutería','Carnicería','Desposte','Frutería','Preparados','Manicería','Mercadeo','Suministros','Otros'];
+        const div = document.createElement('div');
+        div.style.cssText = 'display:flex;gap:6px;margin-bottom:6px;align-items:center;';
+        div.innerHTML = `
+            <select class="sal-dpto-sel" style="flex:1;background:#111;border:1px solid #ffb703;color:#ffb703;border-radius:6px;padding:8px;font-size:0.85rem;">
+                ${dptos.map(d => `<option value="${d}">${d}</option>`).join('')}
+            </select>
+            <button type="button" onclick="this.parentElement.remove()" style="background:transparent;border:none;color:#555;cursor:pointer;font-size:0.9rem;">✕</button>`;
+        cont.appendChild(div);
+    }
+
+    let _salidaFotoCount = 0;
+    function agregarFotoDocSalida() {
+        const inp = document.createElement('input');
+        inp.type = 'file'; inp.accept = 'image/*'; inp.capture = 'environment';
+        inp.onchange = () => {
+            const file = inp.files[0];
+            if (!file) return;
+            _salidaFotosDoc.push(file);
+            const cont = document.getElementById('sal-fotos-cont');
+            if (!cont) return;
+            const r = new FileReader();
+            r.onload = e => {
+                const img = document.createElement('img');
+                img.src = e.target.result;
+                img.style.cssText = 'width:70px;height:70px;object-fit:cover;border-radius:6px;border:1.5px solid #06d6a0;';
+                cont.appendChild(img);
+            };
+            r.readAsDataURL(file);
+        };
+        inp.click();
+    }
+
+    function micSalida() {
+        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) { mostrarToast('⚠️ Micrófono no disponible'); return; }
+        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const rec = new SR(); rec.lang = 'es-VE'; rec.interimResults = false;
+        mostrarToast('🎤 Escuchando...'); rec.start();
+        rec.onresult = e => { const el = document.getElementById('sal-nota'); if (el) el.value = e.results[0][0].transcript; mostrarToast('✅ Capturado'); };
+        rec.onerror = () => mostrarToast('⚠️ No se pudo capturar');
+    }
+
+    async function registrarSalida() {
+        if (!_salidaTipo) { mostrarToast('⚠️ Selecciona qué llevas'); return; }
+
+        const vehiculo = choferActual?.unidad || 'NPR 01';
+        const km = parseInt(document.getElementById('sal-km')?.value) || null;
+        const origen = document.getElementById('sal-origen')?.value || 'CDE';
+        const nota = document.getElementById('sal-nota')?.value?.trim() || '';
+        const ahora = new Date();
+        const hora = ahora.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
+        const fecha = ahora.toISOString().slice(0,10);
+        const truck = getTruckInfo(vehiculo);
+        const choferNombre = choferActual.nombre.split(' ')[0].toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+
+        // Subir fotos de documento
+        const fotosUrls = [];
+        for (const f of _salidaFotosDoc) {
+            try {
+                const ext = f.type === 'image/png' ? 'png' : 'jpg';
+                const nb = choferActual.nombre.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-zA-Z0-9]/g,'_');
+                const nombre = `salidas/${nb}_${Date.now()}.${ext}`;
+                const res = await fetch(`${SB_URL}/storage/v1/object/fotos-flota/${nombre}`, {
+                    method: 'POST', headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': f.type }, body: f
+                });
+                if (res.ok) fotosUrls.push(`${SB_URL}/storage/v1/object/public/fotos-flota/${nombre}`);
+            } catch(e) {}
+        }
+
+        // Guardar KM
+        if (km) { setKmActual(km); await sbPatchById('trucks', truck.id, { current_km: km }); }
+
+        // Guardar en bitácora
+        const bitacoraId = `bit_${Date.now()}`;
+        await sbInsert('bitacora', {
+            id: bitacoraId, truck_id: truck.id, type: 'salida',
+            date: fecha, time: hora, km_out: km,
+            notes_salida: `${_salidaTipo === 'cde' ? 'CDE' : _salidaTipo === 'recogida' ? 'Recogida' : 'Vacío'} ${origen}${nota ? ' — ' + nota : ''}`,
+        });
+
+        // Según tipo, crear boleta o solo movimiento
+        let codigo = null;
+        let destinos = [];
+        let dptos = [];
+
+        if (_salidaTipo !== 'vacio') {
+            // Leer sucursales con sus departamentos específicos
+            const sucCards = document.querySelectorAll('#sal-destinos-cont [data-sid]');
+            const prioSuc = {};
+            sucCards.forEach(card => {
+                const suc = card.querySelector('.sal-dest-sel')?.value;
+                if (!suc) return;
+                destinos.push(suc);
+                const dptosSuc = [...card.querySelectorAll('.sal-dptos-suc-cont [data-dpto]')].map(el => el.dataset.dpto).filter(Boolean);
+                if (dptosSuc.length > 0) prioSuc[suc + '_dptos'] = dptosSuc;
+            });
+
+            // Fallback para CDE (selector simple)
+            if (destinos.length === 0) {
+                destinos = Array.from(document.querySelectorAll('.sal-dest-sel')).map(s => s.value).filter(Boolean);
+            }
+
+            if (destinos.length === 0) { mostrarToast('⚠️ Agrega al menos una sucursal de entrega'); return; }
+
+            if (_salidaTipo === 'recogida') {
+                dptos = Array.from(document.querySelectorAll('.sal-dpto-sel')).map(s => s.value).filter(Boolean);
+            }
+
+            const prefix = _salidaTipo === 'cde' ? 'CDE' : 'REC';
+            codigo = `${prefix}-${String(ahora.getDate()).padStart(2,'0')}${String(ahora.getMonth()+1).padStart(2,'0')}-${String(ahora.getHours()).padStart(2,'0')}${String(ahora.getMinutes()).padStart(2,'0')}-${choferNombre}`;
+
+            const envio = { num:1, recoge: origen, destinos, items: dptos.map(d => ({dpto:d})), prioSuc:{} };
+            const boleta = {
+                id: codigo, chofer: choferActual.nombre, vehiculo,
+                hora_salida: hora, hora_emision: hora,
+                destinos: destinos.join(', '), prioridad: 'Normal', estado: 'pendiente',
+                fecha, envios: JSON.stringify([envio]),
+                entregas_detalle: JSON.stringify({ [`${codigo}_1_recogida`]: `${hora}|fotos:${fotosUrls.join(',')}` })
+            };
+            await sbFetch('POST', '/rest/v1/boletas', boleta);
+        }
+
+        // Guardar movimiento activo para registrar llegada
+        movimientoActivo = {
+            nota: nota || `${_salidaTipo === 'cde' ? 'CDE' : _salidaTipo === 'recogida' ? 'Recogida' : 'Traslado'} desde ${origen}${destinos.length ? ' → ' + destinos.join(', ') : ''}`,
+            vehiculo, hora, ts: ahora.getTime(), kmSalida: km, bitacoraId
+        };
+        localStorage.setItem('movimientoActivo', JSON.stringify(movimientoActivo));
+
+        // Mensaje Discord
+        const tipoEmoji = _salidaTipo === 'cde' ? '📋' : _salidaTipo === 'recogida' ? '📦' : '🚗';
+        const tipoTxt = _salidaTipo === 'cde' ? 'Carga CDE' : _salidaTipo === 'recogida' ? 'Recogida' : 'Traslado vacío';
+        const kmStr = km ? `\n🔢 KM salida: ${km.toLocaleString()}` : '';
+        const destStr = destinos.length ? `\n📍 Destinos: ${destinos.join(', ')}` : '';
+        // Departamentos por sucursal
+        let dptosStr = '';
+        if (_salidaTipo === 'recogida') {
+            const sucCards2 = document.querySelectorAll('#sal-destinos-cont [data-sid]');
+            const lineas = [];
+            sucCards2.forEach(card => {
+                const suc = card.querySelector('.sal-dest-sel')?.value;
+                const dps = [...card.querySelectorAll('.sal-dptos-suc-cont [data-dpto]')].map(el => el.dataset.dpto);
+                if (suc && dps.length) lineas.push(`${suc}: ${dps.join(', ')}`);
+            });
+            if (lineas.length) dptosStr = `\n📦 ${lineas.join(' | ')}`;
+        } else if (dptos.length) {
+            dptosStr = `\n📦 Lleva: ${dptos.join(', ')}`;
+        }
+        const notaStr = nota ? `\n💬 ${nota}` : '';
+        const codigoStr = codigo ? `\n🧾 Boleta: ${codigo}` : '';
+
+        const msg = `${tipoEmoji} **${choferActual.nombre.split(' ')[0]} — ${tipoTxt} registrado**\n🕐 ${hora} | ${vehiculo}\n📍 Sale de: ${origen}${destStr}${dptosStr}${kmStr}${codigoStr}${notaStr}`;
+        await notificarDiscord(choferActual.nombre, msg, fotosUrls[0] || null, vehiculo);
+
+        // Fotos adicionales
+        for (let i = 1; i < fotosUrls.length; i++) {
+            await notificarDiscord(choferActual.nombre, `📷 Foto ${i+1}/${fotosUrls.length}`, fotosUrls[i], vehiculo);
+        }
+
+        document.getElementById('modal-salida')?.remove();
+        mostrarToast(`✅ Salida registrada${codigo ? ' — ' + codigo : ''}`);
+        mostrarBotonLlegada(movimientoActivo.nota.substring(0,40), vehiculo);
+        cargarBoletas();
+        _salidaFotosDoc = [];
+    }
+
+    function _abrirModalMovimiento(kmInicial) {
+        const modal = document.createElement('div');
+        modal.id = 'modal-movimiento';
+        modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;';
+        modal.innerHTML = `
+            <div style="background:#1c1c1c;border:2px solid #ffb703;border-radius:14px;padding:20px;width:100%;max-width:380px;">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+                    <span style="font-size:1.2rem;">🚗</span>
+                    <span style="color:#ffb703;font-size:0.95rem;font-weight:700;">Registrar movimiento</span>
+                </div>
+                <div style="color:#555;font-size:0.75rem;margin-bottom:16px;">${choferActual?.unidad || ''} · Checklist ✅</div>
+
+                <label style="font-size:0.72rem;color:#888;display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">Vehículo</label>
+                <select id="mov-vehiculo" onchange="choferActual.unidad=this.value;" 
+                    style="width:100%;background:#111;border:1px solid #ffb703;color:#ffb703;border-radius:8px;padding:10px;font-size:0.9rem;margin-bottom:12px;">
+                    ${['NPR 01','NPR 02','NPR 04','Fuso 03','L300 05','Jack 06','Jack 07'].map(v=>`<option value="${v}"${v===choferActual?.unidad?' selected':''}>${v}</option>`).join('')}
                 </select>
 
-                <label style="font-size:0.75rem;color:#888;display:block;margin-bottom:6px;">📝 ¿A DÓNDE VAS Y POR QUÉ?</label>
+                <label style="font-size:0.72rem;color:#888;display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">🔢 KM actual (odómetro)</label>
+                <input type="number" id="mov-km" placeholder="Ej: 149500" min="0" value="${kmInicial||''}"
+                    style="width:100%;background:#111;border:1px solid #ffb703;color:#ffb703;border-radius:8px;padding:10px;font-size:0.9rem;margin-bottom:12px;">
+
+                <label style="font-size:0.72rem;color:#888;display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">📝 ¿A dónde vas y por qué?</label>
                 <div style="position:relative;margin-bottom:12px;">
                     <textarea id="mov-nota" placeholder="Ej: Saliendo de Miranda para CDE a buscar carga de charcutería..." rows="3"
-                        style="width:100%;padding:10px 42px 10px 12px;background:#111;border:1px solid #ffb703;color:#e0e0e0;border-radius:6px;font-size:0.85rem;font-family:inherit;resize:none;"></textarea>
+                        style="width:100%;padding:10px 42px 10px 12px;background:#111;border:1px solid #ffb703;color:#e0e0e0;border-radius:8px;font-size:0.88rem;font-family:inherit;resize:none;"></textarea>
                     <button type="button" onclick="usarMicrofonoMovimiento()"
                         style="position:absolute;right:8px;top:10px;background:transparent;border:none;font-size:1.4rem;cursor:pointer;">🎤</button>
                 </div>
 
-                <label style="font-size:0.75rem;color:#888;display:block;margin-bottom:6px;">📷 FOTO (opcional)</label>
+                <label style="font-size:0.72rem;color:#888;display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">📷 Foto (opcional)</label>
                 <div id="mov-foto-cont" style="margin-bottom:8px;"></div>
                 <button type="button" onclick="agregarFotoMovimiento()"
-                    style="width:100%;background:#2a1f00;color:#ffb703;border:1px solid #554400;border-radius:6px;padding:8px;font-size:0.82rem;cursor:pointer;margin-bottom:14px;">
+                    style="width:100%;background:#2a1f00;color:#ffb703;border:1px solid #554400;border-radius:8px;padding:9px;font-size:0.82rem;cursor:pointer;margin-bottom:14px;">
                     📷 Tomar / subir foto
                 </button>
 
                 <div style="display:flex;gap:8px;">
-                    <button onclick="document.getElementById('modal-movimiento').remove()" 
-                        style="flex:1;background:#2a2a2a;color:#888;border:1px solid #444;border-radius:6px;padding:10px;cursor:pointer;">Cancelar</button>
-                    <button onclick="registrarMovimiento()" 
-                        style="flex:2;background:#ffb703;color:#000;border:none;border-radius:6px;padding:10px;cursor:pointer;font-weight:700;">✅ Registrar salida</button>
+                    <button onclick="document.getElementById('modal-movimiento').remove()"
+                        style="flex:1;background:#2a2a2a;color:#888;border:1px solid #333;border-radius:8px;padding:11px;cursor:pointer;">Cancelar</button>
+                    <button onclick="registrarMovimiento()"
+                        style="flex:2;background:#ffb703;color:#000;border:none;border-radius:8px;padding:11px;cursor:pointer;font-weight:700;font-size:0.9rem;">🚗 Registrar salida</button>
                 </div>
             </div>`;
         document.body.appendChild(modal);
+    }
+
+    let _entrego = true;
+    let _conNovedad = false;
+    let _horaLlegadaSucursal = null;
+    let _horaLlegadaReal = null; // Hora exacta en que tocó "Llegué"
+
+    function confirmarLlegadaPaso1(destino, vehiculo) {
+        _horaLlegadaReal = new Date();
+        _horaLlegadaSucursal = _horaLlegadaReal;
+        // Ocultar botón llegué y mostrar panel de entrega/novedad
+        const btn = document.getElementById('btn-llegue-confirmar');
+        if (btn) { btn.disabled = true; btn.style.opacity = '0.5'; btn.textContent = '✅ Llegada registrada'; }
+        const paso2 = document.getElementById('llegada-paso2');
+        if (paso2) paso2.style.display = 'block';
+        // Precargar KM en trucks (solo local, sin Discord aún)
+        const km = parseInt(document.getElementById('llegada-km')?.value) || null;
+        if (km) setKmActual(km);
+    }
+
+    function setEntrego(val) {
+        _entrego = val;
+        document.getElementById('btn-si-entrego').style.background = val ? '#39d353' : '#2a2a2a';
+        document.getElementById('btn-si-entrego').style.color = val ? '#000' : '#39d353';
+        document.getElementById('btn-no-entrego').style.background = val ? '#2a2a2a' : '#ef4444';
+        document.getElementById('btn-no-entrego').style.color = val ? '#ef4444' : '#000';
+    }
+
+    function setNovedad(val) {
+        _conNovedad = val;
+        document.getElementById('btn-sin-novedad').style.background = val ? '#2a2a2a' : '#39d353';
+        document.getElementById('btn-sin-novedad').style.color = val ? '#39d353' : '#000';
+        document.getElementById('btn-con-novedad').style.background = val ? '#f59e0b' : '#2a2a2a';
+        document.getElementById('btn-con-novedad').style.color = val ? '#000' : '#f59e0b';
+        const textarea = document.getElementById('llegada-novedad');
+        if (textarea) textarea.style.display = val ? 'block' : 'none';
     }
 
     let movFotoFile = null;
@@ -1280,18 +2299,22 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 
     async function registrarMovimiento() {
         const vehiculo = document.getElementById('mov-vehiculo')?.value || choferActual.unidad || '';
-        const nota = document.getElementById('mov-nota')?.value?.trim();
+        const nota     = document.getElementById('mov-nota')?.value?.trim();
+        const kmSalida = parseInt(document.getElementById('mov-km')?.value) || null;
         if (!nota) { mostrarToast('⚠️ Escribe o dicta el movimiento'); return; }
+
         const ahora = new Date();
-        const hora = ahora.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const hora  = ahora.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
+        const fecha = ahora.toISOString().slice(0,10);
+        const truck = getTruckInfo(vehiculo);
 
         // Subir foto si hay
         let fotoUrl = null;
         if (movFotoFile) {
             try {
                 const ext = movFotoFile.type === 'image/png' ? 'png' : 'jpg';
-                const nombreBase = choferActual.nombre.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-zA-Z0-9]/g,'_');
-                const nombre = `movimientos/${nombreBase}_${Date.now()}.${ext}`;
+                const nb  = choferActual.nombre.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-zA-Z0-9]/g,'_');
+                const nombre = `movimientos/${nb}_${Date.now()}.${ext}`;
                 const res = await fetch(`${SB_URL}/storage/v1/object/fotos-flota/${nombre}`, {
                     method: 'POST',
                     headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': movFotoFile.type },
@@ -1302,12 +2325,29 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
             movFotoFile = null;
         }
 
-        // Guardar movimiento activo
-        movimientoActivo = { nota, vehiculo, hora, ts: ahora.getTime() };
+        // Guardar en bitacora (salida)
+        const bitacoraId = `bit_${Date.now()}`;
+        await sbInsert('bitacora', {
+            id:         bitacoraId,
+            truck_id:   truck.id,
+            type:       'salida',
+            date:       fecha,
+            time:       hora,
+            km_out:     kmSalida,
+            notes_salida: nota,
+            fotos:      fotoUrl ? [fotoUrl] : [],
+        });
+
+        // Actualizar KM en trucks
+        if (kmSalida) await sbPatchById('trucks', truck.id, { current_km: kmSalida });
+
+        // Guardar movimiento activo con bitacoraId para cerrar al llegar
+        movimientoActivo = { nota, vehiculo, hora, ts: ahora.getTime(), kmSalida, bitacoraId };
         localStorage.setItem('movimientoActivo', JSON.stringify(movimientoActivo));
 
+        const kmStr = kmSalida ? `\n🔢 KM salida: ${kmSalida.toLocaleString()}` : '';
         await notificarDiscord(choferActual.nombre,
-            `🚗 **${choferActual.nombre.split(' ')[0]} — Salida registrada**\n🕐 ${hora} | ${vehiculo}\n💬 ${nota}`,
+            `🚗 **${choferActual.nombre.split(' ')[0]} — Salida registrada**\n🕐 ${hora} | ${vehiculo}${kmStr}\n💬 ${nota}`,
             fotoUrl, vehiculo
         );
 
@@ -1322,20 +2362,54 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 
         const banner = document.createElement('div');
         banner.id = 'banner-llegada-movimiento';
-        banner.style.cssText = 'background:#0a2e1a;border:2px solid #06d6a0;border-radius:10px;padding:12px;margin-bottom:10px;';
+        banner.style.cssText = 'background:#0a2e1a;border:2px solid #06d6a0;border-radius:12px;padding:14px;margin-bottom:10px;';
         banner.innerHTML = `
-            <div style="color:#06d6a0;font-size:0.78rem;margin-bottom:8px;">🚗 En ruta — confirma cuando llegues</div>
-            <div style="color:#e0e0e0;font-size:0.82rem;margin-bottom:10px;font-style:italic;">"${destino}"</div>
-            <div style="position:relative;margin-bottom:8px;">
-                <input id="llegada-donde" type="text" placeholder="¿Dónde llegaste? Ej: Palma Real, CDE..."
-                    style="width:100%;padding:8px 38px 8px 10px;background:#111;border:1px solid #06d6a0;color:#e0e0e0;border-radius:6px;font-size:0.82rem;font-family:inherit;">
-                <button type="button" onclick="micLlegada()"
-                    style="position:absolute;right:6px;top:50%;transform:translateY(-50%);background:transparent;border:none;font-size:1.1rem;cursor:pointer;">🎤</button>
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+                <div style="width:7px;height:7px;background:#06d6a0;border-radius:50%;animation:pulse 1s infinite;"></div>
+                <span style="color:#06d6a0;font-size:0.78rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">En ruta</span>
             </div>
-            <button onclick="registrarLlegada('${destino}', '${vehiculo}')" 
-                style="width:100%;background:#06d6a0;color:#000;border:none;border-radius:6px;padding:12px;font-size:0.9rem;font-weight:700;cursor:pointer;">
+            <div style="color:#e0e0e0;font-size:0.82rem;margin-bottom:10px;font-style:italic;padding:6px;background:#0f2e1f;border-radius:6px;">"${destino}"</div>
+
+            <input id="llegada-km" type="number" placeholder="🔢 KM al llegar (odómetro)" min="0"
+                style="width:100%;padding:9px 10px;background:#111;border:1px solid #06d6a0;color:#06d6a0;border-radius:8px;font-size:0.85rem;margin-bottom:10px;box-sizing:border-box;">
+
+            <button onclick="confirmarLlegadaPaso1('${destino}', '${vehiculo}')"
+                id="btn-llegue-confirmar"
+                style="width:100%;background:#06d6a0;color:#000;border:none;border-radius:8px;padding:13px;font-size:0.92rem;font-weight:700;cursor:pointer;margin-bottom:10px;">
                 📍 Llegué — Confirmar
-            </button>`;
+            </button>
+
+            <div id="llegada-paso2" style="display:none;">
+                <div style="height:1px;background:#1a4a3a;margin-bottom:10px;"></div>
+                <div style="font-size:0.72rem;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">¿Entregaste?</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px;">
+                    <button id="btn-si-entrego" onclick="setEntrego(true)"
+                        style="background:#39d353;color:#000;border:none;border-radius:8px;padding:10px;font-size:0.85rem;font-weight:700;cursor:pointer;">
+                        ✅ Sí, entregué
+                    </button>
+                    <button id="btn-no-entrego" onclick="setEntrego(false)"
+                        style="background:#2a2a2a;color:#ef4444;border:1.5px solid #ef4444;border-radius:8px;padding:10px;font-size:0.85rem;font-weight:700;cursor:pointer;">
+                        ❌ No entregué
+                    </button>
+                </div>
+                <div style="font-size:0.72rem;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">¿Novedad?</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;">
+                    <button id="btn-sin-novedad" onclick="setNovedad(false)"
+                        style="background:#39d353;color:#000;border:none;border-radius:8px;padding:9px;font-size:0.82rem;font-weight:700;cursor:pointer;">
+                        ✅ Sin novedad
+                    </button>
+                    <button id="btn-con-novedad" onclick="setNovedad(true)"
+                        style="background:#2a2a2a;color:#f59e0b;border:1.5px solid #f59e0b;border-radius:8px;padding:9px;font-size:0.82rem;font-weight:700;cursor:pointer;">
+                        ⚠️ Con novedad
+                    </button>
+                </div>
+                <textarea id="llegada-novedad" placeholder="Describe la novedad..." rows="2"
+                    style="width:100%;background:#111;border:1px solid #f59e0b;color:#e0e0e0;border-radius:8px;padding:8px;font-size:0.82rem;font-family:inherit;resize:none;margin-bottom:10px;display:none;box-sizing:border-box;"></textarea>
+                <button onclick="registrarLlegada('${destino}', '${vehiculo}')"
+                    style="width:100%;background:#ffb703;color:#000;border:none;border-radius:8px;padding:12px;font-size:0.9rem;font-weight:700;cursor:pointer;">
+                    ✅ Confirmar entrega
+                </button>
+            </div>`;
 
         // Buscar el contenedor correcto
         const cont = document.getElementById('boletas-lista')?.parentElement 
@@ -1382,15 +2456,49 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
     }
 
     async function registrarLlegada(destino, vehiculo) {
-        const ahora = new Date();
-        const hora = ahora.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const ahora    = new Date();
+        const hora     = ahora.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
+        const fecha    = ahora.toISOString().slice(0,10);
+        const kmLlegada = parseInt(document.getElementById('llegada-km')?.value) || null;
+        const dondeInput = document.getElementById('llegada-donde')?.value?.trim();
+        const truck    = getTruckInfo(vehiculo);
 
-        // Calcular tiempo en ruta
+        // Calcular tiempo en ruta y KM recorridos
         let tiempoRuta = '';
+        let kmStr = '';
         const movGuardado = movimientoActivo || JSON.parse(localStorage.getItem('movimientoActivo') || 'null');
         if (movGuardado) {
             const diffMin = Math.round((ahora.getTime() - movGuardado.ts) / 60000);
-            if (diffMin > 0) tiempoRuta = `\n🛣️ Tiempo en ruta: ${diffMin} min`;
+            if (diffMin > 0) tiempoRuta = `\n⏱️ Tiempo en ruta: ${diffMin} min`;
+            if (kmLlegada && movGuardado.kmSalida) {
+                const rec = kmLlegada - movGuardado.kmSalida;
+                if (rec > 0) kmStr = `\n🔢 ${movGuardado.kmSalida.toLocaleString()} → ${kmLlegada.toLocaleString()} km (${rec} recorridos)`;
+            } else if (kmLlegada) {
+                kmStr = `\n🔢 KM llegada: ${kmLlegada.toLocaleString()}`;
+            }
+
+            // Cerrar registro en bitacora
+            if (movGuardado.bitacoraId) {
+                await sbPatchById('bitacora', movGuardado.bitacoraId, {
+                    km_in: kmLlegada,
+                    notes_in: dondeInput || null,
+                });
+            } else {
+                // Si no hay bitacoraId (movimiento previo sin el nuevo sistema), crear entrada
+                await sbInsert('bitacora', {
+                    id:      `bit_${Date.now()}`,
+                    truck_id: truck.id,
+                    type:    'entrada',
+                    date:    fecha,
+                    time:    hora,
+                    km_in:   kmLlegada,
+                    notes_in: dondeInput || destino || null,
+                });
+            }
+
+            // Actualizar KM en trucks
+            if (kmLlegada) { await sbPatchById('trucks', truck.id, { current_km: kmLlegada }); setKmActual(kmLlegada); }
+
             movimientoActivo = null;
             localStorage.removeItem('movimientoActivo');
         }
@@ -1400,8 +2508,8 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
         if (llegadaFotoFile) {
             try {
                 const ext = llegadaFotoFile.type === 'image/png' ? 'png' : 'jpg';
-                const nombreBase = choferActual.nombre.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-zA-Z0-9]/g,'_');
-                const nombre = `movimientos/${nombreBase}_llegada_${Date.now()}.${ext}`;
+                const nb  = choferActual.nombre.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-zA-Z0-9]/g,'_');
+                const nombre = `movimientos/${nb}_llegada_${Date.now()}.${ext}`;
                 const res = await fetch(`${SB_URL}/storage/v1/object/fotos-flota/${nombre}`, {
                     method: 'POST',
                     headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': llegadaFotoFile.type },
@@ -1412,16 +2520,62 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
             llegadaFotoFile = null;
         }
 
-        const dondeInput = document.getElementById('llegada-donde')?.value?.trim();
-        const dondeStr = dondeInput ? `\n📍 Llegó a: ${dondeInput}` : '';
-        const notaOrigen = movGuardado?.nota ? `\n🚗 Venía: ${movGuardado.nota}` : '';
+        const novedad = document.getElementById('llegada-novedad')?.value?.trim() || '';
+        const entrego = _entrego;
+        const novedadStr = _conNovedad && novedad ? `\n⚠️ Novedad: ${novedad}` : entrego ? '\n✅ Sin novedad' : '';
+        const entregadoStr = entrego ? '\n✅ Entrega realizada' : '\n❌ No entregó';
+        const origenStr = movGuardado?.nota ? `\n🚗 Venía: ${movGuardado.nota}` : '';
+
+        // Combustible estimado
+        let combustibleStr = '';
+        if (kmLlegada && movGuardado?.kmSalida) {
+            const rec = kmLlegada - movGuardado.kmSalida;
+            const rend = RENDIMIENTO_VEHICULOS[vehiculo] || 4.5;
+            if (rec > 0) combustibleStr = `\n⛽ Combustible est.: ${(rec/rend).toFixed(1)}L`;
+        }
+
         await notificarDiscord(choferActual.nombre,
-            `📍 **${choferActual.nombre.split(' ')[0]} — Llegada confirmada**\n🕐 ${hora} | ${vehiculo}${tiempoRuta}${dondeStr}${notaOrigen}`,
+            `📍 **${choferActual.nombre.split(' ')[0]} — Llegada confirmada**\n🕐 ${hora} | ${vehiculo}${tiempoRuta}${kmStr}${combustibleStr}${entregadoStr}${novedadStr}${origenStr}`,
             fotoUrl, vehiculo
         );
 
         document.getElementById('banner-llegada-movimiento')?.remove();
-        mostrarToast(`✅ Llegada registrada en ${destino}`);
+        mostrarToast('✅ Llegada registrada');
+
+        // Guardar hora de llegada a esta sucursal para calcular tiempo en sitio
+        _horaLlegadaSucursal = ahora;
+
+        // Confirmar automáticamente la entrega pendiente si entregó
+        const lugarLlegada = destino || '';
+        if (entrego) {
+            const obsEntrega = _conNovedad && novedad ? novedad : 'Sin novedad';
+            await confirmarEntregaAutomatica(lugarLlegada, vehiculo, hora, obsEntrega);
+        }
+
+        // Reset
+        _entrego = true;
+        _conNovedad = false;
+    }
+
+    async function confirmarEntregaAutomatica(lugarLlegada, vehiculo, horaLlegada, observacion = 'Sin novedad') {
+        const hoy = new Date().toISOString().slice(0,10);
+        const boletas = await sbFetch('GET', `/rest/v1/boletas?fecha=eq.${hoy}&chofer=eq.${encodeURIComponent(choferActual.nombre)}&estado=eq.pendiente&select=*`) || [];
+
+        for (const b of boletas) {
+            const envios = b.envios ? JSON.parse(b.envios) : [];
+            const detalle = b.entregas_detalle ? JSON.parse(b.entregas_detalle) : {};
+
+            for (const e of envios) {
+                for (const suc of (e.destinos || [])) {
+                    const key = `${b.id}_${parseInt(e.num)}_${suc}`;
+                    if (detalle[key]) continue; // ya entregado
+
+                    // Confirmar el primer destino pendiente
+                    await confirmarSucursal(b.id, parseInt(e.num), suc, observacion);
+                    return;
+                }
+            }
+        }
     }
 
     function abrirFormRecogida() {
@@ -1437,6 +2591,10 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
                 <select id="rec-vehiculo" onchange="choferActual.unidad=this.value;" style="width:100%;background:#111;border:1px solid #06d6a0;color:#06d6a0;border-radius:6px;padding:8px;font-size:0.85rem;margin-bottom:12px;">
                     ${['NPR 01','NPR 02','NPR 04','Fuso 03','L300 05','Jack 06','Jack 07'].map(v => `<option value="${v}"${choferActual?.unidad === v ? ' selected' : ''}>${v}</option>`).join('')}
                 </select>
+
+                <label style="font-size:0.75rem;color:#888;display:block;margin-bottom:6px;">🔢 KM ACTUAL (ODÓMETRO)</label>
+                <input type="number" id="rec-km" placeholder="Ej: 149500" min="0"
+                    style="width:100%;background:#111;border:1px solid #06d6a0;color:#06d6a0;border-radius:6px;padding:9px;font-size:0.9rem;margin-bottom:12px;">
 
                 <label style="font-size:0.75rem;color:#888;display:block;margin-bottom:6px;">RECOGE EN</label>
                 <select id="rec-origen" style="width:100%;background:#111;border:1px solid #333;color:#e0e0e0;border-radius:6px;padding:8px;font-size:0.85rem;margin-bottom:6px;" onchange="toggleOrigenLibre()">
@@ -1480,6 +2638,8 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
             </div>`;
         document.body.appendChild(modal);
         agregarDestinoRec();
+        const kmGuardadoRec = getKmActual();
+        if (kmGuardadoRec) { const el = document.getElementById('rec-km'); if (el) el.value = kmGuardadoRec; }
     }
 
     function toggleOrigenLibre() {
@@ -1569,6 +2729,7 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
         if (destinos.length === 0) { mostrarToast('⚠️ Agrega al menos una sucursal de entrega'); return; }
 
         const vehiculoRec = document.getElementById('rec-vehiculo')?.value || choferActual.unidad || '';
+        const kmRec = parseInt(document.getElementById('rec-km')?.value) || null;
         const itemsRec = Array.from(document.querySelectorAll('.rec-item-dpto')).map(s => ({ dpto: s.value })).filter(i => i.dpto);
 
         // Subir fotos
@@ -1608,8 +2769,22 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 
         await sbFetch('POST', '/rest/v1/boletas', boleta);
 
+        // Guardar en bitácora
+        const truckRec = getTruckInfo(vehiculoRec);
+        const bitacoraIdRec = `bit_${Date.now()}`;
+        await sbInsert('bitacora', {
+            id: bitacoraIdRec, truck_id: truckRec.id, type: 'salida',
+            date: fechaLocal, time: hora, km_out: kmRec,
+            notes_salida: `Recogida ${origen} → ${destinos.join(', ')}`,
+        });
+        if (kmRec) await sbPatchById('trucks', truckRec.id, { current_km: kmRec });
+
+        movimientoActivo = { nota: `Recogida ${origen} → ${destinos.join(', ')}`, vehiculo: vehiculoRec, hora, ts: Date.now(), kmSalida: kmRec, bitacoraId: bitacoraIdRec };
+        localStorage.setItem('movimientoActivo', JSON.stringify(movimientoActivo));
+
         const notaRec = document.getElementById('rec-nota')?.value?.trim() || '';
-        const msg = `📦 **Recogida registrada — ${codigo}**\n🕐 ${hora} | ${vehiculoRec}\n👤 ${choferActual.nombre.split(' ')[0]}\n📍 Recoge en: ${origen}\n🚚 Destinos: ${destinos.join(', ')}${notaRec ? '\n💬 ' + notaRec : ''}`;
+        const kmStrRec = kmRec ? `\n🔢 KM salida: ${kmRec.toLocaleString()}` : '';
+        const msg = `📦 **Recogida registrada — ${codigo}**\n🕐 ${hora} | ${vehiculoRec}\n👤 ${choferActual.nombre.split(' ')[0]}\n📍 Recoge en: ${origen}\n🚚 Destinos: ${destinos.join(', ')}${kmStrRec}${notaRec ? '\n💬 ' + notaRec : ''}`;
         await notificarDiscord(choferActual.nombre, msg, fotosUrls[0] || null, vehiculoRec);
         for (let i = 1; i < fotosUrls.length; i++) {
             await notificarDiscord(choferActual.nombre, `📷 Foto ${i+1} de ${fotosUrls.length}`, fotosUrls[i], vehiculoRec);
@@ -1632,6 +2807,10 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
                 <select id="cde-vehiculo" onchange="choferActual.unidad=this.value;document.getElementById('topbar-unit').textContent=this.value;" style="width:100%;background:#111;border:1px solid #3a5aad;color:#7c9ff5;border-radius:6px;padding:8px;font-size:0.85rem;margin-bottom:12px;">
                     ${['NPR 01','NPR 02','NPR 04','Fuso 03','L300 05','Jack 06','Jack 07'].map(v => `<option value="${v}"${choferActual?.unidad === v ? ' selected' : ''}>${v}</option>`).join('')}
                 </select>
+                <label style="font-size:0.75rem;color:#888;display:block;margin-bottom:6px;">🔢 KM ACTUAL (ODÓMETRO)</label>
+                <input type="number" id="cde-km" placeholder="Ej: 149500" min="0"
+                    style="width:100%;background:#111;border:1px solid #7c9ff5;color:#7c9ff5;border-radius:6px;padding:9px;font-size:0.9rem;margin-bottom:12px;">
+
                 <label style="font-size:0.75rem;color:#888;display:block;margin-bottom:6px;">ENTREGA EN</label>
                 <div id="cde-destinos-cont"></div>
                 <button type="button" onclick="agregarDestinoCDE()"
@@ -1660,6 +2839,8 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
             </div>`;
         document.body.appendChild(modal);
         agregarDestinoCDE();
+        const kmGuardado = getKmActual();
+        if (kmGuardado) { const el = document.getElementById('cde-km'); if (el) el.value = kmGuardado; }
     }
 
     function agregarDestinoCDE() {
@@ -1808,6 +2989,22 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
         };
 
         const vehiculoCDE = document.getElementById('cde-vehiculo')?.value || choferActual.unidad || '';
+        const kmCDE = parseInt(document.getElementById('cde-km')?.value) || null;
+        const truckCDE = getTruckInfo(vehiculoCDE);
+
+        // Guardar en bitácora
+        const bitacoraIdCDE = `bit_${Date.now()}`;
+        await sbInsert('bitacora', {
+            id: bitacoraIdCDE, truck_id: truckCDE.id, type: 'salida',
+            date: fechaLocal, time: hora, km_out: kmCDE,
+            notes_salida: `CDE → ${destinos.join(', ')}`,
+        });
+        if (kmCDE) await sbPatchById('trucks', truckCDE.id, { current_km: kmCDE });
+
+        // Guardar bitacoraId para cerrar al llegar
+        movimientoActivo = { nota: `CDE → ${destinos.join(', ')}`, vehiculo: vehiculoCDE, hora, ts: Date.now(), kmSalida: kmCDE, bitacoraId: bitacoraIdCDE };
+        localStorage.setItem('movimientoActivo', JSON.stringify(movimientoActivo));
+
         const boleta = {
             id: codigo,
             chofer: choferActual.nombre,
@@ -1826,7 +3023,8 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 
         // Notificar Discord
         const notaCDE = document.getElementById('cde-nota')?.value?.trim() || '';
-        const msg = `📦 **Carga CDE registrada — ${codigo}**\n🕐 ${hora} | ${vehiculoCDE}\n👤 ${choferActual.nombre.split(' ')[0]}\n📍 Destinos: ${destinos.join(', ')}${notaCDE ? '\n💬 ' + notaCDE : ''}`;
+        const kmStrCDE = kmCDE ? `\n🔢 KM salida: ${kmCDE.toLocaleString()}` : '';
+        const msg = `📦 **Carga CDE registrada — ${codigo}**\n🕐 ${hora} | ${vehiculoCDE}\n👤 ${choferActual.nombre.split(' ')[0]}\n📍 Destinos: ${destinos.join(', ')}${kmStrCDE}${notaCDE ? '\n💬 ' + notaCDE : ''}`;
         await notificarDiscord(choferActual.nombre, msg, fotosUrls[0] || null, vehiculoCDE);
         for (let i = 1; i < fotosUrls.length; i++) {
             await notificarDiscord(choferActual.nombre, `📷 Foto ${i+1} de ${fotosUrls.length}`, fotosUrls[i], vehiculoCDE);
@@ -2620,7 +3818,130 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 
         await sbFetch('PATCH', `/rest/v1/boletas?id=eq.${boletaId}`, update);
         mostrarToast(`✅ ${sucursal} — entregado`);
-        // NO recargar — el auto-refresh cada 30s se encarga
+
+        // Buscar siguiente destino pendiente en la misma boleta
+        const envios2 = b.envios ? JSON.parse(b.envios) : [];
+        let siguienteDest = null;
+        for (const e of envios2) {
+            for (const s of (e.destinos || [])) {
+                const k = `${boletaId}_${parseInt(e.num)}_${s}`;
+                if (!detalle[k]) { siguienteDest = s; break; }
+            }
+            if (siguienteDest) break;
+        }
+
+        if (siguienteDest) {
+            // Mostrar banner de salida manual hacia el siguiente destino
+            setTimeout(() => {
+                mostrarBannerSalidaSiguiente(sucursal, siguienteDest, vehiculoBoleta);
+            }, 800);
+        } else if (todasEntregadas) {
+            setTimeout(() => {
+                abrirBannerSalidaRegreso(sucursal, vehiculoBoleta);
+            }, 800);
+        }
+    }
+
+    function mostrarBannerSalidaSiguiente(desde, hacia, vehiculo) {
+        document.getElementById('banner-llegada-movimiento')?.remove();
+        document.getElementById('banner-salida-siguiente')?.remove();
+
+        const banner = document.createElement('div');
+        banner.id = 'banner-salida-siguiente';
+        banner.style.cssText = 'background:#0a1a2e;border:2px solid #7c9ff5;border-radius:12px;padding:14px;margin-bottom:10px;';
+        banner.innerHTML = `
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+                <span style="font-size:1rem;">✅</span>
+                <span style="color:#7c9ff5;font-size:0.82rem;font-weight:700;">Entrega confirmada en ${desde}</span>
+            </div>
+            <div style="color:#888;font-size:0.78rem;margin-bottom:12px;">Cuando estés listo para salir, toca el botón</div>
+            <div style="background:#111;border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:0.82rem;color:#e0e0e0;">
+                📍 Próximo destino: <strong style="color:#7c9ff5;">${hacia}</strong>
+            </div>
+            <button onclick="salirHaciaSiguiente('${desde}', '${hacia}', '${vehiculo}')"
+                style="width:100%;background:#7c9ff5;color:#000;border:none;border-radius:8px;padding:13px;font-size:0.92rem;font-weight:900;cursor:pointer;">
+                🚗 Saliendo hacia ${hacia}
+            </button>`;
+
+        const contenido = document.getElementById('screen-main');
+        const primero = contenido?.querySelector('.boletas-wrap, #boletas-lista, .content');
+        if (primero) contenido.insertBefore(banner, primero);
+        else contenido?.prepend(banner);
+    }
+
+    async function salirHaciaSiguiente(desde, hacia, vehiculo) {
+        const ahora = new Date();
+        const hora  = ahora.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
+        let tiempoEnSitio = '';
+        if (_horaLlegadaSucursal) {
+            const min = Math.round((ahora.getTime() - _horaLlegadaSucursal.getTime()) / 60000);
+            if (min > 0) tiempoEnSitio = `\n⏱️ Tiempo en ${desde}: ${min} min`;
+        }
+
+        await notificarDiscord(choferActual.nombre,
+            `🚗 **${choferActual.nombre.split(' ')[0]} — Saliendo hacia ${hacia}**\n🕐 ${hora} | ${vehiculo}${tiempoEnSitio}\n📍 Sale de: ${desde} → ${hacia}`,
+            null, vehiculo
+        );
+
+        // Guardar nuevo movimiento activo
+        const kmActual = getKmActual();
+        movimientoActivo = {
+            nota: `${desde} → ${hacia}`,
+            vehiculo, hora, ts: ahora.getTime(),
+            kmSalida: kmActual, bitacoraId: null
+        };
+        localStorage.setItem('movimientoActivo', JSON.stringify(movimientoActivo));
+        _horaLlegadaSucursal = null;
+
+        document.getElementById('banner-salida-siguiente')?.remove();
+        mostrarBotonLlegada(`${desde} → ${hacia}`, vehiculo);
+        mostrarToast(`🚗 En ruta hacia ${hacia}`);
+    }
+
+    function abrirBannerSalidaRegreso(desde, vehiculo) {
+        document.getElementById('banner-llegada-movimiento')?.remove();
+        document.getElementById('banner-salida-siguiente')?.remove();
+
+        const banner = document.createElement('div');
+        banner.id = 'banner-regreso';
+        banner.style.cssText = 'background:#1a1a00;border:2px solid #ffb703;border-radius:12px;padding:14px;margin-bottom:10px;';
+        banner.innerHTML = `
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+                <span style="font-size:1rem;">✅</span>
+                <span style="color:#ffb703;font-size:0.82rem;font-weight:700;">Todas las entregas completadas</span>
+            </div>
+            <div style="color:#888;font-size:0.78rem;margin-bottom:10px;">Estás en: <strong style="color:#e0e0e0;">${desde}</strong> · ${vehiculo}</div>
+            <div style="font-size:0.78rem;color:#888;margin-bottom:8px;">Cuando estés listo, registra tu próxima salida</div>
+            <button onclick="registrarSalidaRegreso('${desde}', '${vehiculo}')"
+                style="width:100%;background:#39d353;color:#000;border:none;border-radius:8px;padding:12px;font-size:0.9rem;font-weight:900;cursor:pointer;margin-bottom:8px;">
+                🚗 Registrar próxima salida
+            </button>
+            <button onclick="document.getElementById('banner-regreso')?.remove()"
+                style="width:100%;background:transparent;border:1px solid #333;color:#555;border-radius:8px;padding:8px;font-size:0.78rem;cursor:pointer;">
+                ✋ Terminar por ahora
+            </button>`;
+
+        const contenido = document.getElementById('screen-main');
+        const primero = contenido?.querySelector('.boletas-wrap, #boletas-lista');
+        if (primero) contenido.insertBefore(banner, primero);
+        else contenido?.prepend(banner);
+    }
+
+    async function registrarSalidaRegreso(desde, vehiculo) {
+        const ahora = new Date();
+        const hora  = ahora.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
+        let tiempoEnSitio = '';
+        if (_horaLlegadaSucursal) {
+            const min = Math.round((ahora.getTime() - _horaLlegadaSucursal.getTime()) / 60000);
+            if (min > 0) tiempoEnSitio = `\n⏱️ Tiempo en ${desde}: ${min} min`;
+        }
+        await notificarDiscord(choferActual.nombre,
+            `✅ **${choferActual.nombre.split(' ')[0]} — Todas las entregas completadas**\n🕐 ${hora} | ${vehiculo}${tiempoEnSitio}\n📍 Sale de: ${desde}`,
+            null, vehiculo
+        );
+        _horaLlegadaSucursal = null;
+        document.getElementById('banner-regreso')?.remove();
+        abrirFormSalida();
     }
 
     function cambiarVehiculo() {
